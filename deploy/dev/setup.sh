@@ -30,7 +30,7 @@ if [[ "$mode" != "postgres-only" ]]; then
 fi
 
 echo "[deploy/dev] Starting postgres..."
-docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d postgres --wait --wait-timeout "$JOSEPH_COMPOSE_WAIT_TIMEOUT"
+docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d postgres --wait --wait-timeout "$CORNERSTONE_COMPOSE_WAIT_TIMEOUT"
 
 if [[ "$mode" == "postgres-only" ]]; then
 	echo "[deploy/dev] Postgres is healthy."
@@ -38,12 +38,12 @@ if [[ "$mode" == "postgres-only" ]]; then
 fi
 
 echo "[deploy/dev] Building and starting control plane..."
-docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d --build ja-control-plane --wait --wait-timeout "$JOSEPH_COMPOSE_WAIT_TIMEOUT"
+docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d --build control-plane --wait --wait-timeout "$CORNERSTONE_COMPOSE_WAIT_TIMEOUT"
 
 echo "[deploy/dev] Starting frontend and docs site..."
-docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d ja-frontend ja-docs-site --wait --wait-timeout "$JOSEPH_COMPOSE_WAIT_TIMEOUT"
+docker compose -f "$DEPLOY_DEV_COMPOSE_FILE" up -d frontend docs-site --wait --wait-timeout "$CORNERSTONE_COMPOSE_WAIT_TIMEOUT"
 
 echo "[deploy/dev] Stack is healthy."
-echo "[deploy/dev] Frontend: http://127.0.0.1:${JOSEPH_FRONTEND_PORT}"
-echo "[deploy/dev] Control plane: http://127.0.0.1:${JOSEPH_CONTROL_PLANE_PORT}"
-echo "[deploy/dev] Docs site: http://127.0.0.1:${JOSEPH_DOCS_SITE_PORT}"
+echo "[deploy/dev] Frontend: http://127.0.0.1:${CORNERSTONE_FRONTEND_PORT}"
+echo "[deploy/dev] Control plane: http://127.0.0.1:${CORNERSTONE_CONTROL_PLANE_PORT}"
+echo "[deploy/dev] Docs site: http://127.0.0.1:${CORNERSTONE_DOCS_SITE_PORT}"

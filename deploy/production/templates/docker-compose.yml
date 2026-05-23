@@ -1,54 +1,54 @@
-name: ${JOSEPH_DEV_COMPOSE_PROJECT_NAME}
+name: ${CORNERSTONE_DEV_COMPOSE_PROJECT_NAME}
 
 services:
   postgres:
-    image: ${JOSEPH_POSTGRES_IMAGE}
+    image: ${CORNERSTONE_POSTGRES_IMAGE}
     environment:
-      POSTGRES_DB: ${JOSEPH_POSTGRES_DB}
-      POSTGRES_USER: ${JOSEPH_POSTGRES_ADMIN_USER}
-      POSTGRES_PASSWORD: ${JOSEPH_POSTGRES_ADMIN_PASSWORD}
-      JOSEPH_POSTGRES_APP_USER: ${JOSEPH_POSTGRES_APP_USER}
-      JOSEPH_POSTGRES_APP_PASSWORD: ${JOSEPH_POSTGRES_APP_PASSWORD}
+      POSTGRES_DB: ${CORNERSTONE_POSTGRES_DB}
+      POSTGRES_USER: ${CORNERSTONE_POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${CORNERSTONE_POSTGRES_ADMIN_PASSWORD}
+      CORNERSTONE_POSTGRES_APP_USER: ${CORNERSTONE_POSTGRES_APP_USER}
+      CORNERSTONE_POSTGRES_APP_PASSWORD: ${CORNERSTONE_POSTGRES_APP_PASSWORD}
     ports:
-      - "${JOSEPH_POSTGRES_PORT}:5432"
+      - "${CORNERSTONE_POSTGRES_PORT}:5432"
     volumes:
-      - ${JOSEPH_POSTGRES_DATA_HOST}:/var/lib/postgresql/data
+      - ${CORNERSTONE_POSTGRES_DATA_HOST}:/var/lib/postgresql/data
       - ../../dev/templates/postgres-init:/docker-entrypoint-initdb.d:ro
 
-  ja-control-plane:
+  control-plane:
     build:
       context: ../../..
       dockerfile: deploy/dev/Dockerfile.control_plane
       args:
-        RUST_IMAGE: ${JOSEPH_RUST_IMAGE}
-        RUNTIME_IMAGE: ${JOSEPH_RUNTIME_IMAGE}
+        RUST_IMAGE: ${CORNERSTONE_RUST_IMAGE}
+        RUNTIME_IMAGE: ${CORNERSTONE_RUNTIME_IMAGE}
     depends_on:
       - postgres
     environment:
-      JOSEPH_ACADEMY_BIND_ADDRESS: 0.0.0.0:${JOSEPH_CONTROL_PLANE_PORT}
-      JOSEPH_ACADEMY_DATABASE_URL: ${JOSEPH_ACADEMY_DATABASE_URL}
-      JOSEPH_ACADEMY_CONTENT_ROOT: /workspace/content
-      JOSEPH_ACADEMY_BOOTSTRAP_FILE: /workspace/content/bootstrap/identity_bootstrap.yaml
-      JOSEPH_ACADEMY_ARTIFACTS_ROOT: /data/artifacts
-      JOSEPH_ACADEMY_EXPORTS_ROOT: /data/exports
-      JOSEPH_ACADEMY_AUTO_BOOTSTRAP: "true"
+      CORNERSTONE_BIND_ADDRESS: 0.0.0.0:${CORNERSTONE_CONTROL_PLANE_PORT}
+      CORNERSTONE_DATABASE_URL: ${CORNERSTONE_DATABASE_URL}
+      CORNERSTONE_CONTENT_ROOT: /workspace/content
+      CORNERSTONE_BOOTSTRAP_FILE: /workspace/deploy/config/runtime_defaults/identity_bootstrap.yaml
+      CORNERSTONE_ARTIFACTS_ROOT: /data/artifacts
+      CORNERSTONE_EXPORTS_ROOT: /data/exports
+      CORNERSTONE_AUTO_BOOTSTRAP: "true"
     ports:
-      - "${JOSEPH_CONTROL_PLANE_PORT}:${JOSEPH_CONTROL_PLANE_PORT}"
+      - "${CORNERSTONE_CONTROL_PLANE_PORT}:${CORNERSTONE_CONTROL_PLANE_PORT}"
     volumes:
-      - ${JOSEPH_WORKSPACE_HOST}:/workspace:ro
-      - ${JOSEPH_ARTIFACTS_HOST}:/data/artifacts:rw
-      - ${JOSEPH_EXPORTS_HOST}:/data/exports:rw
+      - ${CORNERSTONE_WORKSPACE_HOST}:/workspace:ro
+      - ${CORNERSTONE_ARTIFACTS_HOST}:/data/artifacts:rw
+      - ${CORNERSTONE_EXPORTS_HOST}:/data/exports:rw
 
-  ja-frontend:
-    image: ${JOSEPH_NGINX_IMAGE}
+  frontend:
+    image: ${CORNERSTONE_NGINX_IMAGE}
     ports:
-      - "${JOSEPH_FRONTEND_PORT}:80"
+      - "${CORNERSTONE_FRONTEND_PORT}:80"
     volumes:
-      - ${JOSEPH_FRONTEND_BUILD_HOST}:/usr/share/nginx/html:ro
+      - ${CORNERSTONE_FRONTEND_BUILD_HOST}:/usr/share/nginx/html:ro
 
-  ja-docs-site:
-    image: ${JOSEPH_NGINX_IMAGE}
+  docs-site:
+    image: ${CORNERSTONE_NGINX_IMAGE}
     ports:
-      - "${JOSEPH_DOCS_SITE_PORT}:80"
+      - "${CORNERSTONE_DOCS_SITE_PORT}:80"
     volumes:
-      - ${JOSEPH_DOCS_BUILD_HOST}:/usr/share/nginx/html:ro
+      - ${CORNERSTONE_DOCS_BUILD_HOST}:/usr/share/nginx/html:ro

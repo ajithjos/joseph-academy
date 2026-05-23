@@ -1,10 +1,10 @@
 # AI Content Generation Contract
 
-This contract defines how future catalog and markdown content should be generated for Joseph Academy.
+This contract defines how future catalog and markdown content should be generated for Cornerstone.
 
 ## Goals
 
-- stay aligned to the Joseph Academy product definition
+- stay aligned to the Cornerstone product definition
 - generate file-owned learning definitions, not runtime learner state
 - keep every new artifact easy to validate and easy to render in Docusaurus
 - produce materials suitable for parent-led delivery to young learners

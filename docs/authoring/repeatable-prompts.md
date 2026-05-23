@@ -5,10 +5,10 @@ These prompts are designed for repeated content expansion rounds.
 ## Capability Catalog Expansion
 
 ```text
-You are extending the Joseph Academy capability catalog.
+You are extending the Cornerstone capability catalog.
 
 Context:
-- Product: Joseph Academy learning control plane
+- Product: Cornerstone learning control plane
 - Audience: young learners, initially ages 7 and 10
 - Style: parent-led, practical, measurable, short-session friendly
 
@@ -30,7 +30,7 @@ Required fields:
 ## Milestone Generation
 
 ```text
-Generate milestone catalog entries for Joseph Academy.
+Generate milestone catalog entries for Cornerstone.
 
 Inputs:
 - existing capability ids: {capability_ids}
@@ -55,7 +55,7 @@ Required fields:
 ## Plan Template Generation
 
 ```text
-Generate a Joseph Academy plan template.
+Generate a Cornerstone plan template.
 
 Inputs:
 - milestone ids: {milestone_ids}
@@ -83,7 +83,7 @@ Required fields:
 ## Markdown Content Item Generation
 
 ```text
-Write one Joseph Academy markdown content item.
+Write one Cornerstone markdown content item.
 
 Inputs:
 - content id: {content_id}

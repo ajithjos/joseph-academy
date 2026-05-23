@@ -1,10 +1,10 @@
 const config = {
-  title: "Joseph Academy Catalog",
+  title: "Cornerstone Catalog",
   tagline: "Browse file-owned capabilities, plans, and learning content",
   url: "http://localhost",
   baseUrl: "/",
-  organizationName: "joseph-academy",
-  projectName: "joseph-academy-docs",
+  organizationName: "cornerstone",
+  projectName: "cornerstone-docs",
   onBrokenLinks: "throw",
   markdown: {
     hooks: {
@@ -32,7 +32,7 @@ const config = {
   ],
   themeConfig: {
     navbar: {
-      title: "Joseph Academy",
+      title: "Cornerstone",
       items: [
         { to: "/", label: "Catalog", position: "left" },
         { to: "/generated/catalog-overview", label: "Generated", position: "left" }
@@ -48,7 +48,7 @@ const config = {
           ]
         }
       ],
-      copyright: "Joseph Academy MVP"
+      copyright: "Cornerstone MVP"
     }
   }
 };

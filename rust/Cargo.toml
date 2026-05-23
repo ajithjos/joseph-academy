@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "apps/ja_control_plane",
-    "crates/ja_catalog",
-    "crates/ja_control_plane",
+    "apps/control_plane",
+    "crates/catalog",
+    "crates/control_plane",
 ]
 resolver = "2"
 

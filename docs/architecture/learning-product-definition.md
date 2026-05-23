@@ -1,11 +1,11 @@
-# Joseph Academy Product Definition
+# Cornerstone Product Definition
 
 Status: **CURRENT MVP CONTRACT**
 Last updated: 2026-05-23.
 
 ## Purpose
 
-This document defines the current MVP product for Joseph Academy.
+This document defines the current MVP product for Cornerstone.
 
 It answers:
 
@@ -17,7 +17,7 @@ It answers:
 
 ## Product Definition
 
-Joseph Academy is a learning control plane for a small team of owners and learners.
+Cornerstone is a learning control plane for a small team of owners and learners.
 
 In the first deployment, that team is one household:
 
@@ -133,19 +133,18 @@ The first role set can stay small:
 
 ### Learner
 
-The learner is always the student profile.
+The learner is a learner-role view of a user.
 
-A learner should have at least:
+The user record should hold the student fields needed by the runtime:
 
-- `learner_id`
+- `user_id`
 - `display_name`
 - `date_of_birth`
 - `sex`
-- `current_age`
 - `current_level`
 - `notes`
 
-The learner may be linked to an user for login, but the learner profile remains its own first-class object.
+The runtime may still refer to a `learner_id`, but in the MVP that id is the learner user’s `user_id`.
 
 ## Capability, Milestone, Content, And Plan Model
 
@@ -253,7 +252,6 @@ These should live in Postgres:
 - `Team`
 - `User`
 - `TeamMembership`
-- `Learner`
 - `LearnerCapabilityState`
 - `PlanAssignment`
 - `LearningPlan`
@@ -273,7 +271,6 @@ Rule:
 - `Team`: household, class, or subgroup boundary
 - `User`: one login principal
 - `TeamMembership`: role of an user in a team
-- `Learner`: one student profile
 - `SubjectTrack`: `maths` or `english`
 - `Capability`: smallest measurable learning unit
 - `Milestone`: grouped capability checkpoint
@@ -393,7 +390,7 @@ These are not a second system.
 
 These are just the main backend operations the Rust control plane must support.
 
-- `bootstrap.apply`: load teams, users, learners, and memberships from bootstrap files
+- `bootstrap.apply`: load teams, users, and memberships from bootstrap files
 - `catalog.reload`: parse and validate capabilities, milestones, plan templates, and content indexes
 - `plan.assign`: assign a plan template to a learner
 - `plan.instantiate`: create a dated learning plan and its sessions from the chosen template
@@ -468,7 +465,7 @@ flowchart LR
 - `Rust server`: control plane API and runtime ownership
 - `Postgres`: durable learner, plan, session, and progress state
 - `Markdown`: content pages with frontmatter
-- `YAML` or `JSON`: indexes and catalogs for capabilities, milestones, plan templates, and bootstrap
+- `YAML` or `JSON`: indexes and catalogs for capabilities, milestones, plan templates, and deployment bootstrap
 - `Docusaurus`: browse-only catalog surface for operators and owners
 - `Docker Compose`: local and VM deployment shape
 - `Local file storage`: runtime evidence and generated artifacts
@@ -553,7 +550,7 @@ Runtime-produced or runtime-owned material:
 ## Suggested Repo Shape
 
 ```text
-joseph_academy/
+cornerstone/
   docs/
   content/
 
@@ -579,12 +576,10 @@ joseph_academy/
     exports/
   deploy/
     config/
+      runtime_defaults/
+        identity_bootstrap.yaml
     dev/
     production/
-    templates/
-      bootstrap/
-        identity_bootstrap.yaml
-        learners.yaml
 ```
 
 ## What Exists Now Versus Later

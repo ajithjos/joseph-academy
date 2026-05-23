@@ -6,7 +6,7 @@ It should define the product clearly before implementation work spreads across t
 
 ## Architecture
 
-- `architecture/learning-product-definition.md`: canonical current product definition for Joseph Academy, including scope, first-class objects, control-plane boundary, product flow, and recommended stack
+- `architecture/learning-product-definition.md`: canonical current product definition for Cornerstone, including scope, first-class objects, control-plane boundary, product flow, and recommended stack
 
 ## Authoring
 

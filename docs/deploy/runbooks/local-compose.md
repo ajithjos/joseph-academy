@@ -22,4 +22,8 @@ make control-plane-compose-reset
 make rust-test
 make frontend-sanity
 make docs-site-build
+make docs-site-dev
 ```
+
+`make control-plane-compose-up` serves the production docs flavor.
+`make docs-site-dev` serves the developer docs flavor with the repo `docs/` tree included.

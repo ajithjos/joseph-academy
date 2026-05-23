@@ -1,6 +1,6 @@
-# Joseph Academy
+# Cornerstone
 
-Joseph Academy is a learning control plane for a small household-sized learning team.
+Cornerstone is a learning control plane for a small household-sized learning team.
 
 This repository now contains an MVP stack with:
 
@@ -8,6 +8,9 @@ This repository now contains an MVP stack with:
 - a Flutter web frontend for owner and learner workflows
 - a Docusaurus catalog site generated from repo-owned curriculum files
 - Docker-based dev and VM-oriented deployment templates
+
+Identity bootstrap lives under `deploy/config/runtime_defaults/identity_bootstrap.yaml`.
+Curriculum content stays under `content/`.
 
 ## Quickstart
 
@@ -23,11 +26,13 @@ Default local URLs:
 - control plane: `http://127.0.0.1:8788`
 - catalog docs: `http://127.0.0.1:3001`
 
+Use `make docs-site-dev` when you want the developer-flavor docs site that also mirrors the repo `docs/` tree.
+
 ## Repo Shape
 
-- `content/`: file-owned curriculum catalogs, bootstrap identities, and content items
+- `content/`: file-owned curriculum catalogs and content items
 - `rust/`: Rust control-plane workspace
-- `fe/flutter/apps/joseph_academy/`: Flutter web runtime UI
+- `fe/flutter/apps/cornerstone/`: Flutter web runtime UI
 - `docs_site/`: Docusaurus catalog site
 - `deploy/`: dev and production deployment workflows
 - `docs/`: product and operator documentation

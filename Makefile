@@ -1,7 +1,7 @@
 .PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-catalog-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-catalog-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
 
 PYTHON_RUN ?= uv run
-FLUTTER_APP_DIR ?= $(CURDIR)/fe/flutter/apps/joseph_academy
+FLUTTER_APP_DIR ?= $(CURDIR)/fe/flutter/apps/cornerstone
 DOCS_SITE_DIR ?= $(CURDIR)/docs_site
 RUST_MANIFEST ?= $(CURDIR)/rust/Cargo.toml
 FLUTTER_REQUIRED_VERSION ?= 3.41.9
@@ -43,16 +43,16 @@ rust-test:
 	cargo test --manifest-path $(RUST_MANIFEST) --workspace --all-features
 
 rust-run:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- server
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- server
 
 rust-migrate:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- migrate
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- migrate
 
 rust-bootstrap-apply:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- bootstrap-apply
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
 rust-catalog-validate:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- catalog-validate
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
 
 frontend-pub-get:
 	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter pub get'
@@ -72,25 +72,25 @@ docs-site-install:
 	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install'
 
 docs-site-prepare:
-	$(PYTHON_RUN) python scripts/render_catalog_docs.py
+	$(PYTHON_RUN) python scripts/render_catalog_docs.py developer
 
-docs-site-build: docs-site-prepare
-	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run build'
+docs-site-build:
+	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run build:production'
 
-docs-site-dev: docs-site-prepare
-	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run start -- --host 0.0.0.0 --port 3001'
+docs-site-dev:
+	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run start:developer'
 
 control-plane-db-up:
 	bash deploy/dev/setup.sh --postgres-only
 
 control-plane-db-migrate:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- migrate
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- migrate
 
 control-plane-bootstrap-apply:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- bootstrap-apply
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
 control-plane-catalog-reload:
-	cargo run --manifest-path rust/apps/ja_control_plane/Cargo.toml -- catalog-validate
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
 
 control-plane-compose-up:
 	bash deploy/dev/setup.sh

@@ -21,7 +21,7 @@ wheels = [
 ]
 
 [[package]]
-name = "joseph-academy-dev"
+name = "cornerstone-dev"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

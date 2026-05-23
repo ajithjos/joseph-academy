@@ -12,6 +12,9 @@ __pycache__/
 **/node_modules/
 docs_site/.docusaurus/
 docs_site/build/
+docs_site/docs/generated/
+docs_site/docs/library/
+docs_site/docs/developer/
 scratchpad/
 dist/
 coverage/

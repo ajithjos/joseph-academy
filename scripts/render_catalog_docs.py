@@ -1,35 +1,37 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTENT_ROOT = REPO_ROOT / "content"
+DOCS_SOURCE_ROOT = REPO_ROOT / "docs"
 DOCS_ROOT = REPO_ROOT / "docs_site" / "docs"
 GENERATED_ROOT = DOCS_ROOT / "generated"
 LIBRARY_ROOT = DOCS_ROOT / "library"
+DEVELOPER_ROOT = DOCS_ROOT / "developer"
+
+VALID_MODES = {"production", "developer"}
 
 
 def load_yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text())
 
 
-def render_markdown() -> None:
+def render_markdown(mode: str = "production") -> None:
+    if mode not in VALID_MODES:
+        raise ValueError(f"unsupported mode: {mode}")
+
     subjects = load_yaml(CONTENT_ROOT / "catalog" / "subjects.yaml")["subjects"]
     capabilities = load_yaml(CONTENT_ROOT / "catalog" / "capabilities.yaml")["capabilities"]
     milestones = load_yaml(CONTENT_ROOT / "catalog" / "milestones.yaml")["milestones"]
     plan_templates = load_yaml(CONTENT_ROOT / "catalog" / "plan_templates.yaml")["plan_templates"]
     content_items = load_yaml(CONTENT_ROOT / "catalog" / "content_index.yaml")["content_items"]
 
-    GENERATED_ROOT.mkdir(parents=True, exist_ok=True)
-    if LIBRARY_ROOT.exists():
-        shutil.rmtree(LIBRARY_ROOT)
-    if GENERATED_ROOT.exists():
-        shutil.rmtree(GENERATED_ROOT)
-    GENERATED_ROOT.mkdir(parents=True, exist_ok=True)
-    LIBRARY_ROOT.mkdir(parents=True, exist_ok=True)
+    reset_output_dirs()
 
     write_file(
         GENERATED_ROOT / "catalog-overview.md",
@@ -154,12 +156,28 @@ def render_markdown() -> None:
     )
 
     copy_library_markdown()
+    if mode == "developer":
+        copy_developer_docs()
+
+
+def reset_output_dirs() -> None:
+    for directory in (GENERATED_ROOT, LIBRARY_ROOT, DEVELOPER_ROOT):
+        if directory.exists():
+            shutil.rmtree(directory)
+        directory.mkdir(parents=True, exist_ok=True)
 
 
 def copy_library_markdown() -> None:
     source_root = CONTENT_ROOT / "library"
     for source in source_root.rglob("*.md"):
         target = LIBRARY_ROOT / source.relative_to(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(source.read_text())
+
+
+def copy_developer_docs() -> None:
+    for source in DOCS_SOURCE_ROOT.rglob("*.md"):
+        target = DEVELOPER_ROOT / source.relative_to(DOCS_SOURCE_ROOT)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text())
 
@@ -178,4 +196,5 @@ def write_file(path: Path, content: str) -> None:
 
 
 if __name__ == "__main__":
-    render_markdown()
+    selected_mode = sys.argv[1] if len(sys.argv) > 1 else "production"
+    render_markdown(selected_mode)

@@ -1,0 +1,12 @@
+# Deploy Config
+
+Tracked deployment config is split into:
+
+- `build/`: immutable image and build inputs committed with the repo
+- `runtime_defaults/`: editable runtime defaults mounted by local or production deployment flows
+
+Current runtime defaults:
+
+- `identity_bootstrap.yaml`: team, users, and memberships loaded into the control plane at bootstrap time
+
+Curriculum catalogs and library content stay under `content/`. Identity bootstrap is deployment config, not curriculum content.

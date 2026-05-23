@@ -1,9 +1,9 @@
 ---
-title: Joseph Academy Catalog
+title: Cornerstone Catalog
 slug: /
 ---
 
-# Joseph Academy Catalog
+# Cornerstone Catalog
 
 This site is generated from the repo-owned curriculum files under `content/`.
 

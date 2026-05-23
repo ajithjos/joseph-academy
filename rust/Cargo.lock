@@ -216,6 +216,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
+name = "catalog"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -305,6 +315,35 @@ name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
+
+[[package]]
+name = "control_plane"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "catalog",
+ "chrono",
+ "clap",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "control_plane_app"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "control_plane",
+ "tokio",
+]
 
 [[package]]
 name = "core-foundation-sys"
@@ -886,45 +925,6 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
-
-[[package]]
-name = "ja_catalog"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "serde",
- "serde_yaml",
-]
-
-[[package]]
-name = "ja_control_plane"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "clap",
- "ja_catalog",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "ja_control_plane_app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "ja_control_plane",
- "tokio",
-]
 
 [[package]]
 name = "js-sys"
