@@ -17,11 +17,11 @@ It answers:
 
 ## Product Definition
 
-Joseph Academy is a learning control plane for a small team of managers and learners.
+Joseph Academy is a learning control plane for a small team of owners and learners.
 
 In the first deployment, that team is one household:
 
-- managers are the parents
+- owners are the parents
 - learners are the children
 
 Later, the same model should be extendable to:
@@ -29,11 +29,11 @@ Later, the same model should be extendable to:
 - a school class
 - a tuition group
 - a cohort
-- a larger learning organization
+- a larger learning team
 
 The first version is not a content-generation system, not a school LMS, and not a chatbot tutor.
 
-The first version is a system that helps a manager:
+The first version is a system that helps an owner:
 
 - assign predefined capabilities and milestones
 - attach predefined content to them
@@ -46,7 +46,7 @@ The first version is a system that helps a manager:
 
 The runtime product should own:
 
-- identity and access for a small learning team
+- identity and access for a small team
 - learner profiles
 - progress and capability state
 - plan assignment and dated learning plans
@@ -65,7 +65,6 @@ That is the main product rule:
 
 The first milestone should support:
 
-- one organization
 - one household-style team
 - a few users with lightweight roles
 - two learners
@@ -81,7 +80,7 @@ Science stays out of scope for now.
 - store learner profiles and baseline levels
 - define small executable capabilities such as number bonds or read-aloud fluency
 - group capabilities into milestones
-- let the operator defnie milestones and templates
+- let the operator define milestones and templates
 - record score, speed, notes, and evidence
 - maintain a review queue of weak items
 - show parent-facing progress and next actions
@@ -97,17 +96,11 @@ Science stays out of scope for now.
 
 ## Identity And Team Model
 
-The identity boundary should follow the same general model you already use in your CRM and dVI systems.
+The identity boundary should stay simple and team-centered.
 
-### Organization
+### Team
 
-The top deployment boundary.
-
-For the home MVP, there is only one organization.
-
-### Learning Team
-
-The working group inside the organization.
+The working group for learning operations.
 
 In the first deployment, this is the household.
 
@@ -118,27 +111,25 @@ Later, it could be:
 - one batch
 - one school section
 
-### Actor
+### User
 
 One login identity loaded from bootstrap.
 
 Examples:
 
-- parent
+- owner
 - learner
-- operator
-- viewer
+- coach
 
 ### Team Membership
 
-The role assignment of an actor inside a learning team.
+The role assignment of an user inside a team.
 
 The first role set can stay small:
 
-- `manager`
+- `owner`
 - `learner`
-- `operator`
-- `viewer`
+- `coach` (optional later)
 
 ### Learner
 
@@ -154,7 +145,7 @@ A learner should have at least:
 - `current_level`
 - `notes`
 
-The learner may be linked to an actor for login, but the learner profile remains its own first-class object.
+The learner may be linked to an user for login, but the learner profile remains its own first-class object.
 
 ## Capability, Milestone, Content, And Plan Model
 
@@ -259,9 +250,8 @@ These should live in markdown, YAML, or JSON under version control:
 
 These should live in Postgres:
 
-- `Organization`
-- `LearningTeam`
-- `Actor`
+- `Team`
+- `User`
 - `TeamMembership`
 - `Learner`
 - `LearnerCapabilityState`
@@ -280,10 +270,9 @@ Rule:
 
 ## First-Class Objects
 
-- `Organization`: top deployment boundary
-- `LearningTeam`: household, class, or subgroup boundary
-- `Actor`: one login principal
-- `TeamMembership`: role of an actor in a learning team
+- `Team`: household, class, or subgroup boundary
+- `User`: one login principal
+- `TeamMembership`: role of an user in a team
 - `Learner`: one student profile
 - `SubjectTrack`: `maths` or `english`
 - `Capability`: smallest measurable learning unit
@@ -346,14 +335,14 @@ It records:
 This keeps planning clear:
 
 - operator defines the template
-- manager assigns or switches the template
+- owner assigns or switches the template
 - runtime tracks execution
 
 ## Product Surface
 
 The system should stay operational and simple.
 
-### Manager Dashboard
+### Owner Dashboard
 
 This is the main surface.
 
@@ -378,7 +367,7 @@ It should be:
 
 ### Review View
 
-This is where the manager closes the loop.
+This is where the owner closes the loop.
 
 It should show:
 
@@ -404,7 +393,7 @@ These are not a second system.
 
 These are just the main backend operations the Rust control plane must support.
 
-- `bootstrap.apply`: load organizations, teams, users, and learners from bootstrap files
+- `bootstrap.apply`: load teams, users, learners, and memberships from bootstrap files
 - `catalog.reload`: parse and validate capabilities, milestones, plan templates, and content indexes
 - `plan.assign`: assign a plan template to a learner
 - `plan.instantiate`: create a dated learning plan and its sessions from the chosen template
@@ -421,12 +410,12 @@ They do not require a large workflow engine.
 %%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'primaryTextColor': '#111827', 'primaryBorderColor': '#64748b', 'lineColor': '#64748b', 'secondaryColor': '#f8fafc', 'tertiaryColor': '#f8fafc', 'fontFamily': 'Inter, ui-sans-serif, system-ui, sans-serif' }}}%%
 flowchart TD
   author[Operator authors capabilities, milestones, plans, and content in files] --> load[Rust control plane loads catalogs]
-  load --> assign[Manager assigns a plan template to a learner]
+  load --> assign[Owner assigns a plan template to a learner]
   assign --> instantiate[System creates a dated learning plan]
   instantiate --> session[Child completes a daily session]
-  session --> record[Manager records score, time, and notes]
+  session --> record[Owner records score, time, and notes]
   record --> review[System updates capability state and review queue]
-  review --> next[Manager continues, repeats, or changes plan]
+  review --> next[Owner continues, repeats, or changes plan]
   next --> instantiate
 
   classDef default fill:#ffffff,stroke:#64748b,color:#111827
@@ -475,12 +464,12 @@ flowchart LR
 
 ### Recommended Now
 
-- `Flutter web`: manager and learner operational UI
+- `Flutter web`: owner and learner operational UI
 - `Rust server`: control plane API and runtime ownership
 - `Postgres`: durable learner, plan, session, and progress state
 - `Markdown`: content pages with frontmatter
 - `YAML` or `JSON`: indexes and catalogs for capabilities, milestones, plan templates, and bootstrap
-- `Docusaurus`: browse-only catalog surface for operators and managers
+- `Docusaurus`: browse-only catalog surface for operators and owners
 - `Docker Compose`: local and VM deployment shape
 - `Local file storage`: runtime evidence and generated artifacts
 
@@ -528,8 +517,7 @@ The first MVP should use a small bootstrap model similar to your existing contro
 
 It should define:
 
-- organization
-- learning teams
+- team
 - users
 - learners
 - memberships and roles
@@ -603,7 +591,6 @@ joseph_academy/
 
 ### Now
 
-- one organization
 - one household team
 - file-owned content system
 - Docusaurus catalog browsing

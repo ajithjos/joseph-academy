@@ -1,0 +1,107 @@
+plan_templates:
+  - plan_template_id: maths_age_7_foundations_week
+    title: Maths foundations week
+    recommended_age: 7
+    recommended_level: Year 2
+    milestone_ids:
+      - maths_age_7_fluency_core
+    capability_ids:
+      - number_bonds_to_10
+      - addition_facts_to_20
+      - subtraction_facts_to_20
+    duration_days: 5
+    session_pattern:
+      sessions:
+        - day_offset: 0
+          title: Number bonds starter
+          capability_ids:
+            - number_bonds_to_10
+          content_ids:
+            - cnt_maths_number_bonds_sheet_01
+        - day_offset: 1
+          title: Addition fluency
+          capability_ids:
+            - addition_facts_to_20
+          content_ids:
+            - cnt_maths_addition_facts_sheet_01
+        - day_offset: 2
+          title: Subtraction fluency
+          capability_ids:
+            - subtraction_facts_to_20
+          content_ids:
+            - cnt_maths_subtraction_facts_sheet_01
+        - day_offset: 3
+          title: Mixed review
+          capability_ids:
+            - number_bonds_to_10
+            - addition_facts_to_20
+            - subtraction_facts_to_20
+          content_ids:
+            - cnt_maths_number_bonds_sheet_01
+            - cnt_maths_addition_facts_sheet_01
+            - cnt_maths_subtraction_facts_sheet_01
+        - day_offset: 4
+          title: Parent checkpoint
+          capability_ids:
+            - number_bonds_to_10
+            - addition_facts_to_20
+            - subtraction_facts_to_20
+          content_ids:
+            - cnt_maths_foundations_teaching_note_01
+  - plan_template_id: maths_age_10_tables_fortnight
+    title: Maths tables and division fortnight
+    recommended_age: 10
+    recommended_level: Year 5
+    milestone_ids:
+      - maths_age_10_tables_and_division
+    capability_ids:
+      - times_tables_2_5_10
+      - times_tables_3_4
+      - division_facts_by_2_5_10
+      - division_facts_by_3_4
+    duration_days: 6
+    session_pattern:
+      sessions:
+        - day_offset: 0
+          title: Tables warm-up
+          capability_ids:
+            - times_tables_2_5_10
+          content_ids:
+            - cnt_maths_times_tables_sheet_01
+        - day_offset: 1
+          title: 3 and 4 tables focus
+          capability_ids:
+            - times_tables_3_4
+          content_ids:
+            - cnt_maths_times_tables_sheet_01
+        - day_offset: 2
+          title: Division by 2, 5, and 10
+          capability_ids:
+            - division_facts_by_2_5_10
+          content_ids:
+            - cnt_maths_division_facts_sheet_01
+        - day_offset: 3
+          title: Division by 3 and 4
+          capability_ids:
+            - division_facts_by_3_4
+          content_ids:
+            - cnt_maths_division_facts_sheet_01
+        - day_offset: 4
+          title: Fact-family review
+          capability_ids:
+            - times_tables_2_5_10
+            - times_tables_3_4
+            - division_facts_by_2_5_10
+            - division_facts_by_3_4
+          content_ids:
+            - cnt_maths_times_tables_sheet_01
+            - cnt_maths_division_facts_sheet_01
+        - day_offset: 5
+          title: Parent checkpoint
+          capability_ids:
+            - times_tables_2_5_10
+            - times_tables_3_4
+            - division_facts_by_2_5_10
+            - division_facts_by_3_4
+          content_ids:
+            - cnt_maths_tables_teaching_note_01

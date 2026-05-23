@@ -1,0 +1,47 @@
+# bootstrap: uv sync --all-extras
+
+uvsync() {
+	if command -v uv >/dev/null 2>&1; then
+		echo "Running: uv sync --all-extras"
+		uv sync --all-extras || return $?
+	else
+		echo "uv command not found. Install uv first."
+		return 1
+	fi
+}
+
+if [ -f .venv/bin/activate ]; then
+	source .venv/bin/activate
+else
+	echo "Warning: .venv not found. Run 'uv sync --all-extras' if you want the repo-managed Python environment."
+fi
+
+if [ -n "${ZSH_VERSION:-}" ]; then
+	SCRIPT_PATH="${(%):-%x}"
+	SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
+else
+	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
+fi
+
+export JOSEPH_ACADEMY_REPO_ROOT="$SCRIPT_DIR"
+export JOSEPH_ACADEMY_CONTENT_ROOT="${JOSEPH_ACADEMY_CONTENT_ROOT:-$SCRIPT_DIR/content}"
+export JOSEPH_ACADEMY_BOOTSTRAP_FILE="${JOSEPH_ACADEMY_BOOTSTRAP_FILE:-$SCRIPT_DIR/content/bootstrap/identity_bootstrap.yaml}"
+export JOSEPH_ACADEMY_ARTIFACTS_ROOT="${JOSEPH_ACADEMY_ARTIFACTS_ROOT:-$SCRIPT_DIR/scratchpad/dev/local/data/01/artifacts}"
+export JOSEPH_ACADEMY_EXPORTS_ROOT="${JOSEPH_ACADEMY_EXPORTS_ROOT:-$SCRIPT_DIR/scratchpad/dev/local/data/01/exports}"
+export JOSEPH_ACADEMY_DATABASE_URL="${JOSEPH_ACADEMY_DATABASE_URL:-postgres://ja_app:ja_app_dev_password@127.0.0.1:55433/joseph_academy}"
+export JOSEPH_ACADEMY_API_URL="${JOSEPH_ACADEMY_API_URL:-http://127.0.0.1:8788}"
+export JOSEPH_ACADEMY_FRONTEND_URL="${JOSEPH_ACADEMY_FRONTEND_URL:-http://127.0.0.1:8080}"
+export JOSEPH_ACADEMY_DOCS_URL="${JOSEPH_ACADEMY_DOCS_URL:-http://127.0.0.1:3001}"
+
+mkdir -p "$JOSEPH_ACADEMY_ARTIFACTS_ROOT" "$JOSEPH_ACADEMY_EXPORTS_ROOT"
+
+echo
+echo "Set repo_root as: $JOSEPH_ACADEMY_REPO_ROOT"
+echo "Set content_root as: $JOSEPH_ACADEMY_CONTENT_ROOT"
+echo "Set bootstrap_file as: $JOSEPH_ACADEMY_BOOTSTRAP_FILE"
+echo "Set artifacts_root as: $JOSEPH_ACADEMY_ARTIFACTS_ROOT"
+echo "Set exports_root as: $JOSEPH_ACADEMY_EXPORTS_ROOT"
+echo "Set database_url as: $JOSEPH_ACADEMY_DATABASE_URL"
+echo "Set api_url as: $JOSEPH_ACADEMY_API_URL"
+echo "Set frontend_url as: $JOSEPH_ACADEMY_FRONTEND_URL"
+echo "Set docs_url as: $JOSEPH_ACADEMY_DOCS_URL"

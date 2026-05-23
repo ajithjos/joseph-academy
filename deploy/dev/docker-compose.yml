@@ -1,0 +1,79 @@
+name: ${JOSEPH_DEV_COMPOSE_PROJECT_NAME:?JOSEPH_DEV_COMPOSE_PROJECT_NAME must be exported}
+
+services:
+  postgres:
+    image: ${JOSEPH_POSTGRES_IMAGE:?JOSEPH_POSTGRES_IMAGE must be exported}
+    environment:
+      POSTGRES_DB: ${JOSEPH_POSTGRES_DB}
+      POSTGRES_USER: ${JOSEPH_POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${JOSEPH_POSTGRES_ADMIN_PASSWORD}
+      JOSEPH_POSTGRES_APP_USER: ${JOSEPH_POSTGRES_APP_USER}
+      JOSEPH_POSTGRES_APP_PASSWORD: ${JOSEPH_POSTGRES_APP_PASSWORD}
+    ports:
+      - "${JOSEPH_POSTGRES_PORT}:5432"
+    volumes:
+      - ${JOSEPH_POSTGRES_DATA_HOST}:/var/lib/postgresql/data
+      - ./templates/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${JOSEPH_POSTGRES_ADMIN_USER} -d ${JOSEPH_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ja-control-plane:
+    build:
+      context: ../..
+      dockerfile: deploy/dev/Dockerfile.control_plane
+      args:
+        RUST_IMAGE: ${JOSEPH_RUST_IMAGE}
+        RUNTIME_IMAGE: ${JOSEPH_RUNTIME_IMAGE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      JOSEPH_ACADEMY_BIND_ADDRESS: 0.0.0.0:${JOSEPH_CONTROL_PLANE_PORT}
+      JOSEPH_ACADEMY_DATABASE_URL: ${JOSEPH_ACADEMY_DATABASE_URL}
+      JOSEPH_ACADEMY_CONTENT_ROOT: /workspace/content
+      JOSEPH_ACADEMY_BOOTSTRAP_FILE: /workspace/content/bootstrap/identity_bootstrap.yaml
+      JOSEPH_ACADEMY_ARTIFACTS_ROOT: /data/artifacts
+      JOSEPH_ACADEMY_EXPORTS_ROOT: /data/exports
+      JOSEPH_ACADEMY_AUTO_BOOTSTRAP: "true"
+    ports:
+      - "${JOSEPH_CONTROL_PLANE_PORT}:${JOSEPH_CONTROL_PLANE_PORT}"
+    volumes:
+      - ${JOSEPH_WORKSPACE_HOST}:/workspace:ro
+      - ${JOSEPH_ARTIFACTS_HOST}:/data/artifacts:rw
+      - ${JOSEPH_EXPORTS_HOST}:/data/exports:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${JOSEPH_CONTROL_PLANE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  ja-frontend:
+    image: ${JOSEPH_NGINX_IMAGE}
+    depends_on:
+      ja-control-plane:
+        condition: service_healthy
+    ports:
+      - "${JOSEPH_FRONTEND_PORT}:80"
+    volumes:
+      - ${JOSEPH_FRONTEND_BUILD_HOST}:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  ja-docs-site:
+    image: ${JOSEPH_NGINX_IMAGE}
+    ports:
+      - "${JOSEPH_DOCS_SITE_PORT}:80"
+    volumes:
+      - ${JOSEPH_DOCS_BUILD_HOST}:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

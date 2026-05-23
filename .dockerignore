@@ -1,0 +1,15 @@
+.git
+.idea
+.venv
+.pytest_cache
+.ruff_cache
+.dart_tool
+**/.dart_tool
+**/node_modules
+**/target
+**/build
+docs_site/build
+scratchpad
+coverage
+dist
+*.log

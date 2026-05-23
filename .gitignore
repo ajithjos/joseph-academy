@@ -1,87 +1,19 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-#lib/ # `lib` is the `src` of flutter
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-*.whl
-# testing/coverage
-.coverage
-
-
-
-
-# Secret files
-.env
-.env.build
-
-.venv
-env/
-venv/
-ENV/
-
-# Credentials
-.dhenara/.secrets/
-
-# Agent Runs
-runs/
-# AI Loop Test Artifacts
-runs_test/
-
-
-# Logs
-*.log
-
-# OS specific
 .DS_Store
-
-# Rust
-rust/target/
-
-# IDEs
 .idea/
-.vscode/
-# But still let's keep settings and the copilot task files
-!.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-
-
-
-#restricted
-restricted/
-
-# Exceptions from above rules
-!deploy/build/
-!deploy/config/build/
-deploy/build/scratchpad/
-deploy/build/shipments/
-
-scratchpad/dev
-scratchpad/dvi_artifacts_pytests/
-scratchpad/playground
-
-!scratchpad/init_data_samples/
-
-# My ingores
-40_custom_disk
-
-
-# Dataset colector
-**/opentitan_dataset_collector/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.dart_tool/
+**/.dart_tool/
+**/.idea/
+**/build/
+**/target/
+**/node_modules/
+docs_site/.docusaurus/
+docs_site/build/
+scratchpad/
+dist/
+coverage/
+*.iml
+*.log
