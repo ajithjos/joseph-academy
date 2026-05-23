@@ -5,57 +5,74 @@ Last updated: 2026-05-23.
 
 ## Purpose
 
-This document is the current product definition for Joseph Academy.
+This document defines the current MVP product for Joseph Academy.
 
-It defines:
+It answers:
 
-- what the first real product is
-- what belongs inside the system
-- what stays outside the system
-- what the first implementation flow should be
-- what technical stack should back it
+- what the product is
+- who the core actors are
+- what is file-owned versus database-owned
+- how plans, capabilities, and progress fit together
+- what technical shape the first implementation should take
 
 ## Product Definition
 
-Joseph Academy is a parent-led learning control plane for building strong fundamentals in maths and English.
+Joseph Academy is a learning control plane for a small team of managers and learners.
 
-It starts with one household and two children.
+In the first deployment, that team is one household:
 
-The first version is not a school platform, not a chatbot tutor, and not a content-generation product.
+- managers are the parents
+- learners are the children
 
-The first version is a system that helps the parent:
+Later, the same model should be extendable to:
 
-- define capabilities and milestones
-- attach curated learning content to them
-- plan short daily sessions
-- record what happened
-- track weak fundamentals
-- decide what to do next
+- a school class
+- a tuition group
+- a cohort
+- a larger learning organization
 
-## Core Product Decision
+The first version is not a content-generation system, not a school LMS, and not a chatbot tutor.
 
-The runtime system should own planning, session tracking, evidence, review, and progress.
+The first version is a system that helps a manager:
 
-The runtime system should not own content generation in this milestone.
+- assign predefined capabilities and milestones
+- attach predefined content to them
+- assign plan templates to learners
+- run daily sessions
+- record evidence and progress
+- decide what needs repetition
 
-Content should be created externally by the operator, with or without AI agents, and then checked into the repo as structured markdown or YAML packs.
+## Core Product Boundary
 
-This keeps the product boundary clean:
+The runtime product should own:
 
-- content authoring is an external workflow
-- learning operations and progress tracking are the product
+- identity and access for a small learning team
+- learner profiles
+- progress and capability state
+- plan assignment and dated learning plans
+- sessions, attempts, evidence, and review queues
+
+The runtime product should not own content generation in this milestone.
+
+Content, milestones, capabilities, and plan templates should be created offline by the operator and committed into the repo as structured files.
+
+That is the main product rule:
+
+- repo files define the learning system
+- Postgres records what actually happened for each learner
 
 ## Immediate Scope
 
 The first milestone should support:
 
-- one household
+- one organization
+- one household-style team
+- a few users with lightweight roles
 - two learners
 - maths and English only
-- daily 15-to-30-minute learning sessions
-- parent review and weekly planning
-- progress tracking in Postgres
-- content and milestone definitions in files
+- predefined capabilities, milestones, and plan templates
+- daily 15-to-30-minute sessions
+- progress tracking and review in Postgres
 
 Science stays out of scope for now.
 
@@ -64,8 +81,7 @@ Science stays out of scope for now.
 - store learner profiles and baseline levels
 - define small executable capabilities such as number bonds or read-aloud fluency
 - group capabilities into milestones
-- let the parent choose weekly focus areas
-- build daily sessions from those focus areas
+- let the operator defnie milestones and templates
 - record score, speed, notes, and evidence
 - maintain a review queue of weak items
 - show parent-facing progress and next actions
@@ -79,50 +95,76 @@ Science stays out of scope for now.
 - start as a multi-tenant SaaS
 - require a heavy auth system for the home MVP
 
-## Product Services
+## Identity And Team Model
 
-The product should be understood as six small services inside one system.
+The identity boundary should follow the same general model you already use in your CRM and dVI systems.
 
-### 1. Content Catalog
+### Organization
 
-Loads and validates file-owned content packs.
+The top deployment boundary.
 
-This includes:
+For the home MVP, there is only one organization.
 
-- capability definitions
-- milestone definitions
-- content items
-- worksheet templates
-- reading passages
-- speaking prompts
+### Learning Team
 
-### 2. Planning Engine
+The working group inside the organization.
 
-Turns learner state plus selected milestones into a weekly plan and a daily session.
+In the first deployment, this is the household.
 
-### 3. Session Engine
+Later, it could be:
 
-Presents one learner session at a time and records completion state.
+- one class
+- one subgroup
+- one batch
+- one school section
 
-### 4. Progress Engine
+### Actor
 
-Stores scores, timings, notes, evidence, and capability status.
+One login identity loaded from bootstrap.
 
-### 5. Review Engine
+Examples:
 
-Builds the review queue and the next recommended focus.
+- parent
+- learner
+- operator
+- viewer
 
-### 6. Bootstrap And Access
+### Team Membership
 
-Loads a small YAML bootstrap file for users, learners, and roles.
+The role assignment of an actor inside a learning team.
 
-## Capability And Milestone Model
+The first role set can stay small:
 
-The content model should be explicit and repeatable.
+- `manager`
+- `learner`
+- `operator`
+- `viewer`
+
+### Learner
+
+The learner is always the student profile.
+
+A learner should have at least:
+
+- `learner_id`
+- `display_name`
+- `date_of_birth`
+- `sex`
+- `current_age`
+- `current_level`
+- `notes`
+
+The learner may be linked to an actor for login, but the learner profile remains its own first-class object.
+
+## Capability, Milestone, Content, And Plan Model
+
+These definitions should be operator-defined and file-owned.
+
+They are not created ad hoc by parents inside the app.
 
 ### Capability
 
-A capability is the smallest unit the parent wants to teach and observe directly.
+A capability is the smallest teachable and measurable unit.
 
 Examples:
 
@@ -133,11 +175,18 @@ Examples:
 - `read_aloud_level_1`
 - `sentence_answer_full_response`
 
-A capability should be small enough to practise in a short session.
+Each capability should declare at least:
+
+- `capability_id`
+- `subject`
+- `title`
+- `recommended_age`
+- `recommended_level`
+- `description`
 
 ### Milestone
 
-A milestone is a group of capabilities that together represent a meaningful checkpoint.
+A milestone is a named bundle of capabilities.
 
 Examples:
 
@@ -145,11 +194,120 @@ Examples:
 - `year3_tables_core`
 - `reading_fluency_stage_1`
 
-Milestones should be file-owned definitions, not ad hoc records invented in the UI.
+Each milestone should declare at least:
 
-### Capability Status
+- `milestone_id`
+- `subject`
+- `title`
+- `recommended_age`
+- `recommended_level`
+- `capability_ids`
 
-Each learner-capability pair should have a small status model:
+### Content Item
+
+A content item is one reusable learning artifact linked to capabilities.
+
+Examples:
+
+- worksheet
+- reading passage
+- speaking prompt
+- dictation prompt
+- teaching note
+
+Every content item should link to one or more capabilities.
+
+That is what makes the content trackable.
+
+### Plan Template
+
+A plan template is a predefined path for working through one milestone or a small capability set.
+
+Examples:
+
+- 7-day number-bonds plan
+- 14-day times-tables plan
+- 7-day reading-fluency starter plan
+
+Each plan template should declare at least:
+
+- `plan_template_id`
+- `title`
+- `recommended_age`
+- `recommended_level`
+- `milestone_ids`
+- `capability_ids`
+- `session_pattern`
+- `duration_days`
+
+## Static Definitions Versus Runtime State
+
+This boundary should stay explicit.
+
+### File-Owned Definitions
+
+These should live in markdown, YAML, or JSON under version control:
+
+- `IdentityBootstrap`
+- `CapabilityCatalog`
+- `MilestoneCatalog`
+- `PlanTemplateCatalog`
+- `ContentIndex`
+- `ContentItem`
+
+### Database-Owned Runtime State
+
+These should live in Postgres:
+
+- `Organization`
+- `LearningTeam`
+- `Actor`
+- `TeamMembership`
+- `Learner`
+- `LearnerCapabilityState`
+- `PlanAssignment`
+- `LearningPlan`
+- `Session`
+- `SessionActivity`
+- `Attempt`
+- `EvidenceRecord`
+- `ReviewQueueItem`
+
+Rule:
+
+- files define the teaching model
+- Postgres stores the learner-specific state
+
+## First-Class Objects
+
+- `Organization`: top deployment boundary
+- `LearningTeam`: household, class, or subgroup boundary
+- `Actor`: one login principal
+- `TeamMembership`: role of an actor in a learning team
+- `Learner`: one student profile
+- `SubjectTrack`: `maths` or `english`
+- `Capability`: smallest measurable learning unit
+- `Milestone`: grouped capability checkpoint
+- `ContentItem`: one reusable learning artifact
+- `PlanTemplate`: file-owned recommended learning path
+- `PlanAssignment`: link between learner and chosen plan template
+- `LearningPlan`: one dated runtime plan for a learner
+- `LearnerCapabilityState`: current state of a learner against a capability
+- `Session`: one day’s learning block
+- `SessionActivity`: one task inside a session
+- `Attempt`: one recorded learner outcome
+- `EvidenceRecord`: score, duration, notes, audio, or image evidence
+- `ReviewQueueItem`: one capability that should return soon
+
+These are the core objects that should shape the API, database, and UI.
+
+## Capability State
+
+Capability status is not part of the static content system.
+
+It is per learner and belongs in the database.
+
+The first status model can stay small:
 
 - `not_started`
 - `introduced`
@@ -157,75 +315,55 @@ Each learner-capability pair should have a small status model:
 - `secure`
 - `needs_review`
 
-That is enough for the first release.
+That state should be stored on `LearnerCapabilityState` and linked by `capability_id`.
 
-## File-Owned Definitions Versus Database-Owned State
+## Planning Model
 
-This boundary is central to the design.
+The planning model should have two layers.
 
-### File-Owned Definitions
+### Plan Template
 
-These should live in markdown or YAML under version control:
+This is static and file-owned.
 
-- `UserBootstrap`
-- `CapabilityCatalog`
-- `MilestoneCatalog`
-- `ContentPack`
-- `ContentItem`
-- `WorksheetTemplate`
+It is authored offline by the operator.
 
-### Database-Owned Runtime State
+It defines the intended path.
 
-These should live in Postgres:
+### Learning Plan
 
-- `Actor`
-- `Learner`
-- `LearnerCapability`
-- `LearningPlan`
-- `Session`
-- `SessionActivity`
-- `Attempt`
-- `EvidenceRecord`
-- `ReviewQueueItem`
-- `ProgressSnapshot`
+This is runtime and database-owned.
 
-Rule:
+It is created when a plan template is assigned to a learner for real dates.
 
-- files define what can be taught
-- Postgres records what actually happened
+It records:
 
-## First-Class Objects
+- which learner is following the plan
+- when it starts
+- which sessions were scheduled
+- which sessions were completed
+- what changed during execution
 
-- `Actor`: one local user identity loaded from bootstrap
-- `Learner`: one child profile
-- `SubjectTrack`: `maths` or `english`
-- `Capability`: one teachable, observable unit
-- `Milestone`: a named bundle of capabilities
-- `ContentItem`: one worksheet, passage, prompt, or teaching note
-- `LearningPlan`: the current weekly plan for a learner
-- `Session`: one day’s learning block
-- `SessionActivity`: one task inside a session
-- `Attempt`: one recorded learner outcome for an activity
-- `EvidenceRecord`: score, duration, notes, or file evidence
-- `ReviewQueueItem`: one capability that should return soon
+This keeps planning clear:
 
-These are the objects that should shape the UI, database, and API.
+- operator defines the template
+- manager assigns or switches the template
+- runtime tracks execution
 
 ## Product Surface
 
-The system should stay simple and operational.
+The system should stay operational and simple.
 
-### Parent Dashboard
+### Manager Dashboard
 
 This is the main surface.
 
 It should answer:
 
-- what should each child do today
-- what is weak
-- what improved
-- what needs to be repeated
-- what should be in the next plan
+- what each learner should do today
+- which plan is active
+- which capabilities are weak
+- which milestones are close to completion
+- what should be repeated next
 
 ### Learner Session View
 
@@ -236,43 +374,60 @@ It should be:
 - full-screen
 - distraction-light
 - one task at a time
-- readable on a laptop or tablet
+- readable on laptop and tablet
 
 ### Review View
 
-This is where the parent closes the loop.
+This is where the manager closes the loop.
 
 It should show:
 
 - recent sessions
 - repeated mistakes
-- capability status changes
+- capability-state changes
 - review queue
-- next suggested focus
+- milestone progress
 
-### Operator Surface
+### Catalog Browse Surface
 
-For the first milestone, this does not need a rich admin product.
+This is the browse-only surface for capabilities, milestones, plan templates, and content items.
 
-The operator workflow can be:
+This can be rendered through Docusaurus from the same source files.
 
-- edit bootstrap YAML
-- edit content and milestone files
-- reload or seed the runtime
-- inspect Postgres-backed progress through the app
+It is not the editing surface.
+
+Editing remains file-based in the repo.
+
+## Control-Plane Operations
+
+These are not a second system.
+
+These are just the main backend operations the Rust control plane must support.
+
+- `bootstrap.apply`: load organizations, teams, users, and learners from bootstrap files
+- `catalog.reload`: parse and validate capabilities, milestones, plan templates, and content indexes
+- `plan.assign`: assign a plan template to a learner
+- `plan.instantiate`: create a dated learning plan and its sessions from the chosen template
+- `session.record`: store the result of a completed session
+- `review.rebuild`: recompute learner capability state, milestone progress, and review queue
+
+In the first milestone, these can be simple API handlers and service functions.
+
+They do not require a large workflow engine.
 
 ## Core Flow
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'primaryTextColor': '#111827', 'primaryBorderColor': '#64748b', 'lineColor': '#64748b', 'secondaryColor': '#f8fafc', 'tertiaryColor': '#f8fafc', 'fontFamily': 'Inter, ui-sans-serif, system-ui, sans-serif' }}}%%
 flowchart TD
-  author[Operator authors content and milestones in files] --> load[Rust control plane loads catalogs]
-  load --> plan[Parent creates or regenerates weekly plan]
-  plan --> session[Child completes daily session]
-  session --> record[Parent records score, time, notes, evidence]
-  record --> review[System updates progress and review queue]
-  review --> next[Parent decides next session or next milestone]
-  next --> plan
+  author[Operator authors capabilities, milestones, plans, and content in files] --> load[Rust control plane loads catalogs]
+  load --> assign[Manager assigns a plan template to a learner]
+  assign --> instantiate[System creates a dated learning plan]
+  instantiate --> session[Child completes a daily session]
+  session --> record[Manager records score, time, and notes]
+  record --> review[System updates capability state and review queue]
+  review --> next[Manager continues, repeats, or changes plan]
+  next --> instantiate
 
   classDef default fill:#ffffff,stroke:#64748b,color:#111827
   linkStyle default stroke:#64748b
@@ -280,31 +435,35 @@ flowchart TD
 
 ## Simple Architecture
 
-The first implementation should follow the same broad pattern you already use successfully in dVI, but much smaller.
+The first implementation should follow the same broad control-plane pattern you already use in dVI, but much smaller.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'primaryTextColor': '#111827', 'primaryBorderColor': '#64748b', 'lineColor': '#64748b', 'secondaryColor': '#f8fafc', 'tertiaryColor': '#f8fafc', 'fontFamily': 'Inter, ui-sans-serif, system-ui, sans-serif' }}}%%
 flowchart LR
   subgraph clients[Clients]
     flutter[Flutter web app]
+    docusaurus[Docusaurus catalog site]
   end
 
   subgraph control[Control plane]
     api[Rust API server]
-    workflows[Small workflow and planning runtime]
-    loader[Bootstrap and content loader]
+    planner[Planning and review services]
+    loader[Bootstrap and catalog loader]
   end
 
   postgres[(Postgres)]
-  files[(Markdown, YAML, and local artifacts)]
+  content[(Markdown, YAML, JSON catalogs)]
+  data[(Runtime artifacts and evidence)]
 
   flutter --> api
-  api --> workflows
+  api --> planner
   api --> loader
-  workflows --> postgres
-  loader --> files
+  planner --> postgres
+  loader --> content
   loader --> postgres
   api --> postgres
+  api --> data
+  docusaurus --> content
 
   style clients stroke:#64748b,stroke-dasharray: 5 5,fill:#f8fafc,color:#111827
   style control stroke:#2563eb,stroke-dasharray: 5 5,fill:#eff6ff,color:#111827
@@ -312,66 +471,96 @@ flowchart LR
   linkStyle default stroke:#64748b
 ```
 
-## Runtime Workflows
-
-The first milestone only needs a small workflow vocabulary.
-
-- `bootstrap.apply`: load users and learners from YAML
-- `catalog.reload`: load capabilities, milestones, and content items from files
-- `plan.generate`: create or refresh a learner plan
-- `session.record`: record a completed session
-- `review.rebuild`: recompute review queue and progress summary
-
-This is enough to justify a control-plane model without turning the product into an orchestration experiment.
-
 ## Tech Stack
 
 ### Recommended Now
 
-- `Flutter web`: parent and learner UI
+- `Flutter web`: manager and learner operational UI
 - `Rust server`: control plane API and runtime ownership
-- `Postgres`: durable learner, session, and progress state
-- `Docker Compose`: local runtime shape
-- `Markdown and YAML`: content, capabilities, milestones, and bootstrap files
-- `Local file storage`: worksheet files, reading sheets, and later audio or image evidence
+- `Postgres`: durable learner, plan, session, and progress state
+- `Markdown`: content pages with frontmatter
+- `YAML` or `JSON`: indexes and catalogs for capabilities, milestones, plan templates, and bootstrap
+- `Docusaurus`: browse-only catalog surface for operators and managers
+- `Docker Compose`: local and VM deployment shape
+- `Local file storage`: runtime evidence and generated artifacts
 
 ### Explicitly Out For This Milestone
 
 - in-product AI content generation
+- browser-based inline editing of capabilities or milestones
 - OCR marking
 - automatic pronunciation scoring
-- hosted multi-tenant auth
+- heavy external auth
+- multi-tenant SaaS packaging
+
+## Content Contract
+
+The content system should feel schema-like even though it is file-based.
+
+Markdown items should use frontmatter.
+
+Example:
+
+```md
+---
+id: cnt_maths_times_table_4_sheet_01
+type: worksheet
+subject: maths
+capability_ids:
+  - times_table_4
+milestone_ids:
+  - year3_tables_core
+recommended_age: 8
+difficulty: starter
+estimated_minutes: 12
+---
+
+# 4 Times Table Practice
+
+...
+```
+
+This makes the content easy to validate, render in Docusaurus, and load into the control plane.
 
 ## Bootstrap And Access
 
-The first MVP can use a very small bootstrap model.
+The first MVP should use a small bootstrap model similar to your existing control-plane systems.
 
-- one YAML file defines users and learners
-- username-only login is acceptable for the home MVP
-- roles can be lightweight: `parent`, `learner`, `operator`, `viewer`
+It should define:
 
-This is acceptable only for the founder-home phase.
+- organization
+- learning teams
+- users
+- learners
+- memberships and roles
 
-Before sharing with friends or families, the auth boundary should be upgraded.
+Username-only login is acceptable for the home MVP.
 
-## Content Authoring Contract
+Before sharing with other families or schools, the auth boundary should be upgraded.
 
-The system should provide a strong contract for content authoring even though content creation stays outside the runtime.
+## Content Versus Data
 
-Each content item should declare at least:
+This distinction should stay visible in the repo.
 
-- `content_key`
-- `subject`
-- `capability_keys`
-- `milestone_keys`
-- `difficulty`
-- `activity_type`
-- `estimated_minutes`
-- `instructions`
-- `body`
-- `answer_key` when relevant
+### Content
 
-This is what lets you use any external AI agent or manual workflow to create content safely and repeatedly.
+Curated source-of-truth learning definitions:
+
+- capabilities
+- milestones
+- plan templates
+- content items
+- indexes
+
+### Data
+
+Runtime-produced or runtime-owned material:
+
+- Postgres state
+- evidence files
+- exports
+- reports
+- local uploads
 
 ## Suggested Repo Shape
 
@@ -379,17 +568,18 @@ This is what lets you use any external AI agent or manual workflow to create con
 joseph_academy/
   docs/
   content/
-    bootstrap/
-      users.yaml
-      learners.yaml
-    maths/
+
+    catalog/
+      subjects.yaml
       capabilities.yaml
       milestones.yaml
-      packs/
-    english/
-      capabilities.yaml
-      milestones.yaml
-      packs/
+      plan_templates.yaml
+      content_index.yaml
+    library/
+      maths/
+      english/
+  site/
+    catalog_docs/
   rust/
     apps/
     crates/
@@ -398,19 +588,26 @@ joseph_academy/
       app/
   data/
     artifacts/
+    exports/
   deploy/
-    docker/
+    config/
+    dev/
+    production/
+    templates/
+      bootstrap/
+        identity_bootstrap.yaml
+        learners.yaml
 ```
 
 ## What Exists Now Versus Later
 
 ### Now
 
-- one family deployment
-- local Docker-backed runtime
-- file-owned content
-- Postgres-owned progress
-- parent-led operation
+- one organization
+- one household team
+- file-owned content system
+- Docusaurus catalog browsing
+- Postgres-owned learner state
 - Flutter web UI
 - Rust control plane
 
@@ -419,19 +616,25 @@ joseph_academy/
 - richer learner session UX
 - printable worksheet rendering
 - stored audio evidence
-- better weekly review summaries
-- friend-and-family onboarding
+- stronger progress summaries
+- friend-and-family pilots
 
 ### Later
 
-- stronger recommendation logic
+- teacher or mentor teams
+- school subgroup structures
 - assisted content validation
 - OCR-assisted evidence ingestion
-- teacher or mentor mode
 - wider academic scope
 
 ## Key Recommendation
 
-Build this as a small Rust-owned learning control plane, not as a content-generation app and not as a school platform.
+Build this as a small Rust-owned learning control plane with a file-owned curriculum system.
 
-That gives you a product boundary that is strong enough to matter, but still small enough to implement quickly with the stack and architectural style you already trust.
+Use Docusaurus to browse the catalogs, Flutter to operate the runtime, and Postgres to track learner-specific truth.
+
+That gives you a clean separation between:
+
+- static learning definitions
+- runtime learner state
+- operator content workflow
