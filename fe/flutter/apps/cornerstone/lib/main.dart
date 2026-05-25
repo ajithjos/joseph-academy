@@ -5,6 +5,20 @@ import 'api.dart';
 import 'models.dart';
 import 'theme_controller.dart';
 
+class _BrandPalette {
+  static const Color gold = Color(0xFFD5A11E);
+  static const Color goldDeep = Color(0xFFB78308);
+  static const Color goldSoft = Color(0xFFFFE6A0);
+  static const Color navy = Color(0xFF16263B);
+  static const Color navySoft = Color(0xFFDDE7F5);
+  static const Color ivory = Color(0xFFF7EFE0);
+  static const Color warmWhite = Color(0xFFFFFCF5);
+  static const Color sand = Color(0xFFE6DAC0);
+  static const Color night = Color(0xFF0F1622);
+  static const Color nightPanel = Color(0xFF172131);
+  static const Color nightPanelRaised = Color(0xFF202D40);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final themeController = CornerstoneThemeController();
@@ -37,43 +51,150 @@ class CornerstoneApp extends StatelessWidget {
   ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF0F766E),
+      seedColor: _BrandPalette.gold,
       brightness: brightness,
     ).copyWith(
-      primary: const Color(0xFF0F766E),
-      secondary: const Color(0xFFD97706),
-      surface: isDark ? const Color(0xFF182325) : Colors.white,
-      surfaceContainerLow: isDark
-          ? const Color(0xFF223235)
-          : const Color(0xFFFFFCF6),
-      surfaceContainerHigh: isDark
-          ? const Color(0xFF293B3F)
-          : const Color(0xFFF7F3EA),
-      outlineVariant: isDark
-          ? const Color(0xFF40555A)
-          : const Color(0xFFE2DCCE),
+      primary: isDark ? const Color(0xFFF1C654) : _BrandPalette.gold,
+      onPrimary: _BrandPalette.navy,
+      primaryContainer: isDark ? const Color(0xFF46320A) : const Color(0xFFFFF0C8),
+      onPrimaryContainer: isDark ? const Color(0xFFFFE7A8) : _BrandPalette.navy,
+      secondary: _BrandPalette.navy,
+      onSecondary: Colors.white,
+      secondaryContainer: isDark ? const Color(0xFF24314A) : _BrandPalette.navySoft,
+      onSecondaryContainer: isDark ? Colors.white : _BrandPalette.navy,
+      tertiary: isDark ? const Color(0xFFFFE7A8) : const Color(0xFFEDC463),
+      onTertiary: _BrandPalette.navy,
+      surface: isDark ? _BrandPalette.nightPanel : Colors.white,
+      surfaceContainerLow: isDark ? _BrandPalette.nightPanelRaised : _BrandPalette.warmWhite,
+      surfaceContainerHigh: isDark ? const Color(0xFF253246) : _BrandPalette.ivory,
+      outlineVariant: isDark ? const Color(0xFF4E5B71) : _BrandPalette.sand,
+      surfaceTint: isDark ? const Color(0xFFF1C654) : _BrandPalette.gold,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: isDark
-          ? const Color(0xFF101A1C)
-          : const Color(0xFFF7F3EA),
+          ? _BrandPalette.night
+          : _BrandPalette.ivory,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: scheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant.withValues(alpha: 0.54),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: Colors.transparent,
+        useIndicator: true,
+        indicatorColor: Color.alphaBlend(
+          scheme.primary.withValues(alpha: isDark ? 0.20 : 0.14),
+          scheme.surfaceContainerLow,
+        ),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        selectedIconTheme: IconThemeData(
+          color: scheme.primary,
+          size: 22,
+        ),
+        unselectedIconTheme: IconThemeData(
+          color: scheme.onSurfaceVariant,
+          size: 21,
+        ),
+        selectedLabelTextStyle: TextStyle(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          color: scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+        selectedColor: scheme.secondary,
+        selectedTileColor: Color.alphaBlend(
+          scheme.primary.withValues(alpha: isDark ? 0.14 : 0.09),
+          scheme.surface,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: scheme.secondary,
+          foregroundColor: scheme.onSecondary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.secondary,
+          backgroundColor: Color.alphaBlend(
+            scheme.surface.withValues(alpha: 0.92),
+            scheme.surfaceContainerLow,
+          ),
+          side: BorderSide(
+            color: scheme.primary.withValues(alpha: 0.46),
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return scheme.onPrimary;
+            }
+            return scheme.onSurfaceVariant;
+          }),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return scheme.primary;
+            }
+            return scheme.surface;
+          }),
+          side: WidgetStateProperty.resolveWith(
+            (_) => BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.68)),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          ),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surface,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+        fillColor: Color.alphaBlend(
+          scheme.surface.withValues(alpha: 0.94),
+          scheme.surfaceContainerLow,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: scheme.primary, width: 1.4),
+        ),
       ),
     );
   }
@@ -310,7 +431,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-  Future<void> _openContentSite({bool sameTab = true}) async {
+  Future<void> _openContentSite({bool sameTab = false}) async {
     final ok = await launchUrl(
       Uri.base.resolve('/content/'),
       webOnlyWindowName: sameTab ? '_self' : '_blank',
@@ -324,17 +445,17 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildContentAction({required bool compact}) {
     if (compact) {
-      return IconButton(
+      return IconButton.filledTonal(
         tooltip: 'Open content site',
         onPressed: _openContentSite,
-        icon: const Icon(Icons.menu_book_rounded),
+        icon: const Icon(Icons.open_in_new_rounded),
       );
     }
 
     return OutlinedButton.icon(
       onPressed: _openContentSite,
-      icon: const Icon(Icons.menu_book_rounded, size: 18),
-      label: const Text('Content'),
+      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+      label: const Text('Content Site'),
     );
   }
 
@@ -353,7 +474,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       MenuItemButton(
         leadingIcon: const Icon(Icons.menu_book_rounded),
         onPressed: _openContentSite,
-        child: const Text('Open content site'),
+        child: const Text('Open content site in new tab'),
       ),
       const Padding(
         padding: EdgeInsets.symmetric(horizontal: 8),
@@ -513,6 +634,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildDesktopShell(BuildContext context) {
     final theme = Theme.of(context);
     final selectedIndex = _ShellDestination.values.indexOf(_selectedDestination);
+    final panelColor = Color.alphaBlend(
+      theme.colorScheme.secondary.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.18 : 0.035,
+      ),
+      theme.colorScheme.surfaceContainerLow,
+    );
 
     return SafeArea(
       right: false,
@@ -521,20 +648,20 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          width: _shellNavExpanded ? 236 : 88,
+          width: _shellNavExpanded ? 248 : 92,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
+            color: panelColor,
             borderRadius: BorderRadius.circular(26),
             border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.30),
+              color: theme.colorScheme.primary.withValues(alpha: 0.16),
             ),
             boxShadow: [
               BoxShadow(
                 color: theme.colorScheme.shadow.withValues(
-                  alpha: theme.brightness == Brightness.light ? 0.04 : 0.18,
+                  alpha: theme.brightness == Brightness.light ? 0.06 : 0.24,
                 ),
-                blurRadius: 18,
-                offset: const Offset(0, 12),
+                blurRadius: 24,
+                offset: const Offset(0, 16),
               ),
             ],
           ),
@@ -542,10 +669,19 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             children: [
               Expanded(
                 child: NavigationRail(
+                  leading: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
+                    child: _BrandLockup(
+                      compact: !_shellNavExpanded,
+                      shellVariant: true,
+                      onTap: () => _setDestination(_ShellDestination.owner),
+                    ),
+                  ),
                   backgroundColor: Colors.transparent,
                   extended: _shellNavExpanded,
                   minWidth: 72,
                   minExtendedWidth: 220,
+                  groupAlignment: -0.88,
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (index) {
                     _setDestination(_ShellDestination.values[index]);
@@ -592,25 +728,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLow,
+                color: Color.alphaBlend(
+                  theme.colorScheme.primary.withValues(alpha: 0.08),
+                  theme.colorScheme.surfaceContainerLow,
+                ),
                 borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Image.asset('assets/images/logo_symbol.png', height: 28),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Cornerstone',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
+                  _BrandLockup(
+                    compact: false,
+                    mobileVariant: true,
+                    onTap: () => _setDestination(_ShellDestination.owner),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -773,13 +906,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 18,
-        title: Row(
-          children: [
-            Image.asset('assets/images/logo_symbol.png', height: 30),
-            const SizedBox(width: 12),
-            Image.asset('assets/images/logo_wordmark.png', height: 22),
-          ],
+        titleSpacing: 14,
+        title: _BrandLockup(
+          compact: isMobile,
+          toolbarVariant: true,
+          onTap: () => _setDestination(_ShellDestination.owner),
         ),
         actions: [
           _buildContentAction(compact: isMobile),
@@ -963,23 +1094,26 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         children: [
                           Text(
                             activity.capabilityId,
-                            style: const TextStyle(
-                              color: Color(0xFFFFD9A3),
+                            style: TextStyle(
+                              color: theme.colorScheme.tertiary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             activity.title,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimaryContainer,
                               fontSize: 20,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             'Content: ${activity.contentId}',
-                            style: const TextStyle(color: Color(0xFFE7F1EF)),
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.84),
+                            ),
                           ),
                         ],
                       ),
@@ -1225,8 +1359,11 @@ class _LearnerOperationsPanel extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3F1EA),
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1282,6 +1419,7 @@ class _LearnerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
@@ -1289,11 +1427,25 @@ class _LearnerCard extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE4F3F1) : const Color(0xFFFFFEFB),
+          color: selected
+              ? Color.alphaBlend(
+                  theme.colorScheme.primary.withValues(alpha: 0.16),
+                  theme.colorScheme.surface,
+                )
+              : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? const Color(0xFF0F766E) : const Color(0xFFE5DED1),
+            color: selected
+                ? theme.colorScheme.primary.withValues(alpha: 0.72)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.shadow.withValues(alpha: selected ? 0.09 : 0.04),
+              blurRadius: selected ? 18 : 12,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1347,6 +1499,15 @@ class _SurfaceCard extends StatelessWidget {
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.58),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(
+              alpha: theme.brightness == Brightness.light ? 0.05 : 0.14,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: child,
     );
@@ -1455,6 +1616,127 @@ class _ErrorState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BrandLockup extends StatelessWidget {
+  const _BrandLockup({
+    this.compact = false,
+    this.toolbarVariant = false,
+    this.shellVariant = false,
+    this.mobileVariant = false,
+    this.onTap,
+  });
+
+  final bool compact;
+  final bool toolbarVariant;
+  final bool shellVariant;
+  final bool mobileVariant;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final symbolSize = compact
+        ? (toolbarVariant ? 34.0 : 38.0)
+        : (toolbarVariant ? 42.0 : 46.0);
+    final wordmarkHeight = compact ? 20.0 : 28.0;
+    final padding = compact
+        ? const EdgeInsets.fromLTRB(8, 6, 10, 6)
+        : const EdgeInsets.fromLTRB(10, 8, 14, 8);
+    final badge = AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(shellVariant ? 20 : 18),
+        border: Border.all(
+          color: _BrandPalette.gold.withValues(alpha: 0.26),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: theme.brightness == Brightness.light ? 0.08 : 0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _BrandSymbol(size: symbolSize),
+          if (!compact || mobileVariant) ...[
+            SizedBox(width: compact ? 6 : 8),
+            _BrandWordmark(height: wordmarkHeight),
+          ],
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return badge;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(shellVariant ? 20 : 18),
+        child: badge,
+      ),
+    );
+  }
+}
+
+class _BrandSymbol extends StatelessWidget {
+  const _BrandSymbol({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(size * 0.26),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: OverflowBox(
+        minWidth: size * 1.84,
+        minHeight: size * 1.84,
+        maxWidth: size * 1.84,
+        maxHeight: size * 1.84,
+        alignment: Alignment.center,
+        child: Image.asset(
+          'assets/images/logo_symbol.png',
+          width: size * 1.84,
+          height: size * 1.84,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+}
+
+class _BrandWordmark extends StatelessWidget {
+  const _BrandWordmark({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: Image.asset(
+        'assets/images/logo_wordmark.png',
+        fit: BoxFit.fitHeight,
+        filterQuality: FilterQuality.high,
       ),
     );
   }

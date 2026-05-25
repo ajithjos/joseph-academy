@@ -1,29 +1,42 @@
 :root {
-  --ifm-color-primary: #0f766e;
-  --ifm-color-primary-dark: #0b5f59;
-  --ifm-color-primary-darker: #0a554f;
-  --ifm-color-primary-darkest: #08443f;
-  --ifm-color-primary-light: #148a82;
-  --ifm-color-primary-lighter: #199d95;
-  --ifm-color-primary-lightest: #2ab8af;
-  --ifm-background-color: #fbf7ef;
-  --ifm-navbar-background-color: #fffdf8;
-  --ifm-footer-background-color: #12312f;
+  --cornerstone-gold: #d5a11e;
+  --cornerstone-gold-dark: #b78308;
+  --cornerstone-gold-light: #f2c75d;
+  --cornerstone-gold-soft: #ffe7a7;
+  --cornerstone-navy: #16263b;
+  --cornerstone-ivory: #f7efe0;
+  --cornerstone-paper: #fffdf7;
+  --cornerstone-sand: #eadcc0;
+  --ifm-color-primary: var(--cornerstone-gold);
+  --ifm-color-primary-dark: #bf8f12;
+  --ifm-color-primary-darker: #b78308;
+  --ifm-color-primary-darkest: #966904;
+  --ifm-color-primary-light: #dfb345;
+  --ifm-color-primary-lighter: #e7be5d;
+  --ifm-color-primary-lightest: #f0cf87;
+  --ifm-background-color: var(--cornerstone-ivory);
+  --ifm-navbar-background-color: rgba(255, 252, 245, 0.9);
+  --ifm-footer-background-color: #111b29;
   --ifm-font-family-base: "Avenir Next", "Segoe UI", sans-serif;
   --ifm-heading-font-family: "Avenir Next", "Segoe UI", sans-serif;
   --ifm-code-font-size: 95%;
-  --ifm-link-color: #0f766e;
+  --ifm-font-color-base: var(--cornerstone-navy);
+  --ifm-heading-color: var(--cornerstone-navy);
+  --ifm-navbar-link-color: var(--cornerstone-navy);
+  --ifm-menu-color-active: var(--cornerstone-gold-dark);
+  --ifm-link-color: var(--cornerstone-gold-dark);
 }
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(20, 138, 130, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(217, 119, 6, 0.1), transparent 24%),
+    radial-gradient(circle at top left, rgba(213, 161, 30, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(22, 38, 59, 0.08), transparent 26%),
     var(--ifm-background-color);
 }
 
 .navbar {
-  border-bottom: 1px solid rgba(15, 118, 110, 0.12);
+  border-bottom: 1px solid rgba(213, 161, 30, 0.16);
+  backdrop-filter: blur(18px);
 }
 
 .theme-doc-markdown h1,
@@ -31,28 +44,115 @@ body {
   letter-spacing: -0.02em;
 }
 
+.navbar__brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(213, 161, 30, 0.22);
+  box-shadow: 0 12px 22px rgba(22, 38, 59, 0.08);
+  text-decoration: none !important;
+}
+
+.navbar__brand-logo-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+  flex: none;
+}
+
+.navbar__brand-logo {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+}
+
+.navbar__brand-wordmark-frame {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding-right: 2px;
+  background: #fff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.navbar__brand-wordmark {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+.navbar__back-to-site {
+  border-radius: 999px;
+  border: 1px solid rgba(213, 161, 30, 0.26);
+  background: linear-gradient(180deg, rgba(255, 248, 230, 0.98), rgba(255, 241, 205, 0.96));
+  box-shadow: 0 10px 20px rgba(22, 38, 59, 0.08);
+  font-weight: 700;
+}
+
+.navbar__back-to-site:hover {
+  color: var(--cornerstone-navy) !important;
+  border-color: rgba(213, 161, 30, 0.42);
+}
+
+.menu__link--active,
+.navbar__link--active {
+  color: var(--cornerstone-gold-dark);
+}
+
 [data-theme='dark'] {
-  --ifm-color-primary: #55c8bb;
-  --ifm-color-primary-dark: #42b9ac;
-  --ifm-color-primary-darker: #39ae9f;
-  --ifm-color-primary-darkest: #2c8d80;
-  --ifm-color-primary-light: #68d1c6;
-  --ifm-color-primary-lighter: #78d7cd;
-  --ifm-color-primary-lightest: #99e2da;
-  --ifm-background-color: #0f1719;
-  --ifm-navbar-background-color: #142123;
-  --ifm-footer-background-color: #0b1113;
-  --ifm-font-color-base: #eef6f4;
-  --ifm-link-color: #78d7cd;
+  --ifm-color-primary: #f2c75d;
+  --ifm-color-primary-dark: #e9ba40;
+  --ifm-color-primary-darker: #e1b130;
+  --ifm-color-primary-darkest: #bf8d12;
+  --ifm-color-primary-light: #f5d277;
+  --ifm-color-primary-lighter: #f7d989;
+  --ifm-color-primary-lightest: #fae4ab;
+  --ifm-background-color: #0f1622;
+  --ifm-navbar-background-color: rgba(20, 28, 42, 0.92);
+  --ifm-footer-background-color: #0a111a;
+  --ifm-font-color-base: #edf2fa;
+  --ifm-heading-color: #f5f7fb;
+  --ifm-navbar-link-color: #edf2fa;
+  --ifm-link-color: #f2c75d;
+  --ifm-menu-color-active: #f2c75d;
 }
 
 [data-theme='dark'] body {
   background:
-    radial-gradient(circle at top left, rgba(85, 200, 187, 0.14), transparent 26%),
-    radial-gradient(circle at top right, rgba(217, 119, 6, 0.12), transparent 22%),
+    radial-gradient(circle at top left, rgba(242, 199, 93, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 20%),
     var(--ifm-background-color);
 }
 
 [data-theme='dark'] .navbar {
-  border-bottom: 1px solid rgba(120, 215, 205, 0.16);
+  border-bottom: 1px solid rgba(242, 199, 93, 0.16);
+}
+
+[data-theme='dark'] .navbar__brand-lockup {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='dark'] .navbar__back-to-site {
+  background: linear-gradient(180deg, rgba(242, 199, 93, 0.18), rgba(242, 199, 93, 0.12));
+  border-color: rgba(242, 199, 93, 0.28);
+}
+
+@media (max-width: 996px) {
+  .navbar__brand-wordmark-frame {
+    height: 24px;
+  }
+
+  .navbar__brand-wordmark {
+    height: 24px;
+  }
 }
