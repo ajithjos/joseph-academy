@@ -601,7 +601,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Widget _buildShellRailToggle(ThemeData theme) {
-    final stripeWidth = _shellNavExpanded ? 164.0 : 48.0;
+    final stripeWidth = _shellNavExpanded ? 144.0 : 48.0;
     return GestureDetector(
       onTap: _toggleShellNavigation,
       child: MouseRegion(
@@ -662,7 +662,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          width: _shellNavExpanded ? 248 : 92,
+          width: _shellNavExpanded ? 228 : 88,
           decoration: BoxDecoration(
             color: panelColor,
             borderRadius: BorderRadius.circular(26),
@@ -686,8 +686,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   leading: const SizedBox(height: 18),
                   backgroundColor: Colors.transparent,
                   extended: _shellNavExpanded,
-                  minWidth: 72,
-                  minExtendedWidth: 220,
+                  minWidth: 68,
+                  minExtendedWidth: 198,
                   groupAlignment: -0.8,
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (index) {
@@ -705,7 +705,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
