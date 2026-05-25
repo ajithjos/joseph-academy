@@ -14,9 +14,11 @@ class _BrandPalette {
   static const Color ivory = Color(0xFFF7EFE0);
   static const Color warmWhite = Color(0xFFFFFCF5);
   static const Color sand = Color(0xFFE6DAC0);
-  static const Color night = Color(0xFF0F1622);
-  static const Color nightPanel = Color(0xFF172131);
-  static const Color nightPanelRaised = Color(0xFF202D40);
+  static const Color night = Color(0xFF09111E);
+  static const Color nightPanel = Color(0xFF101A2B);
+  static const Color nightPanelRaised = Color(0xFF162337);
+  static const Color nightPanelHigh = Color(0xFF1D2B41);
+  static const Color nightOutline = Color(0xFF5B6C85);
 }
 
 Future<void> main() async {
@@ -56,19 +58,21 @@ class CornerstoneApp extends StatelessWidget {
     ).copyWith(
       primary: isDark ? const Color(0xFFF1C654) : _BrandPalette.gold,
       onPrimary: _BrandPalette.navy,
-      primaryContainer: isDark ? const Color(0xFF46320A) : const Color(0xFFFFF0C8),
-      onPrimaryContainer: isDark ? const Color(0xFFFFE7A8) : _BrandPalette.navy,
+      primaryContainer: isDark ? const Color(0xFF403010) : const Color(0xFFFFF0C8),
+      onPrimaryContainer: isDark ? const Color(0xFFFFE8B7) : _BrandPalette.navy,
       secondary: _BrandPalette.navy,
       onSecondary: Colors.white,
-      secondaryContainer: isDark ? const Color(0xFF24314A) : _BrandPalette.navySoft,
-      onSecondaryContainer: isDark ? Colors.white : _BrandPalette.navy,
+      secondaryContainer: isDark ? _BrandPalette.nightPanelHigh : _BrandPalette.navySoft,
+      onSecondaryContainer: isDark ? const Color(0xFFE7EEF8) : _BrandPalette.navy,
       tertiary: isDark ? const Color(0xFFFFE7A8) : const Color(0xFFEDC463),
       onTertiary: _BrandPalette.navy,
       surface: isDark ? _BrandPalette.nightPanel : Colors.white,
       surfaceContainerLow: isDark ? _BrandPalette.nightPanelRaised : _BrandPalette.warmWhite,
-      surfaceContainerHigh: isDark ? const Color(0xFF253246) : _BrandPalette.ivory,
-      outlineVariant: isDark ? const Color(0xFF4E5B71) : _BrandPalette.sand,
+      surfaceContainerHigh: isDark ? _BrandPalette.nightPanelHigh : _BrandPalette.ivory,
+      outlineVariant: isDark ? _BrandPalette.nightOutline : _BrandPalette.sand,
       surfaceTint: isDark ? const Color(0xFFF1C654) : _BrandPalette.gold,
+      onSurface: isDark ? const Color(0xFFF2F5FA) : _BrandPalette.navy,
+      onSurfaceVariant: isDark ? const Color(0xFFA9B7CB) : const Color(0xFF687587),
     );
 
     return ThemeData(
@@ -94,10 +98,15 @@ class CornerstoneApp extends StatelessWidget {
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
         useIndicator: true,
-        indicatorColor: Color.alphaBlend(
-          scheme.primary.withValues(alpha: isDark ? 0.20 : 0.14),
-          scheme.surfaceContainerLow,
-        ),
+        indicatorColor: isDark
+            ? Color.alphaBlend(
+                scheme.secondaryContainer.withValues(alpha: 0.92),
+                scheme.surfaceContainerLow,
+              )
+            : Color.alphaBlend(
+                scheme.primary.withValues(alpha: 0.14),
+                scheme.surfaceContainerLow,
+              ),
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
         ),
@@ -123,24 +132,29 @@ class CornerstoneApp extends StatelessWidget {
       listTileTheme: ListTileThemeData(
         iconColor: scheme.onSurfaceVariant,
         textColor: scheme.onSurface,
-        selectedColor: scheme.secondary,
-        selectedTileColor: Color.alphaBlend(
-          scheme.primary.withValues(alpha: isDark ? 0.14 : 0.09),
-          scheme.surface,
-        ),
+        selectedColor: isDark ? scheme.primary : scheme.secondary,
+        selectedTileColor: isDark
+            ? Color.alphaBlend(
+                scheme.secondaryContainer.withValues(alpha: 0.92),
+                scheme.surface,
+              )
+            : Color.alphaBlend(
+                scheme.primary.withValues(alpha: 0.09),
+                scheme.surface,
+              ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: scheme.secondary,
-          foregroundColor: scheme.onSecondary,
+          backgroundColor: isDark ? scheme.primary : scheme.secondary,
+          foregroundColor: isDark ? scheme.onPrimary : scheme.onSecondary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: scheme.secondary,
+          foregroundColor: isDark ? scheme.primary : scheme.secondary,
           backgroundColor: Color.alphaBlend(
             scheme.surface.withValues(alpha: 0.92),
             scheme.surfaceContainerLow,
@@ -636,7 +650,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final selectedIndex = _ShellDestination.values.indexOf(_selectedDestination);
     final panelColor = Color.alphaBlend(
       theme.colorScheme.secondary.withValues(
-        alpha: theme.brightness == Brightness.dark ? 0.18 : 0.035,
+        alpha: theme.brightness == Brightness.dark ? 0.12 : 0.035,
       ),
       theme.colorScheme.surfaceContainerLow,
     );
@@ -669,19 +683,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             children: [
               Expanded(
                 child: NavigationRail(
-                  leading: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
-                    child: _BrandLockup(
-                      compact: !_shellNavExpanded,
-                      shellVariant: true,
-                      onTap: () => _setDestination(_ShellDestination.owner),
-                    ),
-                  ),
+                  leading: const SizedBox(height: 18),
                   backgroundColor: Colors.transparent,
                   extended: _shellNavExpanded,
                   minWidth: 72,
                   minExtendedWidth: 220,
-                  groupAlignment: -0.88,
+                  groupAlignment: -0.8,
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (index) {
                     _setDestination(_ShellDestination.values[index]);
@@ -740,15 +747,23 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _BrandLockup(
-                    compact: false,
-                    mobileVariant: true,
-                    onTap: () => _setDestination(_ShellDestination.owner),
+                  Text(
+                    'Cornerstone workspace',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     _shellUsername(),
                     style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Learners, plans, and family progress in one place.',
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -1428,20 +1443,33 @@ class _LearnerCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: selected
-              ? Color.alphaBlend(
-                  theme.colorScheme.primary.withValues(alpha: 0.16),
-                  theme.colorScheme.surface,
-                )
+              ? theme.brightness == Brightness.dark
+                    ? Color.alphaBlend(
+                        theme.colorScheme.secondaryContainer.withValues(alpha: 0.94),
+                        theme.colorScheme.surface,
+                      )
+                    : Color.alphaBlend(
+                        theme.colorScheme.primary.withValues(alpha: 0.12),
+                        theme.colorScheme.surface,
+                      )
               : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: selected
-                ? theme.colorScheme.primary.withValues(alpha: 0.72)
+                ? theme.colorScheme.primary.withValues(
+                    alpha: theme.brightness == Brightness.dark ? 0.46 : 0.72,
+                  )
                 : theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
           ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.shadow.withValues(alpha: selected ? 0.09 : 0.04),
+              color: theme.colorScheme.shadow.withValues(
+                alpha: selected
+                    ? theme.brightness == Brightness.dark
+                          ? 0.16
+                          : 0.09
+                    : 0.04,
+              ),
               blurRadius: selected ? 18 : 12,
               offset: const Offset(0, 10),
             ),
@@ -1639,28 +1667,39 @@ class _BrandLockup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final symbolSize = compact
-        ? (toolbarVariant ? 34.0 : 38.0)
-        : (toolbarVariant ? 42.0 : 46.0);
-    final wordmarkHeight = compact ? 20.0 : 28.0;
-    final padding = compact
+    final symbolSize = toolbarVariant
+        ? (compact ? 28.0 : 32.0)
+        : (compact ? 36.0 : 44.0);
+    final wordmarkHeight = toolbarVariant
+        ? (compact ? 16.0 : 20.0)
+        : (compact ? 20.0 : 26.0);
+    final padding = toolbarVariant
+        ? (compact
+              ? const EdgeInsets.fromLTRB(6, 4, 10, 4)
+              : const EdgeInsets.fromLTRB(8, 5, 12, 5))
+        : compact
         ? const EdgeInsets.fromLTRB(8, 6, 10, 6)
         : const EdgeInsets.fromLTRB(10, 8, 14, 8);
+    final borderRadius = toolbarVariant ? 16.0 : (shellVariant ? 20.0 : 18.0);
     final badge = AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(shellVariant ? 20 : 18),
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
           color: _BrandPalette.gold.withValues(alpha: 0.26),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: theme.brightness == Brightness.light ? 0.08 : 0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(
+              alpha: theme.brightness == Brightness.light
+                  ? (toolbarVariant ? 0.06 : 0.08)
+                  : (toolbarVariant ? 0.16 : 0.18),
+            ),
+            blurRadius: toolbarVariant ? 12 : 16,
+            offset: Offset(0, toolbarVariant ? 6 : 10),
           ),
         ],
       ),
@@ -1684,7 +1723,7 @@ class _BrandLockup extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(shellVariant ? 20 : 18),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: badge,
       ),
     );
