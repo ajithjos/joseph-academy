@@ -1,5 +1,5 @@
 team:
-  team_id: team_josephfamilly_household
+  team_id: team_josephfamily_household
   display_name: Cornerstone Household
   description: Home-based learning team for the Joseph family.
 
@@ -43,18 +43,18 @@ users:
     notes: Preschool readiness.
 
 memberships:
-  - team_id: team_josephfamily
+  - team_id: team_josephfamily_household
     user_id: user_ajith
     role: owner
-  - team_id: team_josephfamily
+  - team_id: team_josephfamily_household
     user_id: user_chelsy
     role: owner
-  - team_id: team_josephfamily
+  - team_id: team_josephfamily_household
     user_id: user_christopher
     role: learner
-  - team_id: team_josephfamily
+  - team_id: team_josephfamily_household
     user_id: user_margaret
     role: learner
-  - team_id: team_josephfamily
+  - team_id: team_josephfamily_household
     user_id: user_johnpaul
     role: learner

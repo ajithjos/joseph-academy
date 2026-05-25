@@ -8,6 +8,13 @@ make install-dev
 make control-plane-compose-up
 ```
 
+`deploy/dev/.env.dev` already carries the tracked local defaults.
+Create `deploy/dev/.env` only if you need machine-specific overrides.
+
+If tracked Postgres defaults change incompatibly across commits, the repo rotates
+`CORNERSTONE_DEV_DATA_REVISION` to start a fresh local data window. Your older
+data under prior revisions stays on disk until you delete it manually.
+
 ## URLs
 
 - frontend: `http://127.0.0.1:8080`
