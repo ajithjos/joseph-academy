@@ -119,6 +119,6 @@ deploy_dev_prepare_static_artifacts() {
 	(
 		cd "$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone" || exit 1
 		flutter pub get
-		flutter build web --release --dart-define=CORNERSTONE_API_BASE_URL="http://127.0.0.1:${CORNERSTONE_CONTROL_PLANE_PORT}"
+		flutter build web --release
 	)
 }

@@ -7,15 +7,21 @@ import 'models.dart';
 class CornerstoneApiClient {
   CornerstoneApiClient({http.Client? client, String? baseUrl})
     : _client = client ?? http.Client(),
-      baseUrl =
-          baseUrl ??
-          const String.fromEnvironment(
-            'CORNERSTONE_API_BASE_URL',
-            defaultValue: 'http://127.0.0.1:8787',
-          );
+      baseUrl = baseUrl ?? _resolveBaseUrl();
 
   final http.Client _client;
   final String baseUrl;
+
+  static String _resolveBaseUrl() {
+    const configuredBaseUrl = String.fromEnvironment(
+      'CORNERSTONE_API_BASE_URL',
+      defaultValue: '',
+    );
+    if (configuredBaseUrl.isNotEmpty) {
+      return configuredBaseUrl;
+    }
+    return Uri.base.origin;
+  }
 
   Future<DashboardPayload> fetchDashboard() async {
     final response = await _client.get(Uri.parse('$baseUrl/api/v1/dashboard'));

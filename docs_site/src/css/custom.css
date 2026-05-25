@@ -12,6 +12,7 @@
   --ifm-font-family-base: "Avenir Next", "Segoe UI", sans-serif;
   --ifm-heading-font-family: "Avenir Next", "Segoe UI", sans-serif;
   --ifm-code-font-size: 95%;
+  --ifm-link-color: #0f766e;
 }
 
 body {
@@ -28,4 +29,30 @@ body {
 .theme-doc-markdown h1,
 .theme-doc-markdown h2 {
   letter-spacing: -0.02em;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #55c8bb;
+  --ifm-color-primary-dark: #42b9ac;
+  --ifm-color-primary-darker: #39ae9f;
+  --ifm-color-primary-darkest: #2c8d80;
+  --ifm-color-primary-light: #68d1c6;
+  --ifm-color-primary-lighter: #78d7cd;
+  --ifm-color-primary-lightest: #99e2da;
+  --ifm-background-color: #0f1719;
+  --ifm-navbar-background-color: #142123;
+  --ifm-footer-background-color: #0b1113;
+  --ifm-font-color-base: #eef6f4;
+  --ifm-link-color: #78d7cd;
+}
+
+[data-theme='dark'] body {
+  background:
+    radial-gradient(circle at top left, rgba(85, 200, 187, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(217, 119, 6, 0.12), transparent 22%),
+    var(--ifm-background-color);
+}
+
+[data-theme='dark'] .navbar {
+  border-bottom: 1px solid rgba(120, 215, 205, 0.16);
 }

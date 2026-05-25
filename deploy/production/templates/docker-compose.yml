@@ -32,6 +32,8 @@ services:
       CORNERSTONE_ARTIFACTS_ROOT: /data/artifacts
       CORNERSTONE_EXPORTS_ROOT: /data/exports
       CORNERSTONE_AUTO_BOOTSTRAP: "true"
+      CORNERSTONE_FRONTEND_PUBLIC_URL: http://127.0.0.1:${CORNERSTONE_FRONTEND_PORT}
+      CORNERSTONE_CONTENT_PUBLIC_URL: http://127.0.0.1:${CORNERSTONE_FRONTEND_PORT}/content/
     ports:
       - "${CORNERSTONE_CONTROL_PLANE_PORT}:${CORNERSTONE_CONTROL_PLANE_PORT}"
     volumes:
@@ -44,11 +46,6 @@ services:
     ports:
       - "${CORNERSTONE_FRONTEND_PORT}:80"
     volumes:
-      - ${CORNERSTONE_FRONTEND_BUILD_HOST}:/usr/share/nginx/html:ro
-
-  docs-site:
-    image: ${CORNERSTONE_NGINX_IMAGE}
-    ports:
-      - "${CORNERSTONE_DOCS_SITE_PORT}:80"
-    volumes:
-      - ${CORNERSTONE_DOCS_BUILD_HOST}:/usr/share/nginx/html:ro
+      - ${CORNERSTONE_FRONTEND_BUILD_HOST}:/srv/cornerstone/frontend:ro
+      - ${CORNERSTONE_DOCS_BUILD_HOST}:/srv/cornerstone/content:ro
+      - ../../dev/templates/control/frontend.nginx.conf:/etc/nginx/conf.d/default.conf:ro

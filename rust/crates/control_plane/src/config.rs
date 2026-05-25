@@ -12,6 +12,8 @@ pub struct AppConfig {
     pub artifacts_root: PathBuf,
     pub exports_root: PathBuf,
     pub auto_bootstrap: bool,
+    pub frontend_public_url: Option<String>,
+    pub content_public_url: Option<String>,
 }
 
 impl AppConfig {
@@ -39,8 +41,21 @@ impl AppConfig {
                 .map(|value| parse_bool(&value))
                 .transpose()?
                 .unwrap_or(true),
+            frontend_public_url: optional_env("CORNERSTONE_FRONTEND_PUBLIC_URL"),
+            content_public_url: optional_env("CORNERSTONE_CONTENT_PUBLIC_URL"),
         })
     }
+}
+
+fn optional_env(key: &str) -> Option<String> {
+    env::var(key).ok().and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
 }
 
 fn required_path(key: &str, default: &str) -> anyhow::Result<PathBuf> {

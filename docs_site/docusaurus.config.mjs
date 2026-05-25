@@ -1,8 +1,11 @@
+const siteUrl = process.env.CORNERSTONE_CONTENT_SITE_URL || "http://127.0.0.1:8080";
+const baseUrl = process.env.CORNERSTONE_CONTENT_SITE_BASE_URL || "/content/";
+
 const config = {
-  title: "Cornerstone Catalog",
+  title: "Cornerstone Content",
   tagline: "Browse file-owned capabilities, plans, and learning content",
-  url: "http://localhost",
-  baseUrl: "/",
+  url: siteUrl,
+  baseUrl,
   organizationName: "cornerstone",
   projectName: "cornerstone-docs",
   onBrokenLinks: "throw",
@@ -31,10 +34,15 @@ const config = {
     ]
   ],
   themeConfig: {
+    colorMode: {
+      defaultMode: 'light',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
     navbar: {
       title: "Cornerstone",
       items: [
-        { to: "/", label: "Catalog", position: "left" },
+        { to: "/", label: "Content", position: "left" },
         { to: "/generated/catalog-overview", label: "Generated", position: "left" }
       ]
     },

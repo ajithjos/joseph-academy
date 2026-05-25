@@ -22,11 +22,16 @@ make control-plane-compose-up
 
 Default local URLs:
 
-- frontend: `http://127.0.0.1:8080`
-- control plane: `http://127.0.0.1:8788`
-- catalog docs: `http://127.0.0.1:3001`
+- frontend preview: `http://127.0.0.1:8080`
+- control plane API and service index: `http://127.0.0.1:8788`
+- content site: `http://127.0.0.1:8080/content/`
 
-Use `make docs-site-dev` when you want the developer-flavor docs site that also mirrors the repo `docs/` tree.
+`make control-plane-compose-up` builds production-style static previews for the
+Flutter app and the generated content site, then serves both from the same nginx
+host. It does not run live-reload frontend or content watchers inside compose.
+
+Use `make docs-site-dev` when you want the standalone developer-flavor content/docs
+site on `http://127.0.0.1:3001`.
 
 ## Repo Shape
 

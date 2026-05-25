@@ -33,6 +33,20 @@ struct CatalogPayload {
     bundle: catalog::CatalogBundle,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct ServiceIndexResponse {
+    status: String,
+    service: String,
+    message: String,
+    health_url: String,
+    api_base_url: String,
+    frontend_url: Option<String>,
+    content_url: Option<String>,
+    frontend_preview_mode: String,
+    content_preview_mode: String,
+    content_dev_command: String,
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let payload = Json(ErrorPayload {
@@ -51,6 +65,7 @@ impl From<Error> for ApiError {
 
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/", get(index))
         .route("/health", get(health))
         .route("/api/v1/catalog", get(get_catalog))
         .route("/api/v1/catalog/reload", post(post_catalog_reload))
@@ -64,6 +79,21 @@ pub fn router(state: Arc<AppState>) -> Router {
         .with_state(state)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
+}
+
+async fn index(State(state): State<Arc<AppState>>) -> Json<ServiceIndexResponse> {
+    Json(ServiceIndexResponse {
+        status: "ok".to_string(),
+        service: "cornerstone control plane".to_string(),
+        message: "This port serves the control-plane API and service index. In local compose, the Flutter frontend serves the generated content site at /content/.".to_string(),
+        health_url: "/health".to_string(),
+        api_base_url: "/api/v1".to_string(),
+        frontend_url: state.config.frontend_public_url.clone(),
+        content_url: state.config.content_public_url.clone(),
+        frontend_preview_mode: "static-build".to_string(),
+        content_preview_mode: "embedded-static-build".to_string(),
+        content_dev_command: "make docs-site-dev".to_string(),
+    })
 }
 
 async fn health() -> Json<OperationStatusResponse> {
