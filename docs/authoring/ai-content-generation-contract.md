@@ -1,17 +1,34 @@
-# AI Content Generation Contract
+# Content Authoring Rules
 
-This contract defines how future catalog and markdown content should be generated for Cornerstone.
+This is the ruleset for writing Cornerstone catalog entries and markdown content.
 
-## Goals
+Use it whether the draft is written by hand or with an LLM.
+
+## What This Authoring Flow Is For
 
 - stay aligned to the Cornerstone product definition
 - generate file-owned learning definitions, not runtime learner state
 - keep every new artifact easy to validate and easy to render in Docusaurus
 - produce materials suitable for parent-led delivery to young learners
 
-## Output Types
+## Keep The Model Small
 
-The AI agent may generate only these content-side artifacts in this workflow:
+- choose the coarsest capability boundary that still changes practice or review decisions
+- start with a small number of capabilities and split later only when the evidence justifies it
+- keep milestones as the main parent-facing sub-tracks, not as another layer of lesson content
+- keep sessions short and operationally useful
+
+## Tone And Stance
+
+- write in plain, direct, practice-first language
+- avoid sugary praise, congratulatory filler, or inflated encouragement
+- avoid empty lines like amazing work, brilliant job, or excellent effort unless the content genuinely requires that voice
+- sound like an honest parent or coach focused on learning, repetition, and accuracy
+- stay child-safe without becoming vague or overly soft
+
+## What You May Author
+
+This workflow is only for file-owned artifacts such as:
 
 - capability catalog entries
 - milestone catalog entries
@@ -20,7 +37,7 @@ The AI agent may generate only these content-side artifacts in this workflow:
 - markdown content items with frontmatter
 - supporting author notes for operators
 
-The AI agent must not generate:
+It must not create or pretend to create:
 
 - learner runtime state
 - mastery claims for a specific child
@@ -55,10 +72,24 @@ Markdown content items must include frontmatter with:
 - `difficulty`
 - `estimated_minutes`
 
+## The File Relationship
+
+- `capabilities.yaml` defines skill units
+- `milestones.yaml` groups capability ids
+- `content_index.yaml` points to real markdown files
+- `content/library/**/*.md` holds the actual materials
+- `plan_templates.yaml` orders content into sessions
+
+The catalog is the index.
+The markdown files are the real teaching material.
+
+The plan template is static.
+Real learner execution remains dynamic in the runtime.
+
 ## Pedagogical Guardrails
 
 - pitch content to a real child, not to a curriculum committee
-- break large skills into measurable units
+- break large skills into useful measurable units
 - prefer short sessions over dense lesson packs
 - keep success criteria explicit
 - do not overclaim mastery from one worksheet
@@ -66,8 +97,8 @@ Markdown content items must include frontmatter with:
 
 ## Catalog Design Rules
 
-- capabilities should represent one measurable skill
-- milestones should group related capabilities into a meaningful checkpoint
+- capabilities should represent one useful measurable skill for planning and review
+- milestones should group a small number of related capabilities into a meaningful checkpoint
 - plan templates should be executable in short daily sessions
 - content items should map to one or more capabilities
 - plan templates should reference real content ids that exist in `content/library`
@@ -83,7 +114,7 @@ Markdown content items must include frontmatter with:
 
 ## Required Review Pass
 
-Before committing generated artifacts, the operator or agent should verify:
+Before committing any authored slice, verify:
 
 1. every referenced capability id exists
 2. every referenced milestone id exists
