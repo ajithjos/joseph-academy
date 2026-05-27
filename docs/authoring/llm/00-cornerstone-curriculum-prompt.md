@@ -1,4 +1,4 @@
-Use this as background when helping with Cornerstone curriculum. Put the actual task in the current chat request.
+# Cornerstone curriculum.
 
 ## What Cornerstone Is
 

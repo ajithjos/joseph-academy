@@ -1,6 +1,5 @@
 # Subject-Area Background Notes
 
-Use this only if it helps. It is background for the current request, not a script you need to copy.
 
 ## Identity
 
