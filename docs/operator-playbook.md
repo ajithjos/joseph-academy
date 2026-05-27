@@ -10,22 +10,30 @@ Use it when you are acting as:
 
 ## What Cornerstone Is
 
-Cornerstone is a learning control plane.
+Cornerstone is a repeatable learning control plane.
 
 It is not an in-product curriculum generator.
 
 The core rule is:
 
-- repo files define capabilities, milestones, plan templates, and content
+- repo files define programs, checkpoints, skills, playlists, and resources
 - Postgres stores learner-specific runtime state
 - Flutter is the runtime UI
 - Docusaurus is the browse-only catalog surface
+
+Compatibility note:
+
+- `skills` currently live in `capabilities.yaml`
+- `checkpoints` currently live in `milestones.yaml`
+- `playlists` currently live in `plan_templates.yaml`
+- `resources` currently live in `content_index.yaml` and `content/library/`
 
 Canonical background documents:
 
 - [Product definition](./architecture/learning-product-definition.md)
 - [Simple content model](./authoring/simple-content-model.md)
-- [Track authoring brief](./authoring/track-authoring-brief.md)
+- [Program brief template](./authoring/program-brief-template.md)
+- [Program authoring brief](./authoring/track-authoring-brief.md)
 - [Content authoring rules](./authoring/ai-content-generation-contract.md)
 - [Copy-paste authoring prompts](./authoring/repeatable-prompts.md)
 
@@ -69,11 +77,11 @@ You work in the Flutter app.
 Your loop is:
 
 1. pick a learner
-2. assign a plan template
+2. assign a playlist
 3. run today's session with the child
 4. record score, time, and notes
-5. check capability states and the review queue
-6. repeat, pause, or switch plans
+5. check skill and checkpoint states plus the review queue
+6. repeat, pause, or switch playlists
 
 ### Learner Or Student
 
@@ -89,33 +97,33 @@ In the MVP, the child-facing path is:
 ## Where The Source Of Truth Lives
 
 - household and role bootstrap: `deploy/config/runtime_defaults/identity_bootstrap.yaml`
-- subjects, capabilities, milestones, plans, and content index: `content/catalog/`
+- subjects, skills, checkpoints, playlists, and resource index: `content/catalog/`
 - actual worksheets, notes, and reading material: `content/library/`
 - generated browse docs: `docs_site/docs/generated/` and `docs_site/docs/library/`
 - runtime learner state: Postgres, not repo files
 
 ## The Repeatable Authoring Loop
 
-Use this whenever you want to create a new track such as age-10 arithmetic fundamentals.
+Use this whenever you want to create a new program such as age-10 arithmetic foundations.
 
-1. Define the target outcome.
-   Write one plain-English goal, age, level, and session shape.
-   Example: age-10 learner reaches strong fluency in addition, subtraction, multiplication, and division fundamentals through 15-minute daily sessions.
+1. Define the program brief.
+   Write one plain-English goal, audience, age or level, cadence, and constraints.
+   Example: age-10 learner reaches dependable arithmetic fundamentals through 15-minute daily sessions with parent-led practice.
 
-2. Define the milestone sub-tracks.
-   This is the main static map of the track.
-   For many new tracks, 3 to 6 milestones is enough.
+2. Define the checkpoints.
+   This is the main static map of the program.
+   For many new programs, 3 to 5 checkpoints is enough.
 
-3. Add capabilities only where finer tracking is useful.
-   A milestone may begin with one matching capability.
+3. Add skills only where finer tracking is useful.
+   A checkpoint may begin with one matching skill.
    Split further only when that changes practice or review decisions.
 
-4. Generate or write content items.
+4. Generate or write resources.
    Add markdown files under `content/library/...`.
    Register each file in `content/catalog/content_index.yaml`.
 
-5. Build a static plan template.
-   Add an executable short-session plan in `content/catalog/plan_templates.yaml`.
+5. Build one or more playlists.
+   Add executable short-session sequences in `content/catalog/plan_templates.yaml`.
    Every session must point to real `content_ids`.
 
 6. Validate and browse.
@@ -128,10 +136,10 @@ make docs-site-dev
 Use the content site to inspect the generated catalog and content pages.
 
 7. Run it with a learner.
-   Open the Flutter app, assign the plan, run sessions, and record results.
+   Open the Flutter app, assign the playlist, run sessions, and record results.
 
 8. Refine from evidence.
-   Adjust content, plans, or capability boundaries based on what the learner actually struggles with.
+   Adjust resources, playlists, or skill boundaries based on what the learner actually struggles with.
 
 ## Replacing The Current Starter Content
 
@@ -142,10 +150,10 @@ The safest replacement strategy is:
 
 1. add one new coherent slice first
 2. validate that slice
-3. assign only the new plan templates
+3. assign only the new playlists
 4. remove old sample catalog entries and markdown files after nothing depends on them
 
-Avoid deleting everything in one pass, because plan templates, content ids, and milestones cross-reference each other.
+Avoid deleting everything in one pass, because playlists, content ids, checkpoints, and skills cross-reference each other.
 
 If you want a true local restart of runtime state as well as content experimentation:
 
@@ -161,26 +169,27 @@ That reset deletes local Postgres data after confirmation.
 Use an LLM to generate file-owned definitions, not runtime state.
 
 The mental model lives in [Simple content model](./authoring/simple-content-model.md).
-The one-file attachable brief lives in [Track authoring brief](./authoring/track-authoring-brief.md).
+The fillable author input lives in [Program brief template](./authoring/program-brief-template.md).
+The one-file attachable brief lives in [Program authoring brief](./authoring/track-authoring-brief.md).
 The rules live in [Content authoring rules](./authoring/ai-content-generation-contract.md).
 The reusable prompts live in [Copy-paste authoring prompts](./authoring/repeatable-prompts.md).
 
-If you want the smallest workable setup, attach the track authoring brief and give the target outcome in your own message.
+If you want the smallest workable setup, fill the program brief template, attach the program authoring brief, and give the filled brief in your own message.
 If the model needs more conceptual context, attach the simple content model as the second file.
 
 Recommended working order for an agent:
 
-1. capabilities
-2. milestones
-3. content index and markdown files
-4. plan template
+1. skills
+2. checkpoints
+3. resource index and markdown files
+4. playlists
 5. human review and catalog reload
 
-If you want one prompt to start a whole authoring round, use the Track Authoring Round prompt in the repeatable prompts doc.
+If you want one prompt to start a whole authoring round, start with Prompt 1 in the repeatable prompts doc, then move to Prompt 2 once the structure is agreed.
 
-For a large track, use that prompt to scaffold the whole round first, then use the markdown-item prompt once per content file.
+For a large program, use Prompt 1 to settle the structure first, then use Prompt 3 once per resource file.
 
-## Minimum Files To Touch For A New Track
+## Minimum Files To Touch For A New Program
 
 - `content/catalog/capabilities.yaml`
 - `content/catalog/milestones.yaml`
@@ -190,14 +199,14 @@ For a large track, use that prompt to scaffold the whole round first, then use t
 
 ## Practical Example
 
-For the goal master the addition, subtraction, multiplication, and division fundamentals at age 10, the repo-first attack is:
+For the goal build dependable arithmetic fundamentals at age 10, the repo-first attack is:
 
-1. treat that goal as a track outcome, not as one capability
-2. define four milestone sub-tracks: addition, subtraction, multiplication, and division fluency
-3. start with one broad capability inside each milestone unless practice needs finer splits
-4. write short worksheets, mixed drills, and parent checkpoint notes
-5. create a 2-to-4 week static plan template with daily sessions
+1. treat that goal as one program, not as one skill
+2. define checkpoints such as fact fluency, written addition and subtraction, and written multiplication and division
+3. start with broad skills inside each checkpoint unless practice needs finer splits
+4. write short worksheets, mixed drills, and parent checkpoint sheets
+5. create one or more 2-to-4 week playlists with daily sessions
 6. validate, browse, assign, and iterate
 
-The important rule is that Cornerstone is built around authored tracks, not open-ended ad hoc tutoring.
-Once the authored track is in the repo, the app becomes the runtime for delivering and measuring it.
+The important rule is that Cornerstone is built around authored programs, not open-ended ad hoc tutoring.
+Once the authored program is in the repo, the app becomes the runtime for delivering and measuring it.

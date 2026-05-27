@@ -6,7 +6,7 @@ It should define the product clearly before implementation work spreads across t
 
 ## Architecture
 
-- `architecture/learning-product-definition.md`: canonical current product definition for Cornerstone, including scope, first-class objects, control-plane boundary, product flow, and recommended stack
+- `architecture/learning-product-definition.md`: canonical product definition and domain model, including the stable vocabulary for program, checkpoint, skill, resource, playlist, assignment, and evidence
 
 ## Playbook
 
@@ -14,10 +14,11 @@ It should define the product clearly before implementation work spreads across t
 
 ## Authoring
 
-- `authoring/simple-content-model.md`: the simplest mental model for outcomes, capabilities, milestones, content items, and plan templates
-- `authoring/track-authoring-brief.md`: the main attachable brief for asking an LLM to derive a new track from a target outcome
+- `authoring/simple-content-model.md`: the smallest useful model for program briefs, programs, checkpoints, skills, resources, and playlists
+- `authoring/program-brief-template.md`: a fillable program brief you can attach to an LLM or use as a human authoring input
+- `authoring/track-authoring-brief.md`: the main attachable brief for asking an LLM to turn a program brief into repo-ready curriculum assets
 - `authoring/ai-content-generation-contract.md`: content authoring rules for repo-owned catalogs and markdown materials
-- `authoring/repeatable-prompts.md`: plain-English copy-paste prompts for track design, YAML drafting, content writing, simplification, and review
+- `authoring/repeatable-prompts.md`: plain-English copy-paste prompts for program design, YAML drafting, content writing, simplification, and review
 
 ## Deploy
 

@@ -1,82 +1,99 @@
-# Track Authoring Brief
+# Program Authoring Brief
 
-Attach this file when you want an LLM to derive Cornerstone curriculum content from a target outcome.
+The file name is kept for compatibility, but the canonical term is now `program`, not `track`.
 
-If needed, attach [Simple content model](./simple-content-model.md) as supporting context.
+Attach this file when you want an LLM to turn a Cornerstone program brief into repo-owned curriculum assets.
+
+If needed, attach these as supporting context:
+
+- [Program brief template](./program-brief-template.md)
+- [Simple content model](./simple-content-model.md)
 
 ## What Cornerstone Is
 
-Cornerstone is a learning control plane.
+Cornerstone is a repeatable learning system.
 
 It separates:
 
-- static curriculum definitions in repo files
-- dynamic learner progress in the runtime database
+- static reusable curriculum in repo files
+- dynamic learner progress in runtime state
 
 Do not generate runtime learner state.
 Do not generate reports about a specific child.
-Do generate file-owned curriculum structure and practice material.
+Do generate reusable program structure and practice material.
 
 ## The Static Model To Use
 
-When I give you a target outcome, treat it as a static track-design problem.
+When I give you a program brief, treat it as a static program-design problem.
 
 Use this structure:
 
-1. target outcome
-2. track
-3. milestone sub-tracks
-4. optional capabilities inside each milestone when finer tracking is actually useful
-5. content items
-6. static plan template
+1. program brief
+2. program
+3. checkpoints
+4. optional skills inside each checkpoint when finer tracking is genuinely useful
+5. resources
+6. playlists
 
 Interpret those layers like this:
 
-- target outcome: the overall learning result wanted for the child
-- track: the repo-owned curriculum slice for that outcome
-- milestone: the main parent-facing sub-track such as addition fluency, multiplication fluency, division fluency, fractions basics, or reading fluency
-- capability: a finer-grained skill unit only when that split changes what should be assigned, repeated, or reviewed
-- content item: the real worksheet, drill, note, passage, or practice page
-- static plan template: the suggested order of sessions using those content items
+- program brief: the plain-English design input for one learner segment and one outcome
+- program: the reusable curriculum slice for that brief
+- checkpoint: the main parent-facing stage such as fact fluency, written subtraction, reading fluency, pronunciation clarity, or ball handling basics
+- skill: a finer-grained measurable unit only when that split changes what should be assigned, repeated, or reviewed
+- resource: the real worksheet, drill, note, passage, prompt, script, or check
+- playlist: the repeatable ordered session sequence using those resources
 
 Important rule:
 
-- milestones are the main static checkpoints
-- capabilities are secondary and should stay minimal until finer tracking is genuinely useful
+- checkpoints are the main static review units
+- skills are secondary and should stay minimal until finer tracking is operationally useful
 
-In simple tracks, one milestone may begin with exactly one matching capability.
+In simple programs, one checkpoint may begin with exactly one matching skill.
 That is acceptable.
+
+## Compatibility With Current Repo Files
+
+Use the canonical vocabulary in reasoning, but map it to the current repo files like this:
+
+- skills -> `content/catalog/capabilities.yaml`
+- checkpoints -> `content/catalog/milestones.yaml`
+- resources -> `content/catalog/content_index.yaml` plus `content/library/**/*.md`
+- playlists -> `content/catalog/plan_templates.yaml`
+
+There is no separate `programs.yaml` yet.
+Represent the program coherently through shared titles, ids, descriptions, and linked checkpoints, skills, resources, and playlists.
 
 ## What To Generate
 
-When I describe a target outcome, generate the repo-owned material needed for that track:
+When I describe a program brief, generate the repo-owned material needed for that program:
 
-- `content/catalog/capabilities.yaml`
-- `content/catalog/milestones.yaml`
-- `content/catalog/content_index.yaml`
-- `content/catalog/plan_templates.yaml`
-- markdown files under `content/library/{subject}/...`
+- skill entries for `content/catalog/capabilities.yaml`
+- checkpoint entries for `content/catalog/milestones.yaml`
+- resource index entries for `content/catalog/content_index.yaml`
+- playlist entries for `content/catalog/plan_templates.yaml`
+- markdown resources under `content/library/{subject}/...`
 
 Do not generate database rows, learner progress state, or runtime API data.
 
 ## Modeling Rules
 
 - start with a small manageable structure
-- prefer milestone-level clarity before capability-level detail
-- split capabilities only when the split changes the next practice or review decision
-- keep milestones concrete and parent-meaningful
-- keep plan templates short and operational
-- every plan session must point to real content ids
-- every content item should support a real milestone and one or more capabilities
+- prefer checkpoint-level clarity before skill-level detail
+- split skills only when the split changes the next practice or review decision
+- keep checkpoints concrete and parent-meaningful
+- keep playlists short and operational
+- every playlist session must point to real resource ids
+- every resource should support a real checkpoint and one or more skills
 
-As a starting point for a new track, prefer:
+As a starting point for a new program, prefer:
 
-- 1 target outcome
-- 1 track
-- 3 to 6 milestones
-- 1 to 2 capabilities per milestone unless a finer split is clearly needed
-- 6 to 20 content items depending on length
-- 1 static plan template
+- 1 program brief
+- 1 program
+- 3 to 5 checkpoints
+- 1 to 3 skills per checkpoint unless a finer split is clearly needed
+- 6 to 20 resources depending on length
+- 1 to 3 playlists
 
 ## Tone And Authoring Stance
 
@@ -89,7 +106,7 @@ Use a calm, direct, practice-first tone.
 - be child-safe, but not soft or vague
 - prefer clarity, repetition, and accuracy over entertainment
 
-## Quality Bar For Content
+## Quality Bar For Resources
 
 - plain English
 - short sections
@@ -102,10 +119,10 @@ Use a calm, direct, practice-first tone.
 
 ## Id And Metadata Rules
 
-- capability ids use `snake_case`
-- milestone ids use `snake_case`
-- plan template ids use `snake_case`
-- content ids begin with `cnt_`
+- skill ids use `snake_case` in `capabilities.yaml`
+- checkpoint ids use `snake_case` in `milestones.yaml`
+- playlist ids use `snake_case` in `plan_templates.yaml`
+- resource ids begin with `cnt_`
 
 Every catalog artifact should include:
 
@@ -115,7 +132,7 @@ Every catalog artifact should include:
 - plain-English title
 - concise description
 
-Markdown content must include frontmatter with:
+Markdown resources must include frontmatter with:
 
 - `id`
 - `type`
@@ -128,35 +145,35 @@ Markdown content must include frontmatter with:
 
 ## Output Shape
 
-When I provide a target outcome, return the result in this order.
+When I provide a program brief, return the result in this order.
 
-### 1. Track Design Summary
+### 1. Program Design Summary
 
 State:
 
-- target outcome
-- track title
-- milestone list
-- capability list grouped under each milestone
-- brief explanation of why the capability splits are justified
+- the interpreted program brief
+- the program title
+- the checkpoint list
+- the skill list grouped under each checkpoint
+- brief reasoning for why the skill splits are justified
 
 ### 2. Files To Create Or Update
 
 List:
 
 - which catalog files should be updated
-- which markdown files should be created under `content/library/...`
+- which markdown resources should be created under `content/library/...`
 
 ### 3. Repo-Ready YAML
 
 Return YAML blocks grouped by target file for:
 
-- capabilities
-- milestones
-- content index
-- plan template
+- skills in `capabilities.yaml`
+- checkpoints in `milestones.yaml`
+- resource index entries in `content_index.yaml`
+- playlists in `plan_templates.yaml`
 
-### 4. Markdown Content Files
+### 4. Markdown Resource Files
 
 Return the proposed markdown files in full, one file at a time.
 
@@ -168,29 +185,30 @@ End with a short checklist confirming:
 - references line up
 - age and level are coherent
 - sessions are practical
-- content tone matches the requested stance
+- resource tone matches the requested stance
 
 ## How To Respond To Broad Outcomes
 
-If my target outcome is broad, do not collapse it into one capability.
+If my brief is broad, do not collapse it into one skill.
 
 Instead:
 
-1. treat it as one track
-2. derive milestone sub-tracks first
-3. decide whether each milestone needs one capability or several
+1. treat it as one program
+2. derive checkpoints first
+3. decide whether each checkpoint needs one skill or several
 4. keep the structure as small as possible while still being useful for practice and review
 
 ## Example Of The Intended Interpretation
 
 If I say:
 
-- I want an age-10 child to become fluent in addition, subtraction, multiplication, and division facts up to 10
+- I want an age-10 child to become dependable in addition, subtraction, multiplication, and division fundamentals through short daily practice
 
-Do not treat that as one capability.
+Do not treat that as one skill.
 
 Treat it as:
 
-- one track outcome
-- milestones such as addition fluency, subtraction fluency, multiplication fluency, and division fluency
-- optional finer capabilities inside those milestones only when needed, such as harder table groups or inverse-fact weaknesses
+- one program brief
+- one program
+- checkpoints such as fact fluency, written addition and subtraction, and written multiplication and division
+- optional finer skills only where they change practice decisions

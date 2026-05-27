@@ -1,622 +1,301 @@
 # Cornerstone Product Definition
 
-Status: **CURRENT MVP CONTRACT**
-Last updated: 2026-05-23.
+Status: **CANONICAL DOMAIN MODEL**
+Last updated: 2026-05-27.
 
 ## Purpose
 
-This document defines the current MVP product for Cornerstone.
+This document defines Cornerstone in product terms rather than implementation terms.
 
 It answers:
 
-- what the product is
-- who the core actors are
-- what is file-owned versus database-owned
-- how plans, capabilities, and progress fit together
-- what technical shape the first implementation should take
+- what Cornerstone is really for
+- which objects are first-class
+- which objects are static and reusable
+- which objects belong to learner runtime state
+- which older terms should stop being treated as canonical
 
-## Product Definition
+## Product Thesis
 
-Cornerstone is a learning control plane for a small team of owners and learners.
+Cornerstone is a repeatable learning system for coach-led practice.
 
-In the first deployment, that team is one household:
+The core idea is simple:
 
-- owners are the parents
-- learners are the children
+- author a reusable learning program once
+- run it many times with real learners
+- adapt pace, review, and assignment per learner from evidence
 
-Later, the same model should be extendable to:
+In the first deployment, the coach is a parent and the learners are children in one household.
+Later, the same model should work for tutors, schools, cohorts, adult learners, sports coaching, music practice, and language learning.
 
-- a school class
-- a tuition group
-- a cohort
-- a larger learning team
+Cornerstone is not primarily:
 
-The first version is not a content-generation system, not a school LMS, and not a chatbot tutor.
+- a free-form tutor chatbot
+- a one-off worksheet dump
+- a generic LMS clone
+- a content generator inside the runtime app
 
-The first version is a system that helps an owner:
+Cornerstone is primarily:
 
-- assign predefined capabilities and milestones
-- attach predefined content to them
-- assign plan templates to learners
-- run daily sessions
-- record evidence and progress
-- decide what needs repetition
+- a library of reusable learning programs
+- a runtime for assigning those programs to learners
+- an evidence-driven review loop that decides what to repeat next
 
-## Core Product Boundary
+## Product Principles
 
-The runtime product should own:
+- authored curriculum is static and reusable
+- learner progress is dynamic and learner-specific
+- progress should be based on evidence, not content consumption alone
+- the vocabulary should stay human-meaningful to parents, tutors, and operators
+- the model should work for maths, reading, pronunciation, music, sports, and similar skill domains
 
-- identity and access for a small team
-- learner profiles
-- progress and capability state
-- plan assignment and dated learning plans
-- sessions, attempts, evidence, and review queues
+## The Three Product Layers
 
-The runtime product should not own content generation in this milestone.
+### 1. Curriculum Layer
 
-Content, milestones, capabilities, and plan templates should be created offline by the operator and committed into the repo as structured files.
+This is the reusable authored system.
 
-That is the main product rule:
+It defines:
 
-- repo files define the learning system
-- Postgres records what actually happened for each learner
+- what the learner is trying to achieve
+- how that journey is broken into checkpoints and skills
+- what static resources exist
+- which repeatable playlists should be run
 
-## Immediate Scope
+This layer is repo-owned.
 
-The first milestone should support:
+### 2. Delivery Layer
 
-- one household-style team
-- a few users with lightweight roles
-- two learners
-- maths and English only
-- predefined capabilities, milestones, and plan templates
-- daily 15-to-30-minute sessions
-- progress tracking and review in Postgres
+This is the coach-facing operating layer.
 
-Science stays out of scope for now.
+It decides:
 
-## What The Product Will Do
+- which playlist to assign now
+- which resources to run today
+- when to repeat, pause, simplify, or advance
 
-- store learner profiles and baseline levels
-- define small executable capabilities such as number bonds or read-aloud fluency
-- group capabilities into milestones
-- let the operator define milestones and templates
-- record score, speed, notes, and evidence
-- maintain a review queue of weak items
-- show parent-facing progress and next actions
+This layer mixes static definitions with dynamic judgment.
 
-## What The Product Will Not Do
+### 3. Runtime Layer
 
-- generate curriculum automatically inside the runtime
-- try to replace school
-- act as a free-form AI tutor for children
-- start with OCR marking, speech grading, or auto-mastery claims
-- start as a multi-tenant SaaS
-- require a heavy auth system for the home MVP
-
-## Identity And Team Model
-
-The identity boundary should stay simple and team-centered.
-
-### Team
-
-The working group for learning operations.
-
-In the first deployment, this is the household.
-
-Later, it could be:
-
-- one class
-- one subgroup
-- one batch
-- one school section
-
-### User
-
-One login identity loaded from bootstrap.
-
-Examples:
-
-- owner
-- learner
-- coach
-
-### Team Membership
-
-The role assignment of an user inside a team.
-
-The first role set can stay small:
-
-- `owner`
-- `learner`
-- `coach` (optional later)
-
-### Learner
-
-The learner is a learner-role view of a user.
-
-The user record should hold the student fields needed by the runtime:
-
-- `user_id`
-- `display_name`
-- `date_of_birth`
-- `sex`
-- `current_level`
-- `notes`
-
-The runtime may still refer to a `learner_id`, but in the MVP that id is the learner user’s `user_id`.
-
-## Capability, Milestone, Content, And Plan Model
-
-These definitions should be operator-defined and file-owned.
-
-They are not created ad hoc by parents inside the app.
-
-### Capability
-
-A capability is the smallest teachable and measurable unit.
-
-Examples:
-
-- `addition_facts_to_20`
-- `number_bonds_to_10`
-- `times_table_4`
-- `division_facts_by_5`
-- `read_aloud_level_1`
-- `sentence_answer_full_response`
-
-Each capability should declare at least:
-
-- `capability_id`
-- `subject`
-- `title`
-- `recommended_age`
-- `recommended_level`
-- `description`
-
-### Milestone
-
-A milestone is a named bundle of capabilities.
-
-Examples:
-
-- `year1_addition_core`
-- `year3_tables_core`
-- `reading_fluency_stage_1`
-
-Each milestone should declare at least:
-
-- `milestone_id`
-- `subject`
-- `title`
-- `recommended_age`
-- `recommended_level`
-- `capability_ids`
-
-### Content Item
-
-A content item is one reusable learning artifact linked to capabilities.
-
-Examples:
-
-- worksheet
-- reading passage
-- speaking prompt
-- dictation prompt
-- teaching note
-
-Every content item should link to one or more capabilities.
-
-That is what makes the content trackable.
-
-### Plan Template
-
-A plan template is a predefined path for working through one milestone or a small capability set.
-
-Examples:
-
-- 7-day number-bonds plan
-- 14-day times-tables plan
-- 7-day reading-fluency starter plan
-
-Each plan template should declare at least:
-
-- `plan_template_id`
-- `title`
-- `recommended_age`
-- `recommended_level`
-- `milestone_ids`
-- `capability_ids`
-- `session_pattern`
-- `duration_days`
-
-## Static Definitions Versus Runtime State
-
-This boundary should stay explicit.
-
-### File-Owned Definitions
-
-These should live in markdown, YAML, or JSON under version control:
-
-- `IdentityBootstrap`
-- `CapabilityCatalog`
-- `MilestoneCatalog`
-- `PlanTemplateCatalog`
-- `ContentIndex`
-- `ContentItem`
-
-### Database-Owned Runtime State
-
-These should live in Postgres:
-
-- `Team`
-- `User`
-- `TeamMembership`
-- `LearnerCapabilityState`
-- `PlanAssignment`
-- `LearningPlan`
-- `Session`
-- `SessionActivity`
-- `Attempt`
-- `EvidenceRecord`
-- `ReviewQueueItem`
-
-Rule:
-
-- files define the teaching model
-- Postgres stores the learner-specific state
-
-## First-Class Objects
-
-- `Team`: household, class, or subgroup boundary
-- `User`: one login principal
-- `TeamMembership`: role of an user in a team
-- `SubjectTrack`: `maths` or `english`
-- `Capability`: smallest measurable learning unit
-- `Milestone`: grouped capability checkpoint
-- `ContentItem`: one reusable learning artifact
-- `PlanTemplate`: file-owned recommended learning path
-- `PlanAssignment`: link between learner and chosen plan template
-- `LearningPlan`: one dated runtime plan for a learner
-- `LearnerCapabilityState`: current state of a learner against a capability
-- `Session`: one day’s learning block
-- `SessionActivity`: one task inside a session
-- `Attempt`: one recorded learner outcome
-- `EvidenceRecord`: score, duration, notes, audio, or image evidence
-- `ReviewQueueItem`: one capability that should return soon
-
-These are the core objects that should shape the API, database, and UI.
-
-## Capability State
-
-Capability status is not part of the static content system.
-
-It is per learner and belongs in the database.
-
-The first status model can stay small:
-
-- `not_started`
-- `introduced`
-- `practising`
-- `secure`
-- `needs_review`
-
-That state should be stored on `LearnerCapabilityState` and linked by `capability_id`.
-
-## Planning Model
-
-The planning model should have two layers.
-
-### Plan Template
-
-This is static and file-owned.
-
-It is authored offline by the operator.
-
-It defines the intended path.
-
-### Learning Plan
-
-This is runtime and database-owned.
-
-It is created when a plan template is assigned to a learner for real dates.
+This is the learner-specific state.
 
 It records:
 
-- which learner is following the plan
-- when it starts
-- which sessions were scheduled
-- which sessions were completed
-- what changed during execution
+- who the learner is
+- what has been assigned
+- what happened in sessions
+- what evidence was collected
+- which skills and checkpoints are secure, weak, or due for review
 
-This keeps planning clear:
+This layer belongs in the application database.
 
-- operator defines the template
-- owner assigns or switches the template
-- runtime tracks execution
+## Canonical First-Class Objects
 
-## Product Surface
+The following should be the stable product vocabulary.
 
-The system should stay operational and simple.
+| Object | Layer | Meaning | Example |
+| --- | --- | --- | --- |
+| Domain | Curriculum | Broad learning area. | Maths, English reading, basketball, guitar |
+| Program Brief | Curriculum authoring input | A plain-English design brief for one reusable program. | Age-10 arithmetic foundations |
+| Program | Curriculum | A reusable package for one audience and one outcome. | Arithmetic Foundations Core |
+| Checkpoint | Curriculum | A parent-facing stage or proficiency checkpoint inside a program. | Fact Fluency to 10 |
+| Skill | Curriculum | The smallest measurable skill that changes assignment or review decisions. | Recall multiplication facts for 6 to 9 |
+| Resource | Curriculum | One reusable artifact such as a worksheet, prompt, passage, script, or check. | Mixed drill sheet 01 |
+| Playlist | Curriculum and delivery | A repeatable ordered session sequence using real resources. | 14-day fact fluency starter |
+| Learner Profile | Runtime | The learner's identity, baseline, and constraints. | Ajay, age 10, weak recall speed |
+| Assignment | Runtime | A learner-specific instance of a program or playlist. | Ajay assigned fact fluency starter |
+| Session | Runtime | One dated run of planned work. | 2026-05-27 evening practice |
+| Evidence | Runtime | The recorded result of a session, check, or observation. | 34 correct in 3 minutes, weak on 7s |
+| Progress Record | Runtime | Current state for skills and checkpoints. | Multiplication facts weak, addition facts secure |
 
-### Owner Dashboard
+## Naming Policy
 
-This is the main surface.
+Some existing terms are usable as compatibility aliases, but they should no longer be treated as the main vocabulary.
 
-It should answer:
+- use `program`, not `track`, for the reusable curriculum slice
+- use `checkpoint` as the human-facing term; the current repo file is still `milestones.yaml`
+- use `skill` as the human-facing term; the current repo file is still `capabilities.yaml`
+- use `playlist` as the human-facing term; the current repo file is still `plan_templates.yaml`
+- use `resource` as the umbrella term; `content item` remains an acceptable implementation alias
+- use `target outcome` as a field inside the program brief, not as a separate product object
+- treat `achievement` as a derived report or badge, not as a core authored object
 
-- what each learner should do today
-- which plan is active
-- which capabilities are weak
-- which milestones are close to completion
-- what should be repeated next
+This matters because the old set made one term do multiple jobs.
 
-### Learner Session View
+For example:
 
-This is the child-facing surface.
+- `track` sometimes meant an authored curriculum slice
+- `track` sometimes meant the learner's current path
+- `milestone` sometimes meant a stage and sometimes a completion event
+- `plan` sometimes meant a reusable template and sometimes a learner-specific assignment
 
-It should be:
+The new model removes that ambiguity.
 
-- full-screen
-- distraction-light
-- one task at a time
-- readable on laptop and tablet
+## Object Relationships
 
-### Review View
+- a domain can contain many programs
+- a program is authored from one program brief
+- a program contains checkpoints, skills, resources, and playlists
+- a checkpoint groups skills and defines what "secure enough to move on" means
+- a resource supports one or more skills and one or more checkpoints
+- a playlist orders resources and checks into repeatable sessions
+- an assignment instantiates a playlist or program for one learner
+- sessions produce evidence
+- evidence updates progress records for skills and checkpoints
 
-This is where the owner closes the loop.
+## What Lives In Repo Files
 
-It should show:
+Repo files should define reusable curriculum.
 
-- recent sessions
-- repeated mistakes
-- capability-state changes
-- review queue
-- milestone progress
+That includes:
 
-### Catalog Browse Surface
+- domains and subjects
+- program briefs or equivalent authoring notes
+- checkpoints
+- skills
+- resources and their indexes
+- playlists
+- operator notes and review criteria
 
-This is the browse-only surface for capabilities, milestones, plan templates, and content items.
+These artifacts should be created offline, reviewed by a human, and committed to the repo.
 
-This can be rendered through Docusaurus from the same source files.
+## What Lives In Runtime State
 
-It is not the editing surface.
+The runtime product should own:
 
-Editing remains file-based in the repo.
+- teams, users, and learner profiles
+- assignments and dated plans
+- sessions and attempts
+- evidence and review notes
+- current progress state per learner
+- parent-facing next actions
 
-## Control-Plane Operations
+The runtime product should not be the source of truth for curriculum generation in the MVP.
 
-These are not a second system.
+That is the main system boundary:
 
-These are just the main backend operations the Rust control plane must support.
+- repo files define what can be taught
+- runtime state records what happened for a learner
 
-- `bootstrap.apply`: load teams, users, and memberships from bootstrap files
-- `catalog.reload`: parse and validate capabilities, milestones, plan templates, and content indexes
-- `plan.assign`: assign a plan template to a learner
-- `plan.instantiate`: create a dated learning plan and its sessions from the chosen template
-- `session.record`: store the result of a completed session
-- `review.rebuild`: recompute learner capability state, milestone progress, and review queue
+## Recommended Surfaces
 
-In the first milestone, these can be simple API handlers and service functions.
+The product should eventually expose four clear surfaces.
 
-They do not require a large workflow engine.
+### 1. Library Surface
 
-## Core Flow
+Browse reusable domains, programs, checkpoints, resources, and playlists.
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'primaryTextColor': '#111827', 'primaryBorderColor': '#64748b', 'lineColor': '#64748b', 'secondaryColor': '#f8fafc', 'tertiaryColor': '#f8fafc', 'fontFamily': 'Inter, ui-sans-serif, system-ui, sans-serif' }}}%%
-flowchart TD
-  author[Operator authors capabilities, milestones, plans, and content in files] --> load[Rust control plane loads catalogs]
-  load --> assign[Owner assigns a plan template to a learner]
-  assign --> instantiate[System creates a dated learning plan]
-  instantiate --> session[Child completes a daily session]
-  session --> record[Owner records score, time, and notes]
-  record --> review[System updates capability state and review queue]
-  review --> next[Owner continues, repeats, or changes plan]
-  next --> instantiate
+### 2. Coach Surface
 
-  classDef default fill:#ffffff,stroke:#64748b,color:#111827
-  linkStyle default stroke:#64748b
-```
+Assign playlists, run sessions, record evidence, and decide what to repeat next.
 
-## Simple Architecture
+### 3. Learner Surface
 
-The first implementation should follow the same broad control-plane pattern you already use in dVI, but much smaller.
+Show only today's work, the current resource, and simple completion flow.
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ffffff', 'primaryTextColor': '#111827', 'primaryBorderColor': '#64748b', 'lineColor': '#64748b', 'secondaryColor': '#f8fafc', 'tertiaryColor': '#f8fafc', 'fontFamily': 'Inter, ui-sans-serif, system-ui, sans-serif' }}}%%
-flowchart LR
-  subgraph clients[Clients]
-    flutter[Flutter web app]
-    docusaurus[Docusaurus catalog site]
-  end
+### 4. Review Surface
 
-  subgraph control[Control plane]
-    api[Rust API server]
-    planner[Planning and review services]
-    loader[Bootstrap and catalog loader]
-  end
-
-  postgres[(Postgres)]
-  content[(Markdown, YAML, JSON catalogs)]
-  data[(Runtime artifacts and evidence)]
+Show weak skills, secure checkpoints, recent evidence, and recommended next actions.
 
-  flutter --> api
-  api --> planner
-  api --> loader
-  planner --> postgres
-  loader --> content
-  loader --> postgres
-  api --> postgres
-  api --> data
-  docusaurus --> content
+## Example: Age-10 Maths Foundations
 
-  style clients stroke:#64748b,stroke-dasharray: 5 5,fill:#f8fafc,color:#111827
-  style control stroke:#2563eb,stroke-dasharray: 5 5,fill:#eff6ff,color:#111827
-  classDef default fill:#ffffff,stroke:#64748b,color:#111827
-  linkStyle default stroke:#64748b
-```
+The user request that triggered this clarification is a good example.
 
-## Tech Stack
+Do not model the whole need as one capability.
+Do not treat every worksheet as a milestone.
 
-### Recommended Now
-
-- `Flutter web`: owner and learner operational UI
-- `Rust server`: control plane API and runtime ownership
-- `Postgres`: durable learner, plan, session, and progress state
-- `Markdown`: content pages with frontmatter
-- `YAML` or `JSON`: indexes and catalogs for capabilities, milestones, plan templates, and deployment bootstrap
-- `Docusaurus`: browse-only catalog surface for operators and owners
-- `Docker Compose`: local and VM deployment shape
-- `Local file storage`: runtime evidence and generated artifacts
-
-### Explicitly Out For This Milestone
-
-- in-product AI content generation
-- browser-based inline editing of capabilities or milestones
-- OCR marking
-- automatic pronunciation scoring
-- heavy external auth
-- multi-tenant SaaS packaging
-
-## Content Contract
-
-The content system should feel schema-like even though it is file-based.
-
-Markdown items should use frontmatter.
-
-Example:
-
-```md
----
-id: cnt_maths_times_table_4_sheet_01
-type: worksheet
-subject: maths
-capability_ids:
-  - times_table_4
-milestone_ids:
-  - year3_tables_core
-recommended_age: 8
-difficulty: starter
-estimated_minutes: 12
----
-
-# 4 Times Table Practice
-
-...
-```
-
-This makes the content easy to validate, render in Docusaurus, and load into the control plane.
-
-## Bootstrap And Access
-
-The first MVP should use a small bootstrap model similar to your existing control-plane systems.
-
-It should define:
-
-- team
-- users
-- learners
-- memberships and roles
-
-Username-only login is acceptable for the home MVP.
-
-Before sharing with other families or schools, the auth boundary should be upgraded.
-
-## Content Versus Data
-
-This distinction should stay visible in the repo.
-
-### Content
-
-Curated source-of-truth learning definitions:
-
-- capabilities
-- milestones
-- plan templates
-- content items
-- indexes
-
-### Data
-
-Runtime-produced or runtime-owned material:
-
-- Postgres state
-- evidence files
-- exports
-- reports
-- local uploads
-
-## Suggested Repo Shape
-
-```text
-cornerstone/
-  docs/
-  content/
-
-    catalog/
-      subjects.yaml
-      capabilities.yaml
-      milestones.yaml
-      plan_templates.yaml
-      content_index.yaml
-    library/
-      maths/
-      english/
-  site/
-    catalog_docs/
-  rust/
-    apps/
-    crates/
-  fe/
-    flutter/
-      app/
-  data/
-    artifacts/
-    exports/
-  deploy/
-    config/
-      runtime_defaults/
-        identity_bootstrap.yaml
-    dev/
-    production/
-```
-
-## What Exists Now Versus Later
-
-### Now
-
-- one household team
-- file-owned content system
-- Docusaurus catalog browsing
-- Postgres-owned learner state
-- Flutter web UI
-- Rust control plane
-
-### Next
-
-- richer learner session UX
-- printable worksheet rendering
-- stored audio evidence
-- stronger progress summaries
-- friend-and-family pilots
-
-### Later
-
-- teacher or mentor teams
-- school subgroup structures
-- assisted content validation
-- OCR-assisted evidence ingestion
-- wider academic scope
-
-## Key Recommendation
-
-Build this as a small Rust-owned learning control plane with a file-owned curriculum system.
-
-Use Docusaurus to browse the catalogs, Flutter to operate the runtime, and Postgres to track learner-specific truth.
-
-That gives you a clean separation between:
-
-- static learning definitions
-- runtime learner state
-- operator content workflow
+Model it as one program.
+
+### Program Brief
+
+- domain: maths
+- audience: age-10 learner who is weak on arithmetic fundamentals
+- target outcome: secure fact fluency to 10 and dependable written whole-number operations
+- cadence: 15-minute daily sessions
+- coach: parent-led home practice
+
+### Program
+
+`arithmetic_foundations_core`
+
+### Checkpoints
+
+- fact fluency to 10
+- written addition and subtraction
+- written multiplication and division
+- extension foundations later, such as negatives and fractions
+
+### Skills Under Those Checkpoints
+
+- addition facts recall
+- subtraction facts recall
+- multiplication facts recall
+- division facts recall
+- column addition with carrying
+- column subtraction with borrowing
+- 2-digit by 1-digit multiplication
+- short division with remainders
+
+### Resources
+
+- timed facts drill sheets
+- mixed inverse-operation drills
+- worked-example teaching cards
+- parent checkpoint sheets
+- short written-operation worksheets
+
+### Playlists
+
+- 14-day fact fluency starter
+- 10-day written addition and subtraction
+- 10-day written multiplication and division
+
+This same model also works for other domains.
+
+Examples:
+
+- reading: program -> decoding and read-aloud checkpoints -> phonics and fluency skills -> passages and prompts -> daily reading playlist
+- pronunciation: program -> vowel accuracy and word stress checkpoints -> sound-production skills -> recording prompts and listening checks -> weekly practice playlist
+- basketball: program -> ball handling and finishing checkpoints -> dribbling and footwork skills -> drill cards and coach prompts -> training playlist
+
+## What Should Not Be First-Class Yet
+
+Do not rush these into the core model unless real operating pain proves they are necessary.
+
+- badges or achievements
+- detailed standards frameworks
+- lesson-level taxonomies deeper than skills
+- automatic mastery claims from a single activity
+- complex multi-tenant institution objects for the household MVP
+
+These can be added later if they become operationally necessary.
+
+## Compatibility With The Current Repo
+
+The current repo can adopt the new vocabulary without immediate file renames.
+
+- `content/catalog/subjects.yaml` currently represents domains
+- `content/catalog/capabilities.yaml` currently stores skills
+- `content/catalog/milestones.yaml` currently stores checkpoints
+- `content/catalog/content_index.yaml` and `content/library/**/*.md` currently store resources
+- `content/catalog/plan_templates.yaml` currently stores playlists
+
+There is no dedicated `programs.yaml` yet.
+
+For now, one program is represented across its checkpoints, skills, resources, and playlists, plus a design brief in docs or operator notes.
+If the model holds up in practice, adding a dedicated program catalog later will be justified.
+
+## AI Authoring Workflow
+
+For AI-assisted authoring, the clean sequence should be:
+
+1. fill a program brief
+2. ask for a program map with checkpoints and skills
+3. generate resources against those skills
+4. assemble playlists from real resource ids
+5. review the slice as a human
+6. assign it to learners and collect evidence
+7. refine only where evidence shows weak spots or bad pacing
+
+That workflow keeps the static curriculum reusable and keeps runtime adaptation grounded in real learner evidence.

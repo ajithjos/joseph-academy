@@ -1,115 +1,122 @@
 # Simple Content Model
 
-This is the mental model to use when authoring Cornerstone content.
-
-The missing distinction is this:
-
-- the curriculum map is static
-- learner progress and day-to-day execution are dynamic
+This is the smallest useful mental model for authoring Cornerstone curriculum.
 
 If you remember only one rule, remember this:
 
-- use the coarsest capability boundary that still changes what you would assign, repeat, or review next
+- author reusable programs statically
+- run them dynamically with learner-specific assignments
 
-That means you do not need the smallest possible academic unit.
-You need the smallest useful practice unit.
+The authoring model should stay small enough that a parent or operator can still decide what to do tomorrow.
 
 ## Static Versus Dynamic
 
-### Static Curriculum Map
+### Static Curriculum Objects
 
-These are repo-owned and should stay stable enough to reason about clearly:
+These are repo-owned and reusable:
 
-- target outcome
-- track
-- milestones
-- capabilities
-- content items
-- static plan template
+- program brief
+- program
+- checkpoints
+- skills
+- resources
+- playlists
 
-### Dynamic Runtime State
+### Dynamic Runtime Objects
 
-These belong to the live system, not the authored curriculum:
+These belong to the live system:
 
-- which learner is active on which track
-- what was completed this week
-- which items need review
-- scores, notes, timing, and evidence
-- schedule changes made during real use
+- learner profile
+- assignment
+- session
+- evidence
+- progress record
+- review queue
 
 Rule:
 
 - author the curriculum statically
-- run and adapt it dynamically
+- run, adapt, and review it dynamically
 
-## The Six Layers
+## The Six Authoring Objects
 
-Think in six layers.
+Think in six authoring objects.
 
-### 1. Target Outcome
+### 1. Program Brief
 
-This is the human goal.
+This is the plain-English design input.
 
-Examples:
+It captures:
 
-- comfortable with addition, subtraction, multiplication, and division facts up to 10
-- able to read short passages aloud with steady fluency
-
-This is not a catalog file by itself.
-It is the author's planning goal.
-
-### 2. Track
-
-A track is the static curriculum slice for one outcome.
+- who the learner type is
+- what outcome is wanted
+- how much time is available
+- what constraints matter
 
 Examples:
 
-- age-10 arithmetic fluency core
-- reading fluency stage 1
+- age-10 learner needs secure arithmetic fundamentals in 15-minute daily sessions
+- age-7 learner needs confident early reading with parent-led read-aloud practice
+- adult learner needs clearer English pronunciation for work calls
 
-There is no separate track file yet.
-In practice, the track is represented by its milestones, capabilities, content items, and plan templates.
+The brief is an input object.
+It is not runtime state.
 
-### 3. Milestone
+### 2. Program
 
-A milestone is the main static sub-track.
-
-This is the level a parent should usually think in first.
+A program is the reusable curriculum slice for one audience and one outcome.
 
 Examples:
 
-- addition fluency
-- subtraction fluency
-- multiplication fluency
-- division fluency
+- arithmetic foundations core
+- early reading fluency starter
+- English pronunciation essentials
 
-Use it to answer:
+If the learner need is broad, the program is where that broad need belongs.
+Do not collapse the whole thing into one skill.
 
-- which major sub-track is secure
-- which major sub-track still needs work
+### 3. Checkpoint
 
-A milestone is not a worksheet and not a lesson page.
-It is a clear checkpoint within the track.
+A checkpoint is the main parent-facing stage inside a program.
 
-### 4. Capability
+Use checkpoints to answer:
 
-A capability is a finer-grained skill unit inside a milestone when that extra detail is useful.
+- which major area is secure
+- which major area still needs work
+- which major area should be assigned next
+
+Examples:
+
+- fact fluency to 10
+- written addition and subtraction
+- short reading fluency
+- consonant and vowel sound control
+
+A checkpoint is not a worksheet and not a one-day lesson.
+It is a meaningful review point.
+
+### 4. Skill
+
+A skill is the smallest measurable unit that changes what you would assign, repeat, or review.
 
 Good test:
 
-- after a short practice or checkpoint, can you say secure, not yet, or needs review?
+- if this specific split would change tomorrow's practice decision, keep it
+- if it would not change tomorrow's practice decision, merge it
 
-If yes, it can be a capability.
-If no, split it.
+Examples:
 
-But do not split further unless the split changes what you would actually do next.
+- recall multiplication facts for 6 to 9
+- perform column subtraction with borrowing
+- read CVC words aloud accurately
+- produce a clear long-a vowel sound
 
-For simple tracks, one milestone can begin with one matching capability.
+For simple programs, one checkpoint may begin with one matching skill.
 That is acceptable.
 
-### 5. Content Item
+### 5. Resource
 
-A content item is the actual practice material.
+A resource is the actual reusable learning artifact.
 
 Examples:
 
@@ -117,131 +124,182 @@ Examples:
 - drill sheet
 - reading passage
 - teaching note
+- coach script
+- checkpoint sheet
 
-One content item can support one capability or a small group of related capabilities within a milestone.
+One resource can support one skill or a small group of related skills inside one checkpoint.
 
-### 6. Plan Template
+### 6. Playlist
 
-A plan template is the static ordered list of sessions.
+A playlist is the static ordered session sequence.
 
-It tells the owner what to run on each day.
+It answers:
 
-Each session points to real content items.
+- what should run on day 1, day 2, and day 3
+- which resources should be repeated
+- where checks should happen
 
-The runtime learning plan is different.
-It is the live assigned instance of that template for a real learner.
+The runtime assignment is different.
+It is the learner-specific instance of that playlist.
 
-## How Small Should A Capability Be
+## What Should Not Be First-Class
 
-Use this decision rule.
+Avoid making these core authoring objects too early:
 
-Split a capability only if the split would change at least one of these:
+- achievements or badges
+- daily plan variants for one specific learner
+- completion events that duplicate evidence
+- deep lesson taxonomies below the skill layer
+- separate objects for every teaching note and observation style
 
-- the worksheet or activity you would assign
-- the review note you would write
+Most of those are either derived reporting or local runtime detail.
+
+## How Small Should A Skill Be
+
+Split a skill only if the split changes at least one of these:
+
+- the resource you would assign
+- the coaching note you would write
 - the repetition cadence you would choose
+- the checkpoint decision you would make
 
-If splitting does not change one of those, keep it together.
+If it changes none of those, keep it merged.
 
 That is the practical boundary.
 
-Use milestones first.
-Use capabilities only where milestones are still too broad for useful review.
+Use checkpoints first.
+Use skills only where checkpoints are too broad for useful review.
 
-## Default Size For A New Track
+## How Big Should A Checkpoint Be
 
-For one new home-learning track, start small.
+A checkpoint should be big enough to matter to a parent and small enough to review honestly.
 
-- 1 target outcome
-- 1 track
-- 3 to 6 milestones
-- 1 to 2 capabilities per milestone unless finer splits are clearly useful
-- 4 to 12 content items
-- 1 plan template
+Good checkpoint questions are:
 
-You can always split later after you see real learner data.
+- is this learner secure in this area yet
+- do we need another week on this area
+- are we ready to move to the next area
+
+If a checkpoint is too small to matter in weekly review, it is probably just a skill.
+If a checkpoint is too large to review honestly, split it.
+
+## Default Size For A New Program
+
+For one new home-learning program, start with:
+
+- 1 program brief
+- 1 program
+- 3 to 5 checkpoints
+- 1 to 3 skills per checkpoint unless finer splits are clearly necessary
+- 6 to 20 resources
+- 1 to 3 playlists
+
+You can always split later after you see real learner evidence.
 
 ## What The Catalog Actually Is
 
-The catalog is not separate teaching content.
+The catalog is the repo index for reusable curriculum.
 
-It is the repo index that tells the system what exists.
-
-- `content/catalog/capabilities.yaml`: the finer-grained skill list when needed
-- `content/catalog/milestones.yaml`: the main track sub-checkpoints
-- `content/catalog/content_index.yaml`: the index of real markdown content files
-- `content/catalog/plan_templates.yaml`: session sequences
-- `content/library/**/*.md`: the actual worksheet, note, passage, or activity text
+- `content/catalog/capabilities.yaml`: current file for skills
+- `content/catalog/milestones.yaml`: current file for checkpoints
+- `content/catalog/content_index.yaml`: the index of real resource files
+- `content/catalog/plan_templates.yaml`: current file for playlists
+- `content/library/**/*.md`: the actual worksheets, notes, passages, prompts, and checks
 
 So the relationship is simple:
 
-- the catalog names and links the static curriculum
-- the markdown files are the actual materials
-- the static plan template orders the materials into sessions
+- the catalog names and links the reusable curriculum
+- the markdown files are the real resources
+- the playlists order resources into repeatable sessions
 - the runtime system tracks what actually happened for each learner
 
 ## Arithmetic Example
 
 Suppose the real goal is:
 
-- the child becomes comfortable with addition, subtraction, multiplication, and division facts up to 10
+- the child becomes secure in arithmetic fundamentals, including fact fluency and written operations
 
-That goal is too large for one capability.
-
-Treat it as a target outcome.
+That goal is too large for one skill.
+Treat it as one program.
 
 ### A Good Small Starting Structure
 
-Start with one arithmetic fluency track.
+Program:
 
-Then use four parent-facing milestones:
+- arithmetic foundations core
 
-- addition fluency
-- subtraction fluency
-- multiplication fluency up to 10
-- division fluency up to 10
+Checkpoints:
 
-Under each milestone, start with one broad matching capability if that is enough:
+- fact fluency to 10
+- written addition and subtraction
+- written multiplication and division
 
-- addition facts fluency
-- subtraction facts fluency
-- multiplication tables fluency up to 10
-- division facts fluency up to 10
+Skills inside those checkpoints might start as:
 
-This is already enough to start authoring content and running plans.
+- addition facts recall
+- subtraction facts recall
+- multiplication facts recall
+- division facts recall
+- column addition with carrying
+- column subtraction with borrowing
+- 2-digit by 1-digit multiplication
+- short division with remainders
+
+Resources might include:
+
+- timed fact drills
+- mixed operation practice
+- worked examples
+- parent checkpoint sheets
+
+Playlists might include:
+
+- a 2-week fact fluency starter
+- a 10-session written operations sequence
+
+That is already enough to start authoring and running.
 
 ### When To Split Further
 
-Only split if the child's weak spots would change practice decisions.
+Only split when the learner's weak spots would change practice decisions.
 
 Examples:
 
-- if 2, 5, and 10 are secure but 6, 7, and 8 are weak, split the multiplication capability inside that milestone
-- if division is much weaker than multiplication, keep it as its own milestone and capability set
-- if addition needs separate carrying or missing-number practice, split the addition capability into smaller units
+- if 2, 5, and 10 are secure but 6, 7, and 8 are weak, split multiplication facts into smaller skills
+- if written subtraction is strong but carrying in addition is weak, separate those skills
+- if division lags far behind multiplication, keep them in separate checkpoints or at least separate skills
 
-So yes, it can begin as four milestones and four matching capabilities.
-It does not need to start as twenty capabilities.
+So yes, the program can start small.
+It does not need twenty finely sliced skills on day one.
 
 ## The Smallest Useful Authoring Loop
 
 Use this order:
 
-1. write the target outcome in plain English
-2. define the track and its milestone sub-tracks
-3. decide whether each milestone needs one capability or several
-4. write the actual content items
+1. write the program brief in plain English
+2. define the program and its checkpoints
+3. decide whether each checkpoint needs one skill or several
+4. write the real resources
 5. index them in `content_index.yaml`
-6. assemble one static plan template that uses those content ids
+6. assemble one or more playlists that use real resource ids
+
+## Compatibility Notes
+
+- `track` is an old alias for `program`
+- `milestone` is an old alias for `checkpoint`
+- `capability` is an old alias for `skill`
+- `plan template` is an old alias for `playlist`
+- `achievement` should remain a derived report, not a core authoring object
 
 ## Practical Rule For This Repo
 
 When in doubt, prefer simpler authoring and clearer practice over more taxonomy.
 
-If a capability boundary does not help the parent decide what to do tomorrow, it is probably too fine-grained for the current MVP.
+If a skill boundary does not help the parent decide what to do tomorrow, it is probably too fine-grained for the current MVP.
 
 Next documents:
 
-- [Track authoring brief](./track-authoring-brief.md)
+- [Program brief template](./program-brief-template.md)
+- [Program authoring brief](./track-authoring-brief.md)
 - [Content authoring rules](./ai-content-generation-contract.md)
 - [Copy-paste authoring prompts](./repeatable-prompts.md)
