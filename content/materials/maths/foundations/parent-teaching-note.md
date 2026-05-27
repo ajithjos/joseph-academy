@@ -1,19 +1,20 @@
 ---
 id: cnt_maths_foundations_teaching_note_01
 type: teaching_note
-subject: maths
-capability_ids:
+subject_id: maths
+area_id: arithmetic
+skill_ids:
   - number_bonds_to_10
   - addition_facts_to_20
   - subtraction_facts_to_20
-milestone_ids:
-  - maths_age_7_fluency_core
+stage_ids:
+  - arithmetic_fact_fluency_foundations
 recommended_age: 7
 difficulty: parent_note
 estimated_minutes: 8
 ---
 
-# Parent Checkpoint For Maths Foundations
+# Parent Teaching Note For Maths Foundations
 
 Use this note after the first practice cycle.
 

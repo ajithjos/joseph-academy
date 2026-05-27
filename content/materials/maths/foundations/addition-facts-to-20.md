@@ -1,11 +1,12 @@
 ---
 id: cnt_maths_addition_facts_sheet_01
 type: worksheet
-subject: maths
-capability_ids:
+subject_id: maths
+area_id: arithmetic
+skill_ids:
   - addition_facts_to_20
-milestone_ids:
-  - maths_age_7_fluency_core
+stage_ids:
+  - arithmetic_fact_fluency_foundations
 recommended_age: 7
 difficulty: starter
 estimated_minutes: 12

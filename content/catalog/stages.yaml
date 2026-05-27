@@ -1,21 +1,23 @@
-milestones:
-  - milestone_id: maths_age_7_fluency_core
-    subject: maths
-    title: Maths fluency core for age 7
+stages:
+  - stage_id: arithmetic_fact_fluency_foundations
+    subject_id: maths
+    area_id: arithmetic
+    title: Arithmetic fact fluency foundations
     recommended_age: 7
     recommended_level: Year 2
     description: Foundational number facts for short daily practice.
-    capability_ids:
+    skill_ids:
       - number_bonds_to_10
       - addition_facts_to_20
       - subtraction_facts_to_20
-  - milestone_id: maths_age_10_tables_and_division
-    subject: maths
-    title: Maths tables and division for age 10
+  - stage_id: multiplication_and_division_fact_fluency
+    subject_id: maths
+    area_id: arithmetic
+    title: Multiplication and division fact fluency
     recommended_age: 10
     recommended_level: Year 5
     description: Multiplication and division fluency built from linked fact families.
-    capability_ids:
+    skill_ids:
       - times_tables_2_5_10
       - times_tables_3_4
       - division_facts_by_2_5_10

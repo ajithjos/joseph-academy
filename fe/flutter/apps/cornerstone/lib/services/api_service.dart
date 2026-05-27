@@ -46,17 +46,17 @@ class CornerstoneApiClient {
     return LearnerDetailPayload.fromJson(_decode(response));
   }
 
-  Future<void> assignPlan({
+  Future<void> createAssignment({
     required String learnerId,
-    required String planTemplateId,
+    required String playlistId,
     required String startDate,
   }) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/plan-assignments'),
+      Uri.parse('$baseUrl/api/v1/assignments'),
       headers: const {'Content-Type': 'application/json'},
       body: jsonEncode({
         'learner_id': learnerId,
-        'plan_template_id': planTemplateId,
+        'playlist_id': playlistId,
         'start_date': startDate,
       }),
     );

@@ -8,14 +8,14 @@ class DashboardPayload {
           : TeamInfo.fromJson(json['team'] as Map<String, dynamic>),
       catalog: CatalogReport.fromJson(json['catalog'] as Map<String, dynamic>),
       learners: (json['learners'] as List<dynamic>)
-          .map((item) => LearnerCard.fromJson(item as Map<String, dynamic>))
+          .map((item) => LearnerDashboard.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
 
   final TeamInfo? team;
   final CatalogReport catalog;
-  final List<LearnerCard> learners;
+  final List<LearnerDashboard> learners;
 }
 
 class CatalogPayload {
@@ -34,63 +34,74 @@ class CatalogPayload {
 
 class CatalogBundle {
   CatalogBundle({
-    required this.capabilities,
-    required this.milestones,
-    required this.planTemplates,
-    required this.contentItems,
+    required this.subjects,
+    required this.areas,
+    required this.skills,
+    required this.stages,
+    required this.playlists,
+    required this.materials,
   });
 
   factory CatalogBundle.fromJson(Map<String, dynamic> json) {
     return CatalogBundle(
-      capabilities: (json['capabilities'] as List<dynamic>)
-          .map((item) => CapabilityInfo.fromJson(item as Map<String, dynamic>))
+      subjects: (json['subjects'] as List<dynamic>)
+          .map((item) => SubjectInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
-      milestones: (json['milestones'] as List<dynamic>)
-          .map((item) => MilestoneInfo.fromJson(item as Map<String, dynamic>))
+      areas: (json['areas'] as List<dynamic>)
+          .map((item) => AreaInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
-      planTemplates: (json['plan_templates'] as List<dynamic>)
-          .map(
-            (item) => PlanTemplateInfo.fromJson(item as Map<String, dynamic>),
-          )
+      skills: (json['skills'] as List<dynamic>)
+          .map((item) => SkillInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
-      contentItems: (json['content_items'] as List<dynamic>)
-          .map((item) => ContentItemInfo.fromJson(item as Map<String, dynamic>))
+      stages: (json['stages'] as List<dynamic>)
+          .map((item) => StageInfo.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      playlists: (json['playlists'] as List<dynamic>)
+          .map((item) => PlaylistInfo.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      materials: (json['materials'] as List<dynamic>)
+          .map((item) => MaterialInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
 
-  final List<CapabilityInfo> capabilities;
-  final List<MilestoneInfo> milestones;
-  final List<PlanTemplateInfo> planTemplates;
-  final List<ContentItemInfo> contentItems;
+  final List<SubjectInfo> subjects;
+  final List<AreaInfo> areas;
+  final List<SkillInfo> skills;
+  final List<StageInfo> stages;
+  final List<PlaylistInfo> playlists;
+  final List<MaterialInfo> materials;
 }
 
 class CatalogReport {
   CatalogReport({
     required this.subjectCount,
-    required this.capabilityCount,
-    required this.milestoneCount,
-    required this.planTemplateCount,
-    required this.contentItemCount,
+    required this.areaCount,
+    required this.skillCount,
+    required this.stageCount,
+    required this.playlistCount,
+    required this.materialCount,
     required this.loadedAtUtc,
   });
 
   factory CatalogReport.fromJson(Map<String, dynamic> json) {
     return CatalogReport(
       subjectCount: (json['subject_count'] as num).toInt(),
-      capabilityCount: (json['capability_count'] as num).toInt(),
-      milestoneCount: (json['milestone_count'] as num).toInt(),
-      planTemplateCount: (json['plan_template_count'] as num).toInt(),
-      contentItemCount: (json['content_item_count'] as num).toInt(),
+      areaCount: (json['area_count'] as num).toInt(),
+      skillCount: (json['skill_count'] as num).toInt(),
+      stageCount: (json['stage_count'] as num).toInt(),
+      playlistCount: (json['playlist_count'] as num).toInt(),
+      materialCount: (json['material_count'] as num).toInt(),
       loadedAtUtc: json['loaded_at_utc'] as String,
     );
   }
 
   final int subjectCount;
-  final int capabilityCount;
-  final int milestoneCount;
-  final int planTemplateCount;
-  final int contentItemCount;
+  final int areaCount;
+  final int skillCount;
+  final int stageCount;
+  final int playlistCount;
+  final int materialCount;
   final String loadedAtUtc;
 }
 
@@ -114,50 +125,50 @@ class TeamInfo {
   final String description;
 }
 
-class LearnerCard {
-  LearnerCard({
+class LearnerDashboard {
+  LearnerDashboard({
     required this.learnerId,
     required this.displayName,
     required this.currentAge,
     required this.currentLevel,
     required this.notes,
-    required this.reviewQueueCount,
-    required this.capabilityStatusCounts,
-    required this.milestoneProgress,
-    this.activePlan,
+    required this.reviewItemCount,
+    required this.progressStatusCounts,
+    required this.stageProgress,
+    this.activeAssignment,
     this.todaySession,
-    this.latestAttempt,
+    this.latestEvidence,
   });
 
-  factory LearnerCard.fromJson(Map<String, dynamic> json) {
-    return LearnerCard(
+  factory LearnerDashboard.fromJson(Map<String, dynamic> json) {
+    return LearnerDashboard(
       learnerId: json['learner_id'] as String,
       displayName: json['display_name'] as String,
       currentAge: (json['current_age'] as num).toInt(),
       currentLevel: json['current_level'] as String,
       notes: json['notes'] as String,
-      reviewQueueCount: (json['review_queue_count'] as num).toInt(),
-      capabilityStatusCounts:
-          (json['capability_status_counts'] as Map<String, dynamic>).map(
+      reviewItemCount: (json['review_item_count'] as num).toInt(),
+      progressStatusCounts:
+          (json['progress_status_counts'] as Map<String, dynamic>).map(
             (key, value) => MapEntry(key, (value as num).toInt()),
           ),
-      milestoneProgress: (json['milestone_progress'] as List<dynamic>)
-          .map(
-            (item) => MilestoneProgress.fromJson(item as Map<String, dynamic>),
-          )
+      stageProgress: (json['stage_progress'] as List<dynamic>)
+          .map((item) => StageProgress.fromJson(item as Map<String, dynamic>))
           .toList(),
-      activePlan: json['active_plan'] == null
+      activeAssignment: json['active_assignment'] == null
           ? null
-          : PlanSummary.fromJson(json['active_plan'] as Map<String, dynamic>),
+          : AssignmentSummary.fromJson(
+              json['active_assignment'] as Map<String, dynamic>,
+            ),
       todaySession: json['today_session'] == null
           ? null
           : SessionSummary.fromJson(
               json['today_session'] as Map<String, dynamic>,
             ),
-      latestAttempt: json['latest_attempt'] == null
+      latestEvidence: json['latest_evidence'] == null
           ? null
-          : AttemptSummary.fromJson(
-              json['latest_attempt'] as Map<String, dynamic>,
+          : EvidenceSummary.fromJson(
+              json['latest_evidence'] as Map<String, dynamic>,
             ),
     );
   }
@@ -167,49 +178,52 @@ class LearnerCard {
   final int currentAge;
   final String currentLevel;
   final String notes;
-  final int reviewQueueCount;
-  final Map<String, int> capabilityStatusCounts;
-  final List<MilestoneProgress> milestoneProgress;
-  final PlanSummary? activePlan;
+  final int reviewItemCount;
+  final Map<String, int> progressStatusCounts;
+  final List<StageProgress> stageProgress;
+  final AssignmentSummary? activeAssignment;
   final SessionSummary? todaySession;
-  final AttemptSummary? latestAttempt;
+  final EvidenceSummary? latestEvidence;
 }
 
 class LearnerDetailPayload {
   LearnerDetailPayload({
     required this.learner,
     required this.sessions,
-    required this.capabilityStates,
-    required this.reviewQueue,
-    this.activePlan,
+    required this.progress,
+    required this.reviewItems,
+    this.activeAssignment,
   });
 
   factory LearnerDetailPayload.fromJson(Map<String, dynamic> json) {
     return LearnerDetailPayload(
       learner: LearnerSummary.fromJson(json['learner'] as Map<String, dynamic>),
-      activePlan: json['active_plan'] == null
+      activeAssignment: json['active_assignment'] == null
           ? null
-          : PlanSummary.fromJson(json['active_plan'] as Map<String, dynamic>),
+          : AssignmentSummary.fromJson(
+              json['active_assignment'] as Map<String, dynamic>,
+            ),
       sessions: (json['sessions'] as List<dynamic>)
           .map((item) => SessionDetail.fromJson(item as Map<String, dynamic>))
           .toList(),
-      capabilityStates: (json['capability_states'] as List<dynamic>)
+      progress: (json['progress'] as List<dynamic>)
           .map(
-            (item) =>
-                CapabilityStateSummary.fromJson(item as Map<String, dynamic>),
+            (item) => SkillProgressSummary.fromJson(
+              item as Map<String, dynamic>,
+            ),
           )
           .toList(),
-      reviewQueue: (json['review_queue'] as List<dynamic>)
-          .map((item) => ReviewQueueItem.fromJson(item as Map<String, dynamic>))
+      reviewItems: (json['review_items'] as List<dynamic>)
+          .map((item) => ReviewItem.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
 
   final LearnerSummary learner;
-  final PlanSummary? activePlan;
+  final AssignmentSummary? activeAssignment;
   final List<SessionDetail> sessions;
-  final List<CapabilityStateSummary> capabilityStates;
-  final List<ReviewQueueItem> reviewQueue;
+  final List<SkillProgressSummary> progress;
+  final List<ReviewItem> reviewItems;
 }
 
 class LearnerSummary {
@@ -238,11 +252,10 @@ class LearnerSummary {
   final String notes;
 }
 
-class PlanSummary {
-  PlanSummary({
-    required this.learningPlanId,
-    required this.planAssignmentId,
-    required this.planTemplateId,
+class AssignmentSummary {
+  AssignmentSummary({
+    required this.assignmentId,
+    required this.playlistId,
     required this.title,
     required this.startDate,
     required this.endDate,
@@ -252,11 +265,10 @@ class PlanSummary {
     required this.completionPercent,
   });
 
-  factory PlanSummary.fromJson(Map<String, dynamic> json) {
-    return PlanSummary(
-      learningPlanId: json['learning_plan_id'] as String,
-      planAssignmentId: json['plan_assignment_id'] as String,
-      planTemplateId: json['plan_template_id'] as String,
+  factory AssignmentSummary.fromJson(Map<String, dynamic> json) {
+    return AssignmentSummary(
+      assignmentId: json['assignment_id'] as String,
+      playlistId: json['playlist_id'] as String,
       title: json['title'] as String,
       startDate: json['start_date'] as String,
       endDate: json['end_date'] as String,
@@ -267,9 +279,8 @@ class PlanSummary {
     );
   }
 
-  final String learningPlanId;
-  final String planAssignmentId;
-  final String planTemplateId;
+  final String assignmentId;
+  final String playlistId;
   final String title;
   final String startDate;
   final String endDate;
@@ -309,8 +320,8 @@ class SessionDetail extends SessionSummary {
     required super.scheduledDate,
     required super.status,
     required this.notes,
-    required this.activities,
-    this.latestAttempt,
+    required this.materials,
+    this.latestEvidence,
   });
 
   factory SessionDetail.fromJson(Map<String, dynamic> json) {
@@ -320,51 +331,51 @@ class SessionDetail extends SessionSummary {
       scheduledDate: json['scheduled_date'] as String,
       status: json['status'] as String,
       notes: json['notes'] as String,
-      activities: (json['activities'] as List<dynamic>)
-          .map((item) => SessionActivity.fromJson(item as Map<String, dynamic>))
+      materials: (json['materials'] as List<dynamic>)
+          .map((item) => SessionMaterial.fromJson(item as Map<String, dynamic>))
           .toList(),
-      latestAttempt: json['latest_attempt'] == null
+      latestEvidence: json['latest_evidence'] == null
           ? null
-          : AttemptSummary.fromJson(
-              json['latest_attempt'] as Map<String, dynamic>,
+          : EvidenceSummary.fromJson(
+              json['latest_evidence'] as Map<String, dynamic>,
             ),
     );
   }
 
   final String notes;
-  final List<SessionActivity> activities;
-  final AttemptSummary? latestAttempt;
+  final List<SessionMaterial> materials;
+  final EvidenceSummary? latestEvidence;
 }
 
-class SessionActivity {
-  SessionActivity({
-    required this.activityId,
+class SessionMaterial {
+  SessionMaterial({
+    required this.sessionMaterialId,
     required this.title,
-    required this.capabilityId,
-    required this.contentId,
+    required this.skillId,
+    required this.materialId,
     required this.status,
   });
 
-  factory SessionActivity.fromJson(Map<String, dynamic> json) {
-    return SessionActivity(
-      activityId: json['activity_id'] as String,
+  factory SessionMaterial.fromJson(Map<String, dynamic> json) {
+    return SessionMaterial(
+      sessionMaterialId: json['session_material_id'] as String,
       title: json['title'] as String,
-      capabilityId: json['capability_id'] as String,
-      contentId: json['content_id'] as String,
+      skillId: json['skill_id'] as String,
+      materialId: json['material_id'] as String,
       status: json['status'] as String,
     );
   }
 
-  final String activityId;
+  final String sessionMaterialId;
   final String title;
-  final String capabilityId;
-  final String contentId;
+  final String skillId;
+  final String materialId;
   final String status;
 }
 
-class AttemptSummary {
-  AttemptSummary({
-    required this.attemptId,
+class EvidenceSummary {
+  EvidenceSummary({
+    required this.evidenceId,
     required this.score,
     required this.maxScore,
     required this.durationMinutes,
@@ -372,9 +383,9 @@ class AttemptSummary {
     required this.recordedAt,
   });
 
-  factory AttemptSummary.fromJson(Map<String, dynamic> json) {
-    return AttemptSummary(
-      attemptId: json['attempt_id'] as String,
+  factory EvidenceSummary.fromJson(Map<String, dynamic> json) {
+    return EvidenceSummary(
+      evidenceId: json['evidence_id'] as String,
       score: (json['score'] as num).toDouble(),
       maxScore: (json['max_score'] as num).toDouble(),
       durationMinutes: (json['duration_minutes'] as num).toInt(),
@@ -383,7 +394,7 @@ class AttemptSummary {
     );
   }
 
-  final String attemptId;
+  final String evidenceId;
   final double score;
   final double maxScore;
   final int durationMinutes;
@@ -391,176 +402,282 @@ class AttemptSummary {
   final String recordedAt;
 }
 
-class CapabilityStateSummary {
-  CapabilityStateSummary({
-    required this.capabilityId,
+class SkillProgressSummary {
+  SkillProgressSummary({
+    required this.skillId,
     required this.status,
     required this.scoreAverage,
     required this.lastScore,
-    required this.totalAttempts,
+    required this.totalEvidence,
+    this.lastEvidenceAt,
   });
 
-  factory CapabilityStateSummary.fromJson(Map<String, dynamic> json) {
-    return CapabilityStateSummary(
-      capabilityId: json['capability_id'] as String,
+  factory SkillProgressSummary.fromJson(Map<String, dynamic> json) {
+    return SkillProgressSummary(
+      skillId: json['skill_id'] as String,
       status: json['status'] as String,
       scoreAverage: (json['score_average'] as num).toDouble(),
       lastScore: (json['last_score'] as num).toDouble(),
-      totalAttempts: (json['total_attempts'] as num).toInt(),
+      totalEvidence: (json['total_evidence'] as num).toInt(),
+      lastEvidenceAt: json['last_evidence_at'] as String?,
     );
   }
 
-  final String capabilityId;
+  final String skillId;
   final String status;
   final double scoreAverage;
   final double lastScore;
-  final int totalAttempts;
+  final int totalEvidence;
+  final String? lastEvidenceAt;
 }
 
-class ReviewQueueItem {
-  ReviewQueueItem({
-    required this.reviewQueueItemId,
-    required this.capabilityId,
+class ReviewItem {
+  ReviewItem({
+    required this.reviewItemId,
+    required this.skillId,
     required this.reason,
     required this.dueDate,
     required this.status,
   });
 
-  factory ReviewQueueItem.fromJson(Map<String, dynamic> json) {
-    return ReviewQueueItem(
-      reviewQueueItemId: json['review_queue_item_id'] as String,
-      capabilityId: json['capability_id'] as String,
+  factory ReviewItem.fromJson(Map<String, dynamic> json) {
+    return ReviewItem(
+      reviewItemId: json['review_item_id'] as String,
+      skillId: json['skill_id'] as String,
       reason: json['reason'] as String,
       dueDate: json['due_date'] as String,
       status: json['status'] as String,
     );
   }
 
-  final String reviewQueueItemId;
-  final String capabilityId;
+  final String reviewItemId;
+  final String skillId;
   final String reason;
   final String dueDate;
   final String status;
 }
 
-class MilestoneProgress {
-  MilestoneProgress({
-    required this.milestoneId,
+class StageProgress {
+  StageProgress({
+    required this.stageId,
     required this.title,
-    required this.completedCapabilities,
-    required this.totalCapabilities,
+    required this.completedSkills,
+    required this.totalSkills,
   });
 
-  factory MilestoneProgress.fromJson(Map<String, dynamic> json) {
-    return MilestoneProgress(
-      milestoneId: json['milestone_id'] as String,
+  factory StageProgress.fromJson(Map<String, dynamic> json) {
+    return StageProgress(
+      stageId: json['stage_id'] as String,
       title: json['title'] as String,
-      completedCapabilities: (json['completed_capabilities'] as num).toInt(),
-      totalCapabilities: (json['total_capabilities'] as num).toInt(),
+      completedSkills: (json['completed_skills'] as num).toInt(),
+      totalSkills: (json['total_skills'] as num).toInt(),
     );
   }
 
-  final String milestoneId;
+  final String stageId;
   final String title;
-  final int completedCapabilities;
-  final int totalCapabilities;
+  final int completedSkills;
+  final int totalSkills;
 }
 
-class CapabilityInfo {
-  CapabilityInfo({
-    required this.capabilityId,
+class SubjectInfo {
+  SubjectInfo({
+    required this.subjectId,
     required this.title,
-    required this.subject,
     required this.description,
   });
 
-  factory CapabilityInfo.fromJson(Map<String, dynamic> json) {
-    return CapabilityInfo(
-      capabilityId: json['capability_id'] as String,
+  factory SubjectInfo.fromJson(Map<String, dynamic> json) {
+    return SubjectInfo(
+      subjectId: json['subject_id'] as String,
       title: json['title'] as String,
-      subject: json['subject'] as String,
       description: json['description'] as String,
     );
   }
 
-  final String capabilityId;
+  final String subjectId;
   final String title;
-  final String subject;
   final String description;
 }
 
-class MilestoneInfo {
-  MilestoneInfo({
-    required this.milestoneId,
+class AreaInfo {
+  AreaInfo({
+    required this.areaId,
+    required this.subjectId,
     required this.title,
-    required this.capabilityIds,
+    required this.description,
   });
 
-  factory MilestoneInfo.fromJson(Map<String, dynamic> json) {
-    return MilestoneInfo(
-      milestoneId: json['milestone_id'] as String,
+  factory AreaInfo.fromJson(Map<String, dynamic> json) {
+    return AreaInfo(
+      areaId: json['area_id'] as String,
+      subjectId: json['subject_id'] as String,
       title: json['title'] as String,
-      capabilityIds: (json['capability_ids'] as List<dynamic>)
-          .map((item) => item as String)
-          .toList(),
+      description: json['description'] as String,
     );
   }
 
-  final String milestoneId;
+  final String areaId;
+  final String subjectId;
   final String title;
-  final List<String> capabilityIds;
+  final String description;
 }
 
-class PlanTemplateInfo {
-  PlanTemplateInfo({
-    required this.planTemplateId,
+class SkillInfo {
+  SkillInfo({
+    required this.skillId,
+    required this.subjectId,
+    required this.areaId,
     required this.title,
     required this.recommendedAge,
     required this.recommendedLevel,
-    required this.durationDays,
-    required this.capabilityIds,
+    required this.description,
+    required this.successCriteria,
   });
 
-  factory PlanTemplateInfo.fromJson(Map<String, dynamic> json) {
-    return PlanTemplateInfo(
-      planTemplateId: json['plan_template_id'] as String,
+  factory SkillInfo.fromJson(Map<String, dynamic> json) {
+    return SkillInfo(
+      skillId: json['skill_id'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
       title: json['title'] as String,
       recommendedAge: (json['recommended_age'] as num).toInt(),
       recommendedLevel: json['recommended_level'] as String,
-      durationDays: (json['duration_days'] as num).toInt(),
-      capabilityIds: (json['capability_ids'] as List<dynamic>)
+      description: json['description'] as String,
+      successCriteria: json['success_criteria'] as String,
+    );
+  }
+
+  final String skillId;
+  final String subjectId;
+  final String areaId;
+  final String title;
+  final int recommendedAge;
+  final String recommendedLevel;
+  final String description;
+  final String successCriteria;
+}
+
+class StageInfo {
+  StageInfo({
+    required this.stageId,
+    required this.subjectId,
+    required this.areaId,
+    required this.title,
+    required this.recommendedAge,
+    required this.recommendedLevel,
+    required this.description,
+    required this.skillIds,
+  });
+
+  factory StageInfo.fromJson(Map<String, dynamic> json) {
+    return StageInfo(
+      stageId: json['stage_id'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      title: json['title'] as String,
+      recommendedAge: (json['recommended_age'] as num).toInt(),
+      recommendedLevel: json['recommended_level'] as String,
+      description: json['description'] as String,
+      skillIds: (json['skill_ids'] as List<dynamic>)
           .map((item) => item as String)
           .toList(),
     );
   }
 
-  final String planTemplateId;
+  final String stageId;
+  final String subjectId;
+  final String areaId;
   final String title;
   final int recommendedAge;
   final String recommendedLevel;
-  final int durationDays;
-  final List<String> capabilityIds;
+  final String description;
+  final List<String> skillIds;
 }
 
-class ContentItemInfo {
-  ContentItemInfo({
+class PlaylistInfo {
+  PlaylistInfo({
+    required this.playlistId,
+    required this.title,
+    required this.subjectId,
+    required this.areaId,
+    required this.recommendedAge,
+    required this.recommendedLevel,
+    required this.stageIds,
+    required this.skillIds,
+    required this.durationDays,
+  });
+
+  factory PlaylistInfo.fromJson(Map<String, dynamic> json) {
+    return PlaylistInfo(
+      playlistId: json['playlist_id'] as String,
+      title: json['title'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      recommendedAge: (json['recommended_age'] as num).toInt(),
+      recommendedLevel: json['recommended_level'] as String,
+      stageIds: (json['stage_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      skillIds: (json['skill_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      durationDays: (json['duration_days'] as num).toInt(),
+    );
+  }
+
+  final String playlistId;
+  final String title;
+  final String subjectId;
+  final String areaId;
+  final int recommendedAge;
+  final String recommendedLevel;
+  final List<String> stageIds;
+  final List<String> skillIds;
+  final int durationDays;
+}
+
+class MaterialInfo {
+  MaterialInfo({
     required this.id,
     required this.title,
     required this.kind,
-    required this.subject,
+    required this.subjectId,
+    required this.areaId,
+    required this.skillIds,
+    required this.stageIds,
+    required this.recommendedAge,
+    required this.difficulty,
+    required this.estimatedMinutes,
   });
 
-  factory ContentItemInfo.fromJson(Map<String, dynamic> json) {
-    return ContentItemInfo(
+  factory MaterialInfo.fromJson(Map<String, dynamic> json) {
+    return MaterialInfo(
       id: json['id'] as String,
       title: json['title'] as String,
       kind: json['type'] as String,
-      subject: json['subject'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      skillIds: (json['skill_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      stageIds: (json['stage_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      recommendedAge: (json['recommended_age'] as num).toInt(),
+      difficulty: json['difficulty'] as String,
+      estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
     );
   }
 
   final String id;
   final String title;
   final String kind;
-  final String subject;
+  final String subjectId;
+  final String areaId;
+  final List<String> skillIds;
+  final List<String> stageIds;
+  final int recommendedAge;
+  final String difficulty;
+  final int estimatedMinutes;
 }

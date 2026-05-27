@@ -1,0 +1,9 @@
+areas:
+  - area_id: arithmetic
+    subject_id: maths
+    title: Arithmetic
+    description: Number facts, written operations, and fluency for primary learners.
+  - area_id: reading
+    subject_id: english
+    title: Reading
+    description: Decoding, read-aloud fluency, and comprehension foundations.

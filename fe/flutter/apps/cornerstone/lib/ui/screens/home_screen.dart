@@ -1,9 +1,9 @@
 part of '../../main.dart';
 
 enum _ShellDestination {
-  owner('Owner', 'Manage learners, plans, and household progress.', Icons.dashboard_rounded),
-  learner('Learner', 'Follow today\'s active session and activity sequence.', Icons.school_rounded),
-  catalog('Catalog', 'Browse plans, content, and milestone coverage.', Icons.auto_stories_rounded),
+  owner('Owner', 'Manage learners, assignments, and household progress.', Icons.dashboard_rounded),
+  learner('Learner', 'Follow today\'s active session and material sequence.', Icons.school_rounded),
+  catalog('Catalog', 'Browse subjects, stages, playlists, and materials.', Icons.auto_stories_rounded),
   account('My Account', 'Adjust appearance and workspace links.', Icons.person_rounded);
 
   const _ShellDestination(this.label, this.subtitle, this.icon);
@@ -107,7 +107,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     }
   }
 
-  Future<void> _assignPlan(String planTemplateId) async {
+  Future<void> _createAssignment(String playlistId) async {
     final learnerId = _selectedLearnerId;
     if (learnerId == null) return;
     setState(() {
@@ -116,7 +116,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     });
     try {
       final today = DateTime.now().toIso8601String().split('T').first;
-      await _apiClient.assignPlan(learnerId: learnerId, planTemplateId: planTemplateId, startDate: today);
+      await _apiClient.createAssignment(
+        learnerId: learnerId,
+        playlistId: playlistId,
+        startDate: today,
+      );
       await _loadAll();
     } catch (error) {
       if (!mounted) return;
@@ -746,11 +750,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         final hero = _PageHeroCard(
           eyebrow: 'Operations',
           title: dashboard.team?.displayName ?? 'Learning Team',
-          description: dashboard.team?.description ?? 'Track learner progress, assign new plans, and keep the catalog close without losing your place.',
+          description: dashboard.team?.description ?? 'Track learner progress, create assignments, and keep the curriculum close without losing your place.',
           chips: [
-            _StatChip(label: 'Capabilities', value: '${dashboard.catalog.capabilityCount}', icon: Icons.extension_rounded),
-            _StatChip(label: 'Plans', value: '${dashboard.catalog.planTemplateCount}', icon: Icons.assignment_rounded),
-            _StatChip(label: 'Content', value: '${dashboard.catalog.contentItemCount}', icon: Icons.menu_book_rounded),
+            _StatChip(label: 'Skills', value: '${dashboard.catalog.skillCount}', icon: Icons.extension_rounded),
+            _StatChip(label: 'Playlists', value: '${dashboard.catalog.playlistCount}', icon: Icons.assignment_rounded),
+            _StatChip(label: 'Materials', value: '${dashboard.catalog.materialCount}', icon: Icons.menu_book_rounded),
           ],
         );
         final leftPanel = _SurfaceCard(
@@ -760,7 +764,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               Text('Learner roster', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Choose a learner to inspect plans, review needs, and live session state.',
+                'Choose a learner to inspect assignments, review needs, and live session state.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
@@ -786,7 +790,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         Icon(Icons.person_search_rounded, size: 52, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
                         const SizedBox(height: 16),
                         Text(
-                          'Select a learner to inspect\nplan and review state.',
+                          'Select a learner to inspect\nassignment and review state.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                         ),
@@ -800,7 +804,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     Text('Learner workspace', style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 6),
                     Text(
-                      'Active plan, current session capture, and capability state in one place.',
+                      'Active assignment, current session capture, and skill progress in one place.',
                       style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 20),
@@ -812,7 +816,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                       maxScoreController: _maxScoreController,
                       durationController: _durationController,
                       notesController: _notesController,
-                      onAssignPlan: _assignPlan,
+                      onCreateAssignment: _createAssignment,
                       onRecordSession: _recordCurrentSession,
                     ),
                   ],
@@ -926,22 +930,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Activity sequence', style: theme.textTheme.headlineSmall),
+              Text('Material sequence', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                '${session.activities.length} steps lined up for today\'s session.',
+                '${session.materials.length} materials lined up for today\'s session.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
               Wrap(
                 spacing: 14,
                 runSpacing: 14,
-                children: session.activities
+                children: session.materials
                     .asMap()
                     .entries
                     .map((entry) {
                       final index = entry.key;
-                      final activity = entry.value;
+                      final material = entry.value;
                       return Container(
                         width: 280,
                         padding: const EdgeInsets.all(18),
@@ -973,14 +977,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Text(activity.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                            Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 10),
                             Text(
-                              activity.capabilityId,
+                              material.skillId,
                               style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 8),
-                            Text('Content: ${activity.contentId}', style: theme.textTheme.bodySmall),
+                            Text('Material: ${material.materialId}', style: theme.textTheme.bodySmall),
                           ],
                         ),
                       );
@@ -1002,12 +1006,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _PageHeroCard(
           eyebrow: 'Catalog',
           title: 'Catalog Snapshot',
-          description: 'See the current breadth of capabilities, milestones, plan templates, and content items loaded into Cornerstone.',
+          description: 'See the current breadth of subjects, areas, skills, stages, playlists, and materials loaded into Cornerstone.',
           chips: [
-            _StatChip(label: 'Capabilities', value: '${catalog.report.capabilityCount}', icon: Icons.extension_rounded),
-            _StatChip(label: 'Milestones', value: '${catalog.report.milestoneCount}', icon: Icons.flag_rounded),
-            _StatChip(label: 'Plans', value: '${catalog.report.planTemplateCount}', icon: Icons.assignment_rounded),
-            _StatChip(label: 'Content', value: '${catalog.report.contentItemCount}', icon: Icons.menu_book_rounded),
+            _StatChip(label: 'Areas', value: '${catalog.report.areaCount}', icon: Icons.grid_view_rounded),
+            _StatChip(label: 'Skills', value: '${catalog.report.skillCount}', icon: Icons.extension_rounded),
+            _StatChip(label: 'Stages', value: '${catalog.report.stageCount}', icon: Icons.flag_rounded),
+            _StatChip(label: 'Materials', value: '${catalog.report.materialCount}', icon: Icons.menu_book_rounded),
           ],
         ),
         const SizedBox(height: 20),
@@ -1022,20 +1026,23 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Plan Templates', style: theme.textTheme.headlineSmall),
+              Text('Playlists', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Ready-made learning runs ordered by age, level, and duration.',
+                'Ready-made learning runs ordered by age, level, stage, and duration.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              ...catalog.bundle.planTemplates.map(
-                (plan) => ListTile(
+              ...catalog.bundle.playlists.map(
+                (playlist) => ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(plan.title),
-                  subtitle: Text('Age ${plan.recommendedAge} · ${plan.recommendedLevel} · ${plan.durationDays} days', style: theme.textTheme.bodySmall),
+                  title: Text(playlist.title),
+                  subtitle: Text(
+                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days',
+                    style: theme.textTheme.bodySmall,
+                  ),
                   trailing: _PillBadge(
-                    text: '${plan.capabilityIds.length} caps',
+                    text: '${playlist.skillIds.length} skills',
                     color: theme.colorScheme.secondaryContainer,
                     textColor: theme.colorScheme.onSecondaryContainer,
                   ),
@@ -1049,18 +1056,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Content Items', style: theme.textTheme.headlineSmall),
+              Text('Materials', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Source material available to session activities across the catalog.',
+                'Source material available to session sequences across the catalog.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              ...catalog.bundle.contentItems.map(
+              ...catalog.bundle.materials.map(
                 (item) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(item.title),
-                  subtitle: Text('${item.subject} · ${item.kind}', style: theme.textTheme.bodySmall),
+                  subtitle: Text('${item.subjectId} · ${item.kind}', style: theme.textTheme.bodySmall),
                   trailing: Text(item.id, style: theme.textTheme.labelSmall),
                 ),
               ),

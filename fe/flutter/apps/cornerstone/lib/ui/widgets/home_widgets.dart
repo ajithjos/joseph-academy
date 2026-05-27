@@ -9,7 +9,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
     required this.maxScoreController,
     required this.durationController,
     required this.notesController,
-    required this.onAssignPlan,
+    required this.onCreateAssignment,
     required this.onRecordSession,
   });
 
@@ -20,7 +20,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
   final TextEditingController maxScoreController;
   final TextEditingController durationController;
   final TextEditingController notesController;
-  final ValueChanged<String> onAssignPlan;
+  final ValueChanged<String> onCreateAssignment;
   final VoidCallback onRecordSession;
 
   @override
@@ -40,42 +40,57 @@ class _LearnerOperationsPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 22),
-        if (detail.activePlan != null) ...[
+        if (detail.activeAssignment != null) ...[
           _Band(
-            title: 'Active Plan',
+            title: 'Active Assignment',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(detail.activePlan!.title, style: theme.textTheme.titleLarge),
+                Text(
+                  detail.activeAssignment!.title,
+                  style: theme.textTheme.titleLarge,
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(value: detail.activePlan!.completionPercent / 100),
+                        child: LinearProgressIndicator(
+                          value: detail.activeAssignment!.completionPercent / 100,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '${detail.activePlan!.completedSessions}/${detail.activePlan!.totalSessions}',
+                      '${detail.activeAssignment!.completedSessions}/${detail.activeAssignment!.totalSessions}',
                       style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text('${detail.activePlan!.completedSessions} of ${detail.activePlan!.totalSessions} sessions complete', style: theme.textTheme.bodySmall),
+                Text(
+                  '${detail.activeAssignment!.completedSessions} of ${detail.activeAssignment!.totalSessions} sessions complete',
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
         ],
         _Band(
-          title: 'Assign Plan',
+          title: 'Create Assignment',
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: catalog.planTemplates.map((plan) => ActionChip(label: Text(plan.title), onPressed: () => onAssignPlan(plan.planTemplateId))).toList(),
+            children: catalog.playlists
+                .map(
+                  (playlist) => ActionChip(
+                    label: Text(playlist.title),
+                    onPressed: () => onCreateAssignment(playlist.playlistId),
+                  ),
+                )
+                .toList(),
           ),
         ),
         const SizedBox(height: 20),
@@ -111,13 +126,19 @@ class _LearnerOperationsPanel extends StatelessWidget {
           const SizedBox(height: 20),
         ],
         _Band(
-          title: 'Capability States',
-          child: Wrap(spacing: 10, runSpacing: 10, children: detail.capabilityStates.map((state) => _CapabilityStateChip(state: state)).toList()),
+          title: 'Skill Progress',
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: detail.progress
+                .map((state) => _SkillProgressChip(state: state))
+                .toList(),
+          ),
         ),
         const SizedBox(height: 20),
         _Band(
-          title: 'Review Queue',
-          child: detail.reviewQueue.isEmpty
+          title: 'Review Items',
+          child: detail.reviewItems.isEmpty
               ? Row(
                   children: [
                     Icon(Icons.check_circle_rounded, size: 18, color: Colors.green.shade600),
@@ -126,11 +147,11 @@ class _LearnerOperationsPanel extends StatelessWidget {
                   ],
                 )
               : Column(
-                  children: detail.reviewQueue
+                  children: detail.reviewItems
                       .map(
                         (item) => ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(item.capabilityId),
+                          title: Text(item.skillId),
                           subtitle: Text(item.reason, style: Theme.of(context).textTheme.bodySmall),
                           trailing: _PillBadge(
                             text: item.dueDate,
@@ -150,7 +171,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
 class _LearnerCard extends StatelessWidget {
   const _LearnerCard({required this.learner, required this.selected, required this.onTap});
 
-  final LearnerCard learner;
+  final LearnerDashboard learner;
   final bool selected;
   final VoidCallback onTap;
 
@@ -200,7 +221,7 @@ class _LearnerCard extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(learner.currentLevel, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            if (learner.activePlan != null) ...[
+            if (learner.activeAssignment != null) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -208,7 +229,7 @@ class _LearnerCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      learner.activePlan!.title,
+                      learner.activeAssignment!.title,
                       style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -221,7 +242,7 @@ class _LearnerCard extends StatelessWidget {
               children: [
                 Icon(Icons.pending_actions_rounded, size: 14, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
-                Text('Review: ${learner.reviewQueueCount}', style: theme.textTheme.bodySmall),
+                Text('Review: ${learner.reviewItemCount}', style: theme.textTheme.bodySmall),
                 if (learner.todaySession != null) ...[
                   const SizedBox(width: 12),
                   Icon(Icons.today_rounded, size: 14, color: theme.colorScheme.onSurfaceVariant),
@@ -436,10 +457,10 @@ class _PillBadge extends StatelessWidget {
   }
 }
 
-class _CapabilityStateChip extends StatelessWidget {
-  const _CapabilityStateChip({required this.state});
+class _SkillProgressChip extends StatelessWidget {
+  const _SkillProgressChip({required this.state});
 
-  final CapabilityStateSummary state;
+  final SkillProgressSummary state;
 
   @override
   Widget build(BuildContext context) {
@@ -462,7 +483,7 @@ class _CapabilityStateChip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            state.capabilityId,
+            state.skillId,
             style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: isStrong ? theme.colorScheme.primary : theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 3),

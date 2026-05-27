@@ -11,11 +11,11 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::domain::{
-    CatalogReloadResponse, OperationStatusResponse, PlanAssignmentRequest, RecordSessionRequest, ReviewRebuildRequest,
+    AssignmentRequest, CatalogReloadResponse, OperationStatusResponse, RecordSessionRequest, ReviewRebuildRequest,
 };
 use crate::service::{
-    AppState, apply_bootstrap, assign_plan, fetch_catalog, fetch_dashboard, fetch_learner_detail, list_learners,
-    rebuild_review_queue, record_session, reload_catalog,
+    AppState, apply_bootstrap, create_assignment, fetch_catalog, fetch_dashboard, fetch_learner_detail,
+    list_learners, rebuild_review_items, record_session, reload_catalog,
 };
 
 #[derive(Debug)]
@@ -73,9 +73,9 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/v1/dashboard", get(get_dashboard))
         .route("/api/v1/learners", get(get_learners))
         .route("/api/v1/learners/{learner_id}", get(get_learner_detail))
-        .route("/api/v1/plan-assignments", post(post_plan_assignment))
+        .route("/api/v1/assignments", post(post_assignment))
         .route("/api/v1/sessions/{session_id}/record", post(post_record_session))
-        .route("/api/v1/review/rebuild", post(post_review_rebuild))
+        .route("/api/v1/review-items/rebuild", post(post_review_rebuild))
         .with_state(state)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
@@ -135,11 +135,11 @@ async fn get_learner_detail(
     Ok(Json(fetch_learner_detail(&state, &learner_id).await?))
 }
 
-async fn post_plan_assignment(
+async fn post_assignment(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<PlanAssignmentRequest>,
-) -> Result<Json<crate::domain::PlanAssignmentResponse>, ApiError> {
-    Ok(Json(assign_plan(&state, request).await?))
+    Json(request): Json<AssignmentRequest>,
+) -> Result<Json<crate::domain::AssignmentResponse>, ApiError> {
+    Ok(Json(create_assignment(&state, request).await?))
 }
 
 async fn post_record_session(
@@ -154,5 +154,5 @@ async fn post_review_rebuild(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ReviewRebuildRequest>,
 ) -> Result<Json<crate::domain::ReviewRebuildResponse>, ApiError> {
-    Ok(Json(rebuild_review_queue(&state, request.learner_id).await?))
+    Ok(Json(rebuild_review_items(&state, request.learner_id).await?))
 }

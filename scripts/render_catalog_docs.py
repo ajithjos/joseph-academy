@@ -11,7 +11,8 @@ CONTENT_ROOT = REPO_ROOT / "content"
 DOCS_SOURCE_ROOT = REPO_ROOT / "docs"
 DOCS_ROOT = REPO_ROOT / "docs_site" / "docs"
 GENERATED_ROOT = DOCS_ROOT / "generated"
-LIBRARY_ROOT = DOCS_ROOT / "library"
+MATERIALS_ROOT = DOCS_ROOT / "materials"
+LEGACY_LIBRARY_ROOT = DOCS_ROOT / "library"
 DEVELOPER_ROOT = DOCS_ROOT / "developer"
 
 VALID_MODES = {"production", "developer"}
@@ -26,10 +27,11 @@ def render_markdown(mode: str = "production") -> None:
         raise ValueError(f"unsupported mode: {mode}")
 
     subjects = load_yaml(CONTENT_ROOT / "catalog" / "subjects.yaml")["subjects"]
-    capabilities = load_yaml(CONTENT_ROOT / "catalog" / "capabilities.yaml")["capabilities"]
-    milestones = load_yaml(CONTENT_ROOT / "catalog" / "milestones.yaml")["milestones"]
-    plan_templates = load_yaml(CONTENT_ROOT / "catalog" / "plan_templates.yaml")["plan_templates"]
-    content_items = load_yaml(CONTENT_ROOT / "catalog" / "content_index.yaml")["content_items"]
+    areas = load_yaml(CONTENT_ROOT / "catalog" / "areas.yaml")["areas"]
+    skills = load_yaml(CONTENT_ROOT / "catalog" / "skills.yaml")["skills"]
+    stages = load_yaml(CONTENT_ROOT / "catalog" / "stages.yaml")["stages"]
+    playlists = load_yaml(CONTENT_ROOT / "catalog" / "playlists.yaml")["playlists"]
+    materials = load_yaml(CONTENT_ROOT / "catalog" / "materials.yaml")["materials"]
 
     reset_output_dirs()
 
@@ -44,10 +46,11 @@ def render_markdown(mode: str = "production") -> None:
                 "# Catalog Overview",
                 "",
                 f"- subjects: {len(subjects)}",
-                f"- capabilities: {len(capabilities)}",
-                f"- milestones: {len(milestones)}",
-                f"- plan templates: {len(plan_templates)}",
-                f"- content items: {len(content_items)}",
+                f"- areas: {len(areas)}",
+                f"- skills: {len(skills)}",
+                f"- stages: {len(stages)}",
+                f"- playlists: {len(playlists)}",
+                f"- materials: {len(materials)}",
                 "",
                 "The pages in this section are generated from the repo-owned catalog files under `content/`.",
             ]
@@ -55,14 +58,30 @@ def render_markdown(mode: str = "production") -> None:
     )
 
     write_file(
-        GENERATED_ROOT / "capabilities.md",
+        GENERATED_ROOT / "areas.md",
         render_sections(
-            "Capabilities",
-            capabilities,
+            "Areas",
+            areas,
             lambda item: [
-                f"## `{item['capability_id']}`",
+                f"## `{item['area_id']}`",
                 "",
-                f"- subject: `{item['subject']}`",
+                f"- subject: `{item['subject_id']}`",
+                "",
+                item["description"],
+            ],
+        ),
+    )
+
+    write_file(
+        GENERATED_ROOT / "skills.md",
+        render_sections(
+            "Skills",
+            skills,
+            lambda item: [
+                f"## `{item['skill_id']}`",
+                "",
+                f"- subject: `{item['subject_id']}`",
+                f"- area: `{item['area_id']}`",
                 f"- recommended age: `{item['recommended_age']}`",
                 f"- recommended level: {item['recommended_level']}",
                 "",
@@ -74,49 +93,52 @@ def render_markdown(mode: str = "production") -> None:
     )
 
     write_file(
-        GENERATED_ROOT / "milestones.md",
+        GENERATED_ROOT / "stages.md",
         render_sections(
-            "Milestones",
-            milestones,
+            "Stages",
+            stages,
             lambda item: [
-                f"## `{item['milestone_id']}`",
+                f"## `{item['stage_id']}`",
                 "",
-                f"- subject: `{item['subject']}`",
+                f"- subject: `{item['subject_id']}`",
+                f"- area: `{item['area_id']}`",
                 f"- recommended age: `{item['recommended_age']}`",
                 f"- recommended level: {item['recommended_level']}",
                 "",
                 item["description"],
                 "",
-                "Capabilities:",
-                *[f"- `{capability_id}`" for capability_id in item["capability_ids"]],
+                "Skills:",
+                *[f"- `{skill_id}`" for skill_id in item["skill_ids"]],
             ],
         ),
     )
 
     write_file(
-        GENERATED_ROOT / "plan-templates.md",
+        GENERATED_ROOT / "playlists.md",
         render_sections(
-            "Plan Templates",
-            plan_templates,
+            "Playlists",
+            playlists,
             lambda item: [
-                f"## `{item['plan_template_id']}`",
+                f"## `{item['playlist_id']}`",
                 "",
                 f"- title: {item['title']}",
+                f"- subject: `{item['subject_id']}`",
+                f"- area: `{item['area_id']}`",
                 f"- recommended age: `{item['recommended_age']}`",
                 f"- recommended level: {item['recommended_level']}",
                 f"- duration days: `{item['duration_days']}`",
                 "",
-                "Milestones:",
-                *[f"- `{milestone_id}`" for milestone_id in item["milestone_ids"]],
+                "Stages:",
+                *[f"- `{stage_id}`" for stage_id in item["stage_ids"]],
                 "",
-                "Capabilities:",
-                *[f"- `{capability_id}`" for capability_id in item["capability_ids"]],
+                "Skills:",
+                *[f"- `{skill_id}`" for skill_id in item["skill_ids"]],
                 "",
                 "Sessions:",
                 *[
                     "- day "
-                    f"{session['day_offset']}: {session['title']} -> capabilities "
-                    f"{', '.join(session['capability_ids'])}"
+                    f"{session['day_offset']}: {session['title']} -> skills "
+                    f"{', '.join(session['skill_ids'])}"
                     for session in item["session_pattern"]["sessions"]
                 ],
             ],
@@ -124,20 +146,21 @@ def render_markdown(mode: str = "production") -> None:
     )
 
     write_file(
-        GENERATED_ROOT / "content-index.md",
+        GENERATED_ROOT / "materials.md",
         render_sections(
-            "Content Index",
-            content_items,
+            "Materials",
+            materials,
             lambda item: [
-                f"## `{item['content_id']}`",
+                f"## `{item['material_id']}`",
                 "",
                 f"- type: `{item['type']}`",
-                f"- subject: `{item['subject']}`",
+                f"- subject: `{item['subject_id']}`",
+                f"- area: `{item['area_id']}`",
                 f"- path: `{item['path']}`",
                 f"- estimated minutes: `{item['estimated_minutes']}`",
                 "",
-                "Capabilities:",
-                *[f"- `{capability_id}`" for capability_id in item["capability_ids"]],
+                "Skills:",
+                *[f"- `{skill_id}`" for skill_id in item["skill_ids"]],
             ],
         ),
     )
@@ -155,22 +178,27 @@ def render_markdown(mode: str = "production") -> None:
         ),
     )
 
-    copy_library_markdown()
+    copy_material_markdown()
     if mode == "developer":
         copy_developer_docs()
 
 
 def reset_output_dirs() -> None:
-    for directory in (GENERATED_ROOT, LIBRARY_ROOT, DEVELOPER_ROOT):
+    legacy_directories = (LEGACY_LIBRARY_ROOT,)
+    for directory in legacy_directories:
+        if directory.exists():
+            shutil.rmtree(directory)
+
+    for directory in (GENERATED_ROOT, MATERIALS_ROOT, DEVELOPER_ROOT):
         if directory.exists():
             shutil.rmtree(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
 
-def copy_library_markdown() -> None:
-    source_root = CONTENT_ROOT / "library"
+def copy_material_markdown() -> None:
+    source_root = CONTENT_ROOT / "materials"
     for source in source_root.rglob("*.md"):
-        target = LIBRARY_ROOT / source.relative_to(source_root)
+        target = MATERIALS_ROOT / source.relative_to(source_root)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text())
 

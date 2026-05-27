@@ -1,0 +1,92 @@
+materials:
+  - material_id: cnt_maths_number_bonds_sheet_01
+    path: materials/maths/foundations/number-bonds-to-10-practice.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - number_bonds_to_10
+    stage_ids:
+      - arithmetic_fact_fluency_foundations
+    recommended_age: 7
+    difficulty: starter
+    estimated_minutes: 10
+  - material_id: cnt_maths_addition_facts_sheet_01
+    path: materials/maths/foundations/addition-facts-to-20.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - addition_facts_to_20
+    stage_ids:
+      - arithmetic_fact_fluency_foundations
+    recommended_age: 7
+    difficulty: starter
+    estimated_minutes: 12
+  - material_id: cnt_maths_subtraction_facts_sheet_01
+    path: materials/maths/foundations/subtraction-facts-to-20.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - subtraction_facts_to_20
+    stage_ids:
+      - arithmetic_fact_fluency_foundations
+    recommended_age: 7
+    difficulty: starter
+    estimated_minutes: 12
+  - material_id: cnt_maths_times_tables_sheet_01
+    path: materials/maths/tables/times-tables-mixed-practice.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - times_tables_2_5_10
+      - times_tables_3_4
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: core
+    estimated_minutes: 15
+  - material_id: cnt_maths_division_facts_sheet_01
+    path: materials/maths/tables/division-facts-mixed-practice.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - division_facts_by_2_5_10
+      - division_facts_by_3_4
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: core
+    estimated_minutes: 15
+  - material_id: cnt_maths_foundations_teaching_note_01
+    path: materials/maths/foundations/parent-teaching-note.md
+    type: teaching_note
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - number_bonds_to_10
+      - addition_facts_to_20
+      - subtraction_facts_to_20
+    stage_ids:
+      - arithmetic_fact_fluency_foundations
+    recommended_age: 7
+    difficulty: parent_note
+    estimated_minutes: 8
+  - material_id: cnt_maths_tables_teaching_note_01
+    path: materials/maths/tables/parent-teaching-note.md
+    type: teaching_note
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - times_tables_2_5_10
+      - times_tables_3_4
+      - division_facts_by_2_5_10
+      - division_facts_by_3_4
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: parent_note
+    estimated_minutes: 8

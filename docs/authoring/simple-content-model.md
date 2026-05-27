@@ -1,305 +1,96 @@
 # Simple Content Model
 
-This is the smallest useful mental model for authoring Cornerstone curriculum.
+If you are authoring curriculum in Cornerstone, think in this order:
 
-If you remember only one rule, remember this:
+1. Subject
+2. Area
+3. Stage
+4. Skill
+5. Material
+6. Playlist
 
-- author reusable programs statically
-- run them dynamically with learner-specific assignments
+That is the smallest model that still supports planning, delivery, and learner progress.
 
-The authoring model should stay small enough that a parent or operator can still decide what to do tomorrow.
+## Subject
 
-## Static Versus Dynamic
+A subject is the top-level domain such as maths or english.
 
-### Static Curriculum Objects
+Use a subject when you need a stable top navigation or reporting boundary.
 
-These are repo-owned and reusable:
+## Area
 
-- program brief
-- program
-- checkpoints
-- skills
-- resources
-- playlists
-
-### Dynamic Runtime Objects
-
-These belong to the live system:
-
-- learner profile
-- assignment
-- session
-- evidence
-- progress record
-- review queue
-
-Rule:
-
-- author the curriculum statically
-- run, adapt, and review it dynamically
-
-## The Six Authoring Objects
-
-Think in six authoring objects.
-
-### 1. Program Brief
-
-This is the plain-English design input.
-
-It captures:
-
-- who the learner type is
-- what outcome is wanted
-- how much time is available
-- what constraints matter
+An area is a coherent slice inside a subject.
 
 Examples:
 
-- age-10 learner needs secure arithmetic fundamentals in 15-minute daily sessions
-- age-7 learner needs confident early reading with parent-led read-aloud practice
-- adult learner needs clearer English pronunciation for work calls
+- maths -> arithmetic
+- english -> reading
 
-The brief is an input object.
-It is not runtime state.
+Use areas to keep authoring and browse surfaces manageable.
 
-### 2. Program
+## Stage
 
-A program is the reusable curriculum slice for one audience and one outcome.
+A stage is a parent-facing grouping of skills.
 
-Examples:
+Good stages answer questions like:
 
-- arithmetic foundations core
-- early reading fluency starter
-- English pronunciation essentials
+- What broad slice of work is this learner in?
+- What should a parent or coach expect to see next?
+- Which related skills belong together for review?
 
-If the learner need is broad, the program is where that broad need belongs.
-Do not collapse the whole thing into one skill.
+## Skill
 
-### 3. Checkpoint
+A skill is the smallest unit we track in learner progress.
 
-A checkpoint is the main parent-facing stage inside a program.
+Good skills are specific enough to practise, assess, and revisit.
 
-Use checkpoints to answer:
+## Material
 
-- which major area is secure
-- which major area still needs work
-- which major area should be assigned next
+A material is one reusable artifact such as a worksheet, reading passage, prompt sheet, teaching note, or drill card.
 
-Examples:
+Each material should point back to real `skill_ids` and `stage_ids`.
 
-- fact fluency to 10
-- written addition and subtraction
-- short reading fluency
-- consonant and vowel sound control
+## Playlist
 
-A checkpoint is not a worksheet and not a one-day lesson.
-It is a meaningful review point.
+A playlist is an ordered set of sessions that references real materials.
 
-### 4. Skill
+Use playlists for repeatable delivery. Do not hide stage or skill structure inside them.
 
-A skill is the smallest measurable unit that changes what you would assign, repeat, or review.
+## File Map
 
-Good test:
+- `subjects.yaml` stores subjects.
+- `areas.yaml` stores areas.
+- `skills.yaml` stores skills.
+- `stages.yaml` stores stages.
+- `materials.yaml` indexes materials.
+- `playlists.yaml` stores playlists.
+- `content/materials/**/*.md` stores the actual material bodies.
 
-- if this specific split would change tomorrow's practice decision, keep it
-- if it would not change tomorrow's practice decision, merge it
+## Recommended Authoring Order
 
-Examples:
+1. Fill in the [Subject-Area brief template](./subject-area-brief-template.md).
+2. Draft the skills for one area.
+3. Group those skills into stages.
+4. Write the real materials.
+5. Index the materials in `materials.yaml`.
+6. Assemble one or more playlists.
 
-- recall multiplication facts for 6 to 9
-- perform column subtraction with borrowing
-- read CVC words aloud accurately
-- produce a clear long-a vowel sound
+## Sizing Guidance
 
-For simple programs, one checkpoint may begin with one matching skill.
-That is acceptable.
+- Start with one subject and one area at a time.
+- A stage should be meaningful to a parent, not just to the database.
+- A skill should be small enough to practise repeatedly.
+- A material should be reusable in more than one playlist when practical.
+- A playlist should be short enough to assign confidently and easy to replace if it is not working.
 
-### 5. Resource
+## Naming Rules
 
-A resource is the actual reusable learning artifact.
+- Use the final names everywhere: subject, area, stage, skill, material, playlist.
+- Do not reintroduce `capability`, `milestone`, `resource`, or `plan template`.
 
-Examples:
+## Next Docs
 
-- worksheet
-- drill sheet
-- reading passage
-- teaching note
-- coach script
-- checkpoint sheet
-
-One resource can support one skill or a small group of related skills inside one checkpoint.
-
-### 6. Playlist
-
-A playlist is the static ordered session sequence.
-
-It answers:
-
-- what should run on day 1, day 2, and day 3
-- which resources should be repeated
-- where checks should happen
-
-The runtime assignment is different.
-It is the learner-specific instance of that playlist.
-
-## What Should Not Be First-Class
-
-Avoid making these core authoring objects too early:
-
-- achievements or badges
-- daily plan variants for one specific learner
-- completion events that duplicate evidence
-- deep lesson taxonomies below the skill layer
-- separate objects for every teaching note and observation style
-
-Most of those are either derived reporting or local runtime detail.
-
-## How Small Should A Skill Be
-
-Split a skill only if the split changes at least one of these:
-
-- the resource you would assign
-- the coaching note you would write
-- the repetition cadence you would choose
-- the checkpoint decision you would make
-
-If it changes none of those, keep it merged.
-
-That is the practical boundary.
-
-Use checkpoints first.
-Use skills only where checkpoints are too broad for useful review.
-
-## How Big Should A Checkpoint Be
-
-A checkpoint should be big enough to matter to a parent and small enough to review honestly.
-
-Good checkpoint questions are:
-
-- is this learner secure in this area yet
-- do we need another week on this area
-- are we ready to move to the next area
-
-If a checkpoint is too small to matter in weekly review, it is probably just a skill.
-If a checkpoint is too large to review honestly, split it.
-
-## Default Size For A New Program
-
-For one new home-learning program, start with:
-
-- 1 program brief
-- 1 program
-- 3 to 5 checkpoints
-- 1 to 3 skills per checkpoint unless finer splits are clearly necessary
-- 6 to 20 resources
-- 1 to 3 playlists
-
-You can always split later after you see real learner evidence.
-
-## What The Catalog Actually Is
-
-The catalog is the repo index for reusable curriculum.
-
-- `content/catalog/capabilities.yaml`: current file for skills
-- `content/catalog/milestones.yaml`: current file for checkpoints
-- `content/catalog/content_index.yaml`: the index of real resource files
-- `content/catalog/plan_templates.yaml`: current file for playlists
-- `content/library/**/*.md`: the actual worksheets, notes, passages, prompts, and checks
-
-So the relationship is simple:
-
-- the catalog names and links the reusable curriculum
-- the markdown files are the real resources
-- the playlists order resources into repeatable sessions
-- the runtime system tracks what actually happened for each learner
-
-## Arithmetic Example
-
-Suppose the real goal is:
-
-- the child becomes secure in arithmetic fundamentals, including fact fluency and written operations
-
-That goal is too large for one skill.
-Treat it as one program.
-
-### A Good Small Starting Structure
-
-Program:
-
-- arithmetic foundations core
-
-Checkpoints:
-
-- fact fluency to 10
-- written addition and subtraction
-- written multiplication and division
-
-Skills inside those checkpoints might start as:
-
-- addition facts recall
-- subtraction facts recall
-- multiplication facts recall
-- division facts recall
-- column addition with carrying
-- column subtraction with borrowing
-- 2-digit by 1-digit multiplication
-- short division with remainders
-
-Resources might include:
-
-- timed fact drills
-- mixed operation practice
-- worked examples
-- parent checkpoint sheets
-
-Playlists might include:
-
-- a 2-week fact fluency starter
-- a 10-session written operations sequence
-
-That is already enough to start authoring and running.
-
-### When To Split Further
-
-Only split when the learner's weak spots would change practice decisions.
-
-Examples:
-
-- if 2, 5, and 10 are secure but 6, 7, and 8 are weak, split multiplication facts into smaller skills
-- if written subtraction is strong but carrying in addition is weak, separate those skills
-- if division lags far behind multiplication, keep them in separate checkpoints or at least separate skills
-
-So yes, the program can start small.
-It does not need twenty finely sliced skills on day one.
-
-## The Smallest Useful Authoring Loop
-
-Use this order:
-
-1. write the program brief in plain English
-2. define the program and its checkpoints
-3. decide whether each checkpoint needs one skill or several
-4. write the real resources
-5. index them in `content_index.yaml`
-6. assemble one or more playlists that use real resource ids
-
-## Compatibility Notes
-
-- `track` is an old alias for `program`
-- `milestone` is an old alias for `checkpoint`
-- `capability` is an old alias for `skill`
-- `plan template` is an old alias for `playlist`
-- `achievement` should remain a derived report, not a core authoring object
-
-## Practical Rule For This Repo
-
-When in doubt, prefer simpler authoring and clearer practice over more taxonomy.
-
-If a skill boundary does not help the parent decide what to do tomorrow, it is probably too fine-grained for the current MVP.
-
-Next documents:
-
-- [Program brief template](./program-brief-template.md)
-- [Program authoring brief](./track-authoring-brief.md)
-- [Content authoring rules](./ai-content-generation-contract.md)
-- [Copy-paste authoring prompts](./repeatable-prompts.md)
+- [Subject-Area brief template](./subject-area-brief-template.md)
+- [Curriculum authoring brief](./track-authoring-brief.md)
+- [AI content generation contract](./ai-content-generation-contract.md)
+- [Repeatable prompts](./repeatable-prompts.md)

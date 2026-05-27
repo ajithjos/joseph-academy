@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use anyhow::{Context, anyhow, bail};
-use catalog::{CatalogBundle, CatalogValidationReport, PlanTemplate, load_bootstrap, load_catalog_bundle};
+use catalog::{CatalogBundle, CatalogValidationReport, Playlist, load_bootstrap, load_catalog_bundle};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
@@ -13,11 +13,12 @@ use uuid::Uuid;
 
 use crate::config::AppConfig;
 use crate::domain::{
-    AttemptRow, AttemptSummary, BootstrapApplyResponse, CapabilityStateRow, CapabilityStateSummary,
-    CatalogReloadResponse, DashboardResponse, LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary,
-    MilestoneProgress, PlanAssignmentRequest, PlanAssignmentResponse, PlanRow, PlanSummary, RecordSessionRequest,
-    RecordSessionResponse, ReviewQueueRow, ReviewQueueSummary, ReviewRebuildResponse, SessionActivityRow,
-    SessionActivitySummary, SessionDetail, SessionRow, SessionSummary, TeamRow, TeamSummary,
+    AssignmentRequest, AssignmentResponse, AssignmentRow, AssignmentSummary, BootstrapApplyResponse,
+    CatalogReloadResponse, DashboardResponse, EvidenceRow, EvidenceSummary, LearnerDashboard,
+    LearnerDetailResponse, LearnerRow, LearnerSummary, RecordSessionRequest, RecordSessionResponse,
+    ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail, SessionMaterialRow,
+    SessionMaterialSummary, SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
+    StageProgress, TeamRow, TeamSummary,
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
@@ -147,14 +148,14 @@ pub async fn apply_bootstrap(state: &Arc<AppState>) -> anyhow::Result<BootstrapA
         .await?;
     }
 
-    let seeded_plan_count = seed_default_plans_if_missing(state).await?;
+    let seeded_assignment_count = seed_default_assignments_if_missing(state).await?;
     Ok(BootstrapApplyResponse {
         status: "ok".to_string(),
         team_id: bootstrap.team.team_id,
         user_count: bootstrap.users.len(),
         membership_count: bootstrap.memberships.len(),
         learner_count: learner_memberships.len(),
-        seeded_plan_count,
+        seeded_assignment_count,
     })
 }
 
@@ -222,11 +223,13 @@ pub async fn fetch_learner_detail(state: &Arc<AppState>, learner_id: &str) -> an
     .await?
     .ok_or_else(|| anyhow!("learner '{learner_id}' not found"))?;
 
-    let active_plan = fetch_active_plan_for_learner(&state.pool, learner_id).await?;
-    let plan_filter = active_plan.as_ref().map(|plan| plan.learning_plan_id.clone());
-    let sessions = fetch_sessions(&state.pool, learner_id, plan_filter.as_deref()).await?;
-    let capability_states = fetch_capability_states(&state.pool, learner_id).await?;
-    let review_queue = fetch_review_queue(&state.pool, learner_id).await?;
+    let active_assignment = fetch_active_assignment_for_learner(&state.pool, learner_id).await?;
+    let assignment_filter = active_assignment
+        .as_ref()
+        .map(|assignment| assignment.assignment_id.clone());
+    let sessions = fetch_sessions(&state.pool, learner_id, assignment_filter.as_deref()).await?;
+    let progress = fetch_progress(&state.pool, learner_id).await?;
+    let review_items = fetch_review_items(&state.pool, learner_id).await?;
 
     Ok(LearnerDetailResponse {
         learner: LearnerSummary {
@@ -236,29 +239,29 @@ pub async fn fetch_learner_detail(state: &Arc<AppState>, learner_id: &str) -> an
             current_level: learner.current_level,
             notes: learner.notes,
         },
-        active_plan,
+        active_assignment,
         sessions,
-        capability_states,
-        review_queue,
+        progress,
+        review_items,
     })
 }
 
-pub async fn assign_plan(
+pub async fn create_assignment(
     state: &Arc<AppState>,
-    request: PlanAssignmentRequest,
-) -> anyhow::Result<PlanAssignmentResponse> {
+    request: AssignmentRequest,
+) -> anyhow::Result<AssignmentResponse> {
     let catalog = state.catalog.read().await.clone();
-    let learning_plan = assign_plan_internal(
+    let assignment = create_assignment_internal(
         state,
         &catalog,
         &request.learner_id,
-        &request.plan_template_id,
+        &request.playlist_id,
         request.start_date,
     )
     .await?;
-    Ok(PlanAssignmentResponse {
+    Ok(AssignmentResponse {
         status: "ok".to_string(),
-        learning_plan,
+        assignment,
     })
 }
 
@@ -271,8 +274,8 @@ pub async fn record_session(
         bail!("max_score must be greater than zero");
     }
     let session = query_as::<_, SessionRow>(
-        "select session_id, learning_plan_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
-         from learning_session
+        "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
+         from session
          where session_id = $1",
     )
     .bind(session_id)
@@ -280,26 +283,26 @@ pub async fn record_session(
     .await?
     .ok_or_else(|| anyhow!("session '{session_id}' not found"))?;
 
-    let activities = query_as::<_, SessionActivityRow>(
-        "select activity_id, session_id, title, capability_id, content_id, status
-         from session_activity
+    let materials = query_as::<_, SessionMaterialRow>(
+        "select session_material_id, session_id, title, skill_id, material_id, status
+         from session_material
          where session_id = $1
-         order by title, capability_id",
+         order by title, skill_id",
     )
     .bind(session_id)
     .fetch_all(&state.pool)
     .await?;
 
     let now = Utc::now();
-    let attempt_id = Uuid::new_v4().to_string();
+    let evidence_id = Uuid::new_v4().to_string();
     let ratio = (request.score / request.max_score).clamp(0.0, 1.0);
-    let capability_status = status_from_ratio(ratio);
+    let progress_status = status_from_ratio(ratio);
 
     query(
-        "insert into attempt (attempt_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at)
+        "insert into evidence (evidence_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at)
          values ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
-    .bind(&attempt_id)
+    .bind(&evidence_id)
     .bind(session_id)
     .bind(&session.learner_id)
     .bind(request.score)
@@ -310,14 +313,14 @@ pub async fn record_session(
     .execute(&state.pool)
     .await?;
 
-    let evidence_relative_path = format!("evidence/{}/{}.json", session.learner_id, attempt_id);
+    let evidence_relative_path = format!("evidence/{}/{}.json", session.learner_id, evidence_id);
     let evidence_full_path = state.config.artifacts_root.join(&evidence_relative_path);
     if let Some(parent) = evidence_full_path.parent() {
         fs::create_dir_all(parent).await?;
     }
-    let capability_ids: BTreeSet<_> = activities
+    let skill_ids: BTreeSet<_> = materials
         .iter()
-        .map(|activity| activity.capability_id.as_str())
+        .map(|material| material.skill_id.as_str())
         .collect();
     fs::write(
         &evidence_full_path,
@@ -329,18 +332,18 @@ pub async fn record_session(
             "score_ratio": ratio,
             "duration_minutes": request.duration_minutes,
             "notes": request.notes,
-            "capability_ids": capability_ids,
+            "skill_ids": skill_ids,
             "recorded_at": now,
         }))?,
     )
     .await?;
 
     query(
-        "insert into evidence_record (evidence_id, attempt_id, learner_id, kind, storage_path, summary)
+        "insert into evidence_artifact (evidence_artifact_id, evidence_id, learner_id, kind, storage_path, summary)
          values ($1, $2, $3, $4, $5, $6)",
     )
     .bind(Uuid::new_v4().to_string())
-    .bind(&attempt_id)
+    .bind(&evidence_id)
     .bind(&session.learner_id)
     .bind("session_notes")
     .bind(&evidence_relative_path)
@@ -348,7 +351,7 @@ pub async fn record_session(
     .execute(&state.pool)
     .await?;
 
-    query("update learning_session set status = $2, notes = $3, completed_at = $4 where session_id = $1")
+    query("update session set status = $2, notes = $3, completed_at = $4 where session_id = $1")
         .bind(session_id)
         .bind("completed")
         .bind(&request.notes)
@@ -356,43 +359,43 @@ pub async fn record_session(
         .execute(&state.pool)
         .await?;
 
-    query("update session_activity set status = 'completed' where session_id = $1")
+    query("update session_material set status = 'completed' where session_id = $1")
         .bind(session_id)
         .execute(&state.pool)
         .await?;
 
-    let mut updated_capabilities = Vec::new();
-    for capability_id in capability_ids {
-        let state_row = upsert_capability_state(
+    let mut updated_progress = Vec::new();
+    for skill_id in skill_ids {
+        let progress_row = upsert_skill_progress(
             &state.pool,
             &session.learner_id,
-            capability_id,
-            capability_status,
+            skill_id,
+            progress_status,
             ratio,
             now,
         )
         .await?;
-        updated_capabilities.push(capability_row_to_summary(state_row));
+        updated_progress.push(progress_row_to_summary(progress_row));
     }
 
-    rebuild_review_queue_for_learner(&state.pool, &session.learner_id).await?;
-    refresh_learning_plan_progress(&state.pool, &session.learner_id).await?;
+    rebuild_review_items_for_learner(&state.pool, &session.learner_id).await?;
+    refresh_assignment_progress(&state.pool, &session.learner_id).await?;
 
     Ok(RecordSessionResponse {
         status: "ok".to_string(),
-        attempt: AttemptSummary {
-            attempt_id,
+        evidence: EvidenceSummary {
+            evidence_id,
             score: request.score,
             max_score: request.max_score,
             duration_minutes: request.duration_minutes,
             notes: request.notes,
             recorded_at: now,
         },
-        updated_capabilities,
+        updated_progress,
     })
 }
 
-pub async fn rebuild_review_queue(
+pub async fn rebuild_review_items(
     state: &Arc<AppState>,
     learner_id: Option<String>,
 ) -> anyhow::Result<ReviewRebuildResponse> {
@@ -406,10 +409,10 @@ pub async fn rebuild_review_queue(
 
     let mut review_item_count = 0usize;
     for learner_id in &learner_ids {
-        rebuild_review_queue_for_learner(&state.pool, learner_id).await?;
-        refresh_learning_plan_progress(&state.pool, learner_id).await?;
+        rebuild_review_items_for_learner(&state.pool, learner_id).await?;
+        refresh_assignment_progress(&state.pool, learner_id).await?;
         let count = query_scalar::<_, i64>(
-            "select count(*) from review_queue_item where learner_id = $1 and status = 'pending'",
+            "select count(*) from review_item where learner_id = $1 and status = 'pending'",
         )
         .bind(learner_id)
         .fetch_one(&state.pool)
@@ -428,10 +431,11 @@ fn catalog_report_response(report: &CatalogValidationReport) -> CatalogReloadRes
     CatalogReloadResponse {
         status: "ok".to_string(),
         subject_count: report.subject_count,
-        capability_count: report.capability_count,
-        milestone_count: report.milestone_count,
-        plan_template_count: report.plan_template_count,
-        content_item_count: report.content_item_count,
+        area_count: report.area_count,
+        skill_count: report.skill_count,
+        stage_count: report.stage_count,
+        playlist_count: report.playlist_count,
+        material_count: report.material_count,
         loaded_at_utc: report.loaded_at_utc.clone(),
     }
 }
@@ -443,22 +447,22 @@ async fn build_dashboard_cards(
 ) -> anyhow::Result<Vec<LearnerDashboard>> {
     let mut dashboards = Vec::new();
     for learner in learners {
-        let active_plan = fetch_active_plan_for_learner(&state.pool, &learner.learner_id).await?;
-        let today_session = if let Some(plan) = &active_plan {
-            fetch_next_session_for_plan(&state.pool, &plan.learning_plan_id).await?
+        let active_assignment = fetch_active_assignment_for_learner(&state.pool, &learner.learner_id).await?;
+        let today_session = if let Some(assignment) = &active_assignment {
+            fetch_next_session_for_assignment(&state.pool, &assignment.assignment_id).await?
         } else {
             None
         };
-        let review_queue_count = query_scalar::<_, i64>(
-            "select count(*) from review_queue_item where learner_id = $1 and status = 'pending'",
+        let review_item_count = query_scalar::<_, i64>(
+            "select count(*) from review_item where learner_id = $1 and status = 'pending'",
         )
         .bind(&learner.learner_id)
         .fetch_one(&state.pool)
         .await?;
-        let capability_states = fetch_capability_states(&state.pool, &learner.learner_id).await?;
-        let latest_attempt = fetch_latest_attempt_for_learner(&state.pool, &learner.learner_id).await?;
-        let (capability_status_counts, milestone_progress) =
-            summarize_progress(catalog, active_plan.as_ref(), &capability_states);
+        let progress = fetch_progress(&state.pool, &learner.learner_id).await?;
+        let latest_evidence = fetch_latest_evidence_for_learner(&state.pool, &learner.learner_id).await?;
+        let (progress_status_counts, stage_progress) =
+            summarize_progress(catalog, active_assignment.as_ref(), &progress);
 
         dashboards.push(LearnerDashboard {
             learner_id: learner.learner_id.clone(),
@@ -466,12 +470,12 @@ async fn build_dashboard_cards(
             current_age: calculate_age(learner.date_of_birth),
             current_level: learner.current_level.clone(),
             notes: learner.notes.clone(),
-            active_plan,
+            active_assignment,
             today_session,
-            review_queue_count,
-            capability_status_counts,
-            milestone_progress,
-            latest_attempt,
+            review_item_count,
+            progress_status_counts,
+            stage_progress,
+            latest_evidence,
         });
     }
     Ok(dashboards)
@@ -479,66 +483,63 @@ async fn build_dashboard_cards(
 
 fn summarize_progress(
     catalog: &CatalogBundle,
-    active_plan: Option<&PlanSummary>,
-    capability_states: &[CapabilityStateSummary],
-) -> (BTreeMap<String, i64>, Vec<MilestoneProgress>) {
+    active_assignment: Option<&AssignmentSummary>,
+    progress: &[SkillProgressSummary],
+) -> (BTreeMap<String, i64>, Vec<StageProgress>) {
     let mut counts: BTreeMap<String, i64> = BTreeMap::new();
-    for state in capability_states {
+    for state in progress {
         *counts.entry(state.status.clone()).or_insert(0) += 1;
     }
 
-    let Some(active_plan) = active_plan else {
+    let Some(active_assignment) = active_assignment else {
         return (counts, Vec::new());
     };
-    let Some(plan_template) = catalog.plan_template(&active_plan.plan_template_id) else {
+    let Some(playlist) = catalog.playlist(&active_assignment.playlist_id) else {
         return (counts, Vec::new());
     };
 
-    let known_capabilities: BTreeSet<_> = capability_states
+    let known_skills: BTreeSet<_> = progress
         .iter()
-        .map(|state| state.capability_id.as_str())
+        .map(|state| state.skill_id.as_str())
         .collect();
-    let not_started = plan_template
-        .capability_ids
+    let not_started = playlist
+        .skill_ids
         .iter()
-        .filter(|capability_id| !known_capabilities.contains(capability_id.as_str()))
+        .filter(|skill_id| !known_skills.contains(skill_id.as_str()))
         .count() as i64;
     if not_started > 0 {
         counts.insert("not_started".to_string(), not_started);
     }
 
-    let secure_capabilities: BTreeSet<_> = capability_states
+    let secure_skills: BTreeSet<_> = progress
         .iter()
         .filter(|state| state.status == "secure")
-        .map(|state| state.capability_id.as_str())
+        .map(|state| state.skill_id.as_str())
         .collect();
 
-    let milestone_progress = plan_template
-        .milestone_ids
+    let stage_progress = playlist
+        .stage_ids
         .iter()
-        .filter_map(|milestone_id| {
-            let milestone = catalog
-                .milestones
+        .filter_map(|stage_id| {
+            let stage = catalog.stages.iter().find(|stage| stage.stage_id == *stage_id)?;
+            let completed_skills = stage
+                .skill_ids
                 .iter()
-                .find(|milestone| milestone.milestone_id == *milestone_id)?;
-            let completed_capabilities = milestone
-                .capability_ids
-                .iter()
-                .filter(|capability_id| secure_capabilities.contains(capability_id.as_str()))
+                .filter(|skill_id| secure_skills.contains(skill_id.as_str()))
                 .count();
-            Some(MilestoneProgress {
-                milestone_id: milestone.milestone_id.clone(),
-                title: milestone.title.clone(),
-                completed_capabilities,
-                total_capabilities: milestone.capability_ids.len(),
+            Some(StageProgress {
+                stage_id: stage.stage_id.clone(),
+                title: stage.title.clone(),
+                completed_skills,
+                total_skills: stage.skill_ids.len(),
             })
         })
         .collect();
 
-    (counts, milestone_progress)
+    (counts, stage_progress)
 }
 
-async fn seed_default_plans_if_missing(state: &Arc<AppState>) -> anyhow::Result<usize> {
+async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::Result<usize> {
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
@@ -552,7 +553,7 @@ async fn seed_default_plans_if_missing(state: &Arc<AppState>) -> anyhow::Result<
     let mut seeded = 0usize;
     for learner in learners {
         let active_count = query_scalar::<_, i64>(
-            "select count(*) from learning_plan where learner_id = $1 and status in ('active', 'scheduled')",
+            "select count(*) from assignment where learner_id = $1 and status in ('active', 'scheduled')",
         )
         .bind(&learner.learner_id)
         .fetch_one(&state.pool)
@@ -560,12 +561,12 @@ async fn seed_default_plans_if_missing(state: &Arc<AppState>) -> anyhow::Result<
         if active_count > 0 {
             continue;
         }
-        if let Some(plan_template) = choose_default_plan(&catalog, calculate_age(learner.date_of_birth)) {
-            let _ = assign_plan_internal(
+        if let Some(playlist) = choose_default_playlist(&catalog, calculate_age(learner.date_of_birth)) {
+            let _ = create_assignment_internal(
                 state,
                 &catalog,
                 &learner.learner_id,
-                &plan_template.plan_template_id,
+                &playlist.playlist_id,
                 today,
             )
             .await?;
@@ -575,76 +576,56 @@ async fn seed_default_plans_if_missing(state: &Arc<AppState>) -> anyhow::Result<
     Ok(seeded)
 }
 
-fn choose_default_plan(catalog: &CatalogBundle, age: i32) -> Option<&PlanTemplate> {
+fn choose_default_playlist(catalog: &CatalogBundle, age: i32) -> Option<&Playlist> {
     catalog
-        .plan_templates
+        .playlists
         .iter()
-        .min_by_key(|plan_template| (plan_template.recommended_age as i32 - age).abs())
+        .min_by_key(|playlist| (playlist.recommended_age as i32 - age).abs())
 }
 
-async fn assign_plan_internal(
+async fn create_assignment_internal(
     state: &Arc<AppState>,
     catalog: &CatalogBundle,
     learner_id: &str,
-    plan_template_id: &str,
+    playlist_id: &str,
     start_date: NaiveDate,
-) -> anyhow::Result<PlanSummary> {
-    let plan_template = catalog
-        .plan_template(plan_template_id)
+) -> anyhow::Result<AssignmentSummary> {
+    let playlist = catalog
+        .playlist(playlist_id)
         .cloned()
-        .ok_or_else(|| anyhow!("unknown plan template '{plan_template_id}'"))?;
+        .ok_or_else(|| anyhow!("unknown playlist '{playlist_id}'"))?;
 
-    let end_date = start_date + Duration::days((plan_template.duration_days.saturating_sub(1)) as i64);
-    query("update learning_plan set status = 'replaced' where learner_id = $1 and status in ('active', 'scheduled')")
-        .bind(learner_id)
-        .execute(&state.pool)
-        .await?;
-    query("update plan_assignment set status = 'replaced' where learner_id = $1 and status in ('active', 'scheduled')")
+    let end_date = start_date + Duration::days((playlist.duration_days.saturating_sub(1)) as i64);
+    query("update assignment set status = 'replaced' where learner_id = $1 and status in ('active', 'scheduled')")
         .bind(learner_id)
         .execute(&state.pool)
         .await?;
 
-    let plan_assignment_id = Uuid::new_v4().to_string();
-    let learning_plan_id = Uuid::new_v4().to_string();
+    let assignment_id = Uuid::new_v4().to_string();
     query(
-        "insert into plan_assignment (plan_assignment_id, learner_id, plan_template_id, title, start_date, end_date, status, created_at)
-         values ($1, $2, $3, $4, $5, $6, 'active', $7)",
+        "insert into assignment (assignment_id, learner_id, playlist_id, title, start_date, end_date, status, total_sessions, completed_sessions, created_at)
+         values ($1, $2, $3, $4, $5, $6, 'active', $7, 0, $8)",
     )
-    .bind(&plan_assignment_id)
+    .bind(&assignment_id)
     .bind(learner_id)
-    .bind(&plan_template.plan_template_id)
-    .bind(&plan_template.title)
+    .bind(&playlist.playlist_id)
+    .bind(&playlist.title)
     .bind(start_date)
     .bind(end_date)
+    .bind(playlist.session_pattern.sessions.len() as i32)
     .bind(Utc::now())
     .execute(&state.pool)
     .await?;
 
-    query(
-        "insert into learning_plan (learning_plan_id, plan_assignment_id, learner_id, plan_template_id, title, start_date, end_date, status, total_sessions, completed_sessions, created_at)
-         values ($1, $2, $3, $4, $5, $6, $7, 'active', $8, 0, $9)",
-    )
-    .bind(&learning_plan_id)
-    .bind(&plan_assignment_id)
-    .bind(learner_id)
-    .bind(&plan_template.plan_template_id)
-    .bind(&plan_template.title)
-    .bind(start_date)
-    .bind(end_date)
-    .bind(plan_template.session_pattern.sessions.len() as i32)
-    .bind(Utc::now())
-    .execute(&state.pool)
-    .await?;
-
-    for session in &plan_template.session_pattern.sessions {
+    for session in &playlist.session_pattern.sessions {
         let scheduled_date = start_date + Duration::days(session.day_offset as i64);
         let session_id = Uuid::new_v4().to_string();
         query(
-            "insert into learning_session (session_id, learning_plan_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at)
+            "insert into session (session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at)
              values ($1, $2, $3, $4, $5, 'scheduled', $6, '', null)",
         )
         .bind(&session_id)
-        .bind(&learning_plan_id)
+        .bind(&assignment_id)
         .bind(learner_id)
         .bind(&session.title)
         .bind(scheduled_date)
@@ -652,60 +633,59 @@ async fn assign_plan_internal(
         .execute(&state.pool)
         .await?;
 
-        for capability_id in &session.capability_ids {
-            let content_id = choose_content_for_capability(catalog, session, capability_id).ok_or_else(|| {
+        for skill_id in &session.skill_ids {
+            let material_id = choose_material_for_skill(catalog, session, skill_id).ok_or_else(|| {
                 anyhow!(
-                    "plan template '{}' has no content for capability '{}'",
-                    plan_template_id,
-                    capability_id
+                    "playlist '{}' has no material for skill '{}'",
+                    playlist_id,
+                    skill_id
                 )
             })?;
             query(
-                "insert into session_activity (activity_id, session_id, title, capability_id, content_id, status)
+                "insert into session_material (session_material_id, session_id, title, skill_id, material_id, status)
                  values ($1, $2, $3, $4, $5, 'scheduled')",
             )
             .bind(Uuid::new_v4().to_string())
             .bind(&session_id)
-            .bind(format!("{}: {}", session.title, capability_id))
-            .bind(capability_id)
-            .bind(content_id)
+            .bind(format!("{}: {}", session.title, skill_id))
+            .bind(skill_id)
+            .bind(material_id)
             .execute(&state.pool)
             .await?;
         }
     }
 
-    Ok(PlanSummary {
-        learning_plan_id,
-        plan_assignment_id,
-        plan_template_id: plan_template.plan_template_id,
-        title: plan_template.title,
+    Ok(AssignmentSummary {
+        assignment_id,
+        playlist_id: playlist.playlist_id,
+        title: playlist.title,
         start_date,
         end_date,
         status: "active".to_string(),
-        total_sessions: plan_template.session_pattern.sessions.len() as i32,
+        total_sessions: playlist.session_pattern.sessions.len() as i32,
         completed_sessions: 0,
         completion_percent: 0,
     })
 }
 
-fn choose_content_for_capability<'a>(
+fn choose_material_for_skill<'a>(
     catalog: &'a CatalogBundle,
-    session: &'a catalog::PlanTemplateSession,
-    capability_id: &str,
+    session: &'a catalog::PlaylistSession,
+    skill_id: &str,
 ) -> Option<&'a str> {
-    for content_id in &session.content_ids {
-        let content = catalog.content_items.iter().find(|item| item.id == *content_id)?;
-        if content.capability_ids.iter().any(|item| item == capability_id) {
-            return Some(content_id.as_str());
+    for material_id in &session.material_ids {
+        let material = catalog.materials.iter().find(|item| item.id == *material_id)?;
+        if material.skill_ids.iter().any(|item| item == skill_id) {
+            return Some(material_id.as_str());
         }
     }
-    session.content_ids.first().map(String::as_str)
+    session.material_ids.first().map(String::as_str)
 }
 
-async fn fetch_active_plan_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<Option<PlanSummary>> {
-    let row = query_as::<_, PlanRow>(
-        "select learning_plan_id, plan_assignment_id, learner_id, plan_template_id, title, start_date, end_date, status, total_sessions, completed_sessions
-         from learning_plan
+async fn fetch_active_assignment_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<Option<AssignmentSummary>> {
+    let row = query_as::<_, AssignmentRow>(
+        "select assignment_id, learner_id, playlist_id, title, start_date, end_date, status, total_sessions, completed_sessions
+         from assignment
          where learner_id = $1 and status in ('active', 'scheduled', 'completed')
          order by case status when 'active' then 0 when 'scheduled' then 1 else 2 end, start_date desc
          limit 1",
@@ -713,18 +693,18 @@ async fn fetch_active_plan_for_learner(pool: &PgPool, learner_id: &str) -> anyho
     .bind(learner_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(plan_row_to_summary))
+    Ok(row.map(assignment_row_to_summary))
 }
 
-async fn fetch_next_session_for_plan(pool: &PgPool, learning_plan_id: &str) -> anyhow::Result<Option<SessionSummary>> {
+async fn fetch_next_session_for_assignment(pool: &PgPool, assignment_id: &str) -> anyhow::Result<Option<SessionSummary>> {
     let row = query_as::<_, SessionRow>(
-        "select session_id, learning_plan_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
-         from learning_session
-         where learning_plan_id = $1 and status <> 'completed'
+        "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
+         from session
+         where assignment_id = $1 and status <> 'completed'
          order by scheduled_date asc, day_offset asc
          limit 1",
     )
-    .bind(learning_plan_id)
+    .bind(assignment_id)
     .fetch_optional(pool)
     .await?;
     Ok(row.map(session_row_to_summary))
@@ -733,23 +713,23 @@ async fn fetch_next_session_for_plan(pool: &PgPool, learning_plan_id: &str) -> a
 async fn fetch_sessions(
     pool: &PgPool,
     learner_id: &str,
-    learning_plan_id: Option<&str>,
+    assignment_id: Option<&str>,
 ) -> anyhow::Result<Vec<SessionDetail>> {
-    let rows = if let Some(learning_plan_id) = learning_plan_id {
+    let rows = if let Some(assignment_id) = assignment_id {
         query_as::<_, SessionRow>(
-            "select session_id, learning_plan_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
-             from learning_session
-             where learner_id = $1 and learning_plan_id = $2
+            "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
+             from session
+             where learner_id = $1 and assignment_id = $2
              order by scheduled_date asc, day_offset asc",
         )
         .bind(learner_id)
-        .bind(learning_plan_id)
+        .bind(assignment_id)
         .fetch_all(pool)
         .await?
     } else {
         query_as::<_, SessionRow>(
-            "select session_id, learning_plan_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
-             from learning_session
+            "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
+             from session
              where learner_id = $1
              order by scheduled_date desc, day_offset desc
              limit 10",
@@ -761,57 +741,57 @@ async fn fetch_sessions(
 
     let mut sessions = Vec::new();
     for row in rows {
-        let activities = query_as::<_, SessionActivityRow>(
-            "select activity_id, session_id, title, capability_id, content_id, status
-             from session_activity
+        let materials = query_as::<_, SessionMaterialRow>(
+            "select session_material_id, session_id, title, skill_id, material_id, status
+             from session_material
              where session_id = $1
-             order by title, capability_id",
+             order by title, skill_id",
         )
         .bind(&row.session_id)
         .fetch_all(pool)
         .await?;
-        let latest_attempt = fetch_latest_attempt_for_session(pool, &row.session_id).await?;
+        let latest_evidence = fetch_latest_evidence_for_session(pool, &row.session_id).await?;
         sessions.push(SessionDetail {
             session_id: row.session_id,
             title: row.title,
             scheduled_date: row.scheduled_date,
             status: row.status,
             notes: row.notes,
-            activities: activities.into_iter().map(activity_row_to_summary).collect(),
-            latest_attempt,
+            materials: materials.into_iter().map(session_material_row_to_summary).collect(),
+            latest_evidence,
         });
     }
     Ok(sessions)
 }
 
-async fn fetch_capability_states(pool: &PgPool, learner_id: &str) -> anyhow::Result<Vec<CapabilityStateSummary>> {
-    let rows = query_as::<_, CapabilityStateRow>(
-        "select learner_id, capability_id, status, score_average, last_score, total_attempts, last_attempted_at
-         from learner_capability_state
+async fn fetch_progress(pool: &PgPool, learner_id: &str) -> anyhow::Result<Vec<SkillProgressSummary>> {
+    let rows = query_as::<_, SkillProgressRow>(
+        "select learner_id, skill_id, status, score_average, last_score, total_evidence, last_evidence_at
+         from learner_skill_progress
          where learner_id = $1
-         order by capability_id",
+         order by skill_id",
     )
     .bind(learner_id)
     .fetch_all(pool)
     .await?;
-    Ok(rows.into_iter().map(capability_row_to_summary).collect())
+    Ok(rows.into_iter().map(progress_row_to_summary).collect())
 }
 
-async fn fetch_review_queue(pool: &PgPool, learner_id: &str) -> anyhow::Result<Vec<ReviewQueueSummary>> {
-    let rows = query_as::<_, ReviewQueueRow>(
-        "select review_queue_item_id, learner_id, capability_id, reason, due_date, status
-         from review_queue_item
+async fn fetch_review_items(pool: &PgPool, learner_id: &str) -> anyhow::Result<Vec<ReviewItemSummary>> {
+    let rows = query_as::<_, ReviewItemRow>(
+        "select review_item_id, learner_id, skill_id, reason, due_date, status
+         from review_item
          where learner_id = $1
-         order by due_date asc, capability_id asc",
+         order by due_date asc, skill_id asc",
     )
     .bind(learner_id)
     .fetch_all(pool)
     .await?;
     Ok(rows
         .into_iter()
-        .map(|row| ReviewQueueSummary {
-            review_queue_item_id: row.review_queue_item_id,
-            capability_id: row.capability_id,
+        .map(|row| ReviewItemSummary {
+            review_item_id: row.review_item_id,
+            skill_id: row.skill_id,
             reason: row.reason,
             due_date: row.due_date,
             status: row.status,
@@ -819,10 +799,10 @@ async fn fetch_review_queue(pool: &PgPool, learner_id: &str) -> anyhow::Result<V
         .collect())
 }
 
-async fn fetch_latest_attempt_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<Option<AttemptSummary>> {
-    let row = query_as::<_, AttemptRow>(
-        "select attempt_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at
-         from attempt
+async fn fetch_latest_evidence_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<Option<EvidenceSummary>> {
+    let row = query_as::<_, EvidenceRow>(
+        "select evidence_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at
+         from evidence
          where learner_id = $1
          order by recorded_at desc
          limit 1",
@@ -830,13 +810,13 @@ async fn fetch_latest_attempt_for_learner(pool: &PgPool, learner_id: &str) -> an
     .bind(learner_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(attempt_row_to_summary))
+    Ok(row.map(evidence_row_to_summary))
 }
 
-async fn fetch_latest_attempt_for_session(pool: &PgPool, session_id: &str) -> anyhow::Result<Option<AttemptSummary>> {
-    let row = query_as::<_, AttemptRow>(
-        "select attempt_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at
-         from attempt
+async fn fetch_latest_evidence_for_session(pool: &PgPool, session_id: &str) -> anyhow::Result<Option<EvidenceSummary>> {
+    let row = query_as::<_, EvidenceRow>(
+        "select evidence_id, session_id, learner_id, score, max_score, duration_minutes, notes, recorded_at
+         from evidence
          where session_id = $1
          order by recorded_at desc
          limit 1",
@@ -844,49 +824,49 @@ async fn fetch_latest_attempt_for_session(pool: &PgPool, session_id: &str) -> an
     .bind(session_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(attempt_row_to_summary))
+    Ok(row.map(evidence_row_to_summary))
 }
 
-async fn upsert_capability_state(
+async fn upsert_skill_progress(
     pool: &PgPool,
     learner_id: &str,
-    capability_id: &str,
+    skill_id: &str,
     status: &str,
     ratio: f64,
-    attempted_at: chrono::DateTime<Utc>,
-) -> anyhow::Result<CapabilityStateRow> {
-    query_as::<_, CapabilityStateRow>(
-        "insert into learner_capability_state
-            (learner_id, capability_id, status, score_average, last_score, total_attempts, last_attempted_at)
+    recorded_at: chrono::DateTime<Utc>,
+) -> anyhow::Result<SkillProgressRow> {
+    query_as::<_, SkillProgressRow>(
+        "insert into learner_skill_progress
+            (learner_id, skill_id, status, score_average, last_score, total_evidence, last_evidence_at)
          values ($1, $2, $3, $4, $4, 1, $5)
-         on conflict (learner_id, capability_id) do update
+         on conflict (learner_id, skill_id) do update
          set status = excluded.status,
-             score_average = ((learner_capability_state.score_average * learner_capability_state.total_attempts) + excluded.last_score)
-                / (learner_capability_state.total_attempts + 1),
+             score_average = ((learner_skill_progress.score_average * learner_skill_progress.total_evidence) + excluded.last_score)
+                / (learner_skill_progress.total_evidence + 1),
              last_score = excluded.last_score,
-             total_attempts = learner_capability_state.total_attempts + 1,
-             last_attempted_at = excluded.last_attempted_at
-         returning learner_id, capability_id, status, score_average, last_score, total_attempts, last_attempted_at",
+             total_evidence = learner_skill_progress.total_evidence + 1,
+             last_evidence_at = excluded.last_evidence_at
+         returning learner_id, skill_id, status, score_average, last_score, total_evidence, last_evidence_at",
     )
     .bind(learner_id)
-    .bind(capability_id)
+    .bind(skill_id)
     .bind(status)
     .bind(ratio)
-    .bind(attempted_at)
+    .bind(recorded_at)
     .fetch_one(pool)
     .await
-    .context("failed to update capability state")
+    .context("failed to update skill progress")
 }
 
-async fn rebuild_review_queue_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<()> {
-    query("delete from review_queue_item where learner_id = $1")
+async fn rebuild_review_items_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<()> {
+    query("delete from review_item where learner_id = $1")
         .bind(learner_id)
         .execute(pool)
         .await?;
 
-    let states = query_as::<_, CapabilityStateRow>(
-        "select learner_id, capability_id, status, score_average, last_score, total_attempts, last_attempted_at
-         from learner_capability_state
+    let states = query_as::<_, SkillProgressRow>(
+        "select learner_id, skill_id, status, score_average, last_score, total_evidence, last_evidence_at
+         from learner_skill_progress
          where learner_id = $1",
     )
     .bind(learner_id)
@@ -905,12 +885,12 @@ async fn rebuild_review_queue_for_learner(pool: &PgPool, learner_id: &str) -> an
             _ => continue,
         };
         query(
-            "insert into review_queue_item (review_queue_item_id, learner_id, capability_id, reason, due_date, status, created_at)
+            "insert into review_item (review_item_id, learner_id, skill_id, reason, due_date, status, created_at)
              values ($1, $2, $3, $4, $5, 'pending', $6)",
         )
         .bind(Uuid::new_v4().to_string())
         .bind(learner_id)
-        .bind(&state.capability_id)
+        .bind(&state.skill_id)
         .bind(reason)
         .bind(due_date)
         .bind(Utc::now())
@@ -920,38 +900,33 @@ async fn rebuild_review_queue_for_learner(pool: &PgPool, learner_id: &str) -> an
     Ok(())
 }
 
-async fn refresh_learning_plan_progress(pool: &PgPool, learner_id: &str) -> anyhow::Result<()> {
-    let plans = query_as::<_, PlanRow>(
-        "select learning_plan_id, plan_assignment_id, learner_id, plan_template_id, title, start_date, end_date, status, total_sessions, completed_sessions
-         from learning_plan
+async fn refresh_assignment_progress(pool: &PgPool, learner_id: &str) -> anyhow::Result<()> {
+    let assignments = query_as::<_, AssignmentRow>(
+        "select assignment_id, learner_id, playlist_id, title, start_date, end_date, status, total_sessions, completed_sessions
+         from assignment
          where learner_id = $1",
     )
     .bind(learner_id)
     .fetch_all(pool)
     .await?;
-    for plan in plans {
+    for assignment in assignments {
         let completed_sessions = query_scalar::<_, i64>(
-            "select count(*) from learning_session where learning_plan_id = $1 and status = 'completed'",
+            "select count(*) from session where assignment_id = $1 and status = 'completed'",
         )
-        .bind(&plan.learning_plan_id)
+        .bind(&assignment.assignment_id)
         .fetch_one(pool)
         .await? as i32;
-        let next_status = if plan.status == "replaced" {
+        let next_status = if assignment.status == "replaced" {
             "replaced"
-        } else if plan.total_sessions > 0 && completed_sessions >= plan.total_sessions {
+        } else if assignment.total_sessions > 0 && completed_sessions >= assignment.total_sessions {
             "completed"
         } else {
             "active"
         };
 
-        query("update learning_plan set completed_sessions = $2, status = $3 where learning_plan_id = $1")
-            .bind(&plan.learning_plan_id)
+        query("update assignment set completed_sessions = $2, status = $3 where assignment_id = $1")
+            .bind(&assignment.assignment_id)
             .bind(completed_sessions)
-            .bind(next_status)
-            .execute(pool)
-            .await?;
-        query("update plan_assignment set status = $2 where plan_assignment_id = $1")
-            .bind(&plan.plan_assignment_id)
             .bind(next_status)
             .execute(pool)
             .await?;
@@ -989,16 +964,15 @@ fn status_from_ratio(ratio: f64) -> &'static str {
     }
 }
 
-fn plan_row_to_summary(row: PlanRow) -> PlanSummary {
+fn assignment_row_to_summary(row: AssignmentRow) -> AssignmentSummary {
     let completion_percent = if row.total_sessions > 0 {
         (row.completed_sessions * 100) / row.total_sessions
     } else {
         0
     };
-    PlanSummary {
-        learning_plan_id: row.learning_plan_id,
-        plan_assignment_id: row.plan_assignment_id,
-        plan_template_id: row.plan_template_id,
+    AssignmentSummary {
+        assignment_id: row.assignment_id,
+        playlist_id: row.playlist_id,
         title: row.title,
         start_date: row.start_date,
         end_date: row.end_date,
@@ -1018,19 +992,19 @@ fn session_row_to_summary(row: SessionRow) -> SessionSummary {
     }
 }
 
-fn activity_row_to_summary(row: SessionActivityRow) -> SessionActivitySummary {
-    SessionActivitySummary {
-        activity_id: row.activity_id,
+fn session_material_row_to_summary(row: SessionMaterialRow) -> SessionMaterialSummary {
+    SessionMaterialSummary {
+        session_material_id: row.session_material_id,
         title: row.title,
-        capability_id: row.capability_id,
-        content_id: row.content_id,
+        skill_id: row.skill_id,
+        material_id: row.material_id,
         status: row.status,
     }
 }
 
-fn attempt_row_to_summary(row: AttemptRow) -> AttemptSummary {
-    AttemptSummary {
-        attempt_id: row.attempt_id,
+fn evidence_row_to_summary(row: EvidenceRow) -> EvidenceSummary {
+    EvidenceSummary {
+        evidence_id: row.evidence_id,
         score: row.score,
         max_score: row.max_score,
         duration_minutes: row.duration_minutes,
@@ -1039,13 +1013,13 @@ fn attempt_row_to_summary(row: AttemptRow) -> AttemptSummary {
     }
 }
 
-fn capability_row_to_summary(row: CapabilityStateRow) -> CapabilityStateSummary {
-    CapabilityStateSummary {
-        capability_id: row.capability_id,
+fn progress_row_to_summary(row: SkillProgressRow) -> SkillProgressSummary {
+    SkillProgressSummary {
+        skill_id: row.skill_id,
         status: row.status,
         score_average: row.score_average,
         last_score: row.last_score,
-        total_attempts: row.total_attempts,
-        last_attempted_at: row.last_attempted_at,
+        total_evidence: row.total_evidence,
+        last_evidence_at: row.last_evidence_at,
     }
 }

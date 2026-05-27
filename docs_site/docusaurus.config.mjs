@@ -26,7 +26,7 @@ const brandLockupHtml = `
 
 const config = {
   title: "Cornerstone Content",
-  tagline: "Browse file-owned capabilities, plans, and learning content",
+  tagline: "Browse file-owned subjects, stages, playlists, and materials",
   url: siteUrl,
   baseUrl,
   organizationName: "cornerstone",

@@ -51,11 +51,13 @@ pub async fn run_cli() -> anyhow::Result<()> {
             let (bundle, report) = catalog::load_catalog_bundle(&config.content_root)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             println!(
-                "Loaded {} capabilities, {} milestones, {} plans, {} content items",
-                bundle.capabilities.len(),
-                bundle.milestones.len(),
-                bundle.plan_templates.len(),
-                bundle.content_items.len()
+                "Loaded {} subjects, {} areas, {} skills, {} stages, {} playlists, {} materials",
+                bundle.subjects.len(),
+                bundle.areas.len(),
+                bundle.skills.len(),
+                bundle.stages.len(),
+                bundle.playlists.len(),
+                bundle.materials.len()
             );
             Ok(())
         }

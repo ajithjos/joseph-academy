@@ -1,55 +1,63 @@
-capabilities:
-  - capability_id: number_bonds_to_10
-    subject: maths
+skills:
+  - skill_id: number_bonds_to_10
+    subject_id: maths
+    area_id: arithmetic
     title: Number bonds to 10
     recommended_age: 7
     recommended_level: Year 2
     description: Recall pairs of numbers that make 10 without counting.
     success_criteria: Answers 10 bond questions with confidence in under 2 minutes.
-  - capability_id: addition_facts_to_20
-    subject: maths
+  - skill_id: addition_facts_to_20
+    subject_id: maths
+    area_id: arithmetic
     title: Addition facts to 20
     recommended_age: 7
     recommended_level: Year 2
     description: Solve one-digit and teen addition facts within 20 accurately.
     success_criteria: Scores at least 8 out of 10 on a mixed addition drill.
-  - capability_id: subtraction_facts_to_20
-    subject: maths
+  - skill_id: subtraction_facts_to_20
+    subject_id: maths
+    area_id: arithmetic
     title: Subtraction facts to 20
     recommended_age: 7
     recommended_level: Year 2
     description: Solve subtraction facts within 20 using number sense instead of slow counting.
     success_criteria: Completes a mixed subtraction drill with at least 80 percent accuracy.
-  - capability_id: times_tables_2_5_10
-    subject: maths
+  - skill_id: times_tables_2_5_10
+    subject_id: maths
+    area_id: arithmetic
     title: Times tables 2, 5, and 10
     recommended_age: 10
     recommended_level: Year 5
     description: Recall multiplication facts for the 2, 5, and 10 tables quickly.
     success_criteria: Answers at least 12 multiplication facts correctly in one session.
-  - capability_id: times_tables_3_4
-    subject: maths
+  - skill_id: times_tables_3_4
+    subject_id: maths
+    area_id: arithmetic
     title: Times tables 3 and 4
     recommended_age: 10
     recommended_level: Year 5
     description: Build accurate recall for the 3 and 4 times tables.
     success_criteria: Scores at least 9 out of 12 on a mixed 3 and 4 tables check.
-  - capability_id: division_facts_by_2_5_10
-    subject: maths
+  - skill_id: division_facts_by_2_5_10
+    subject_id: maths
+    area_id: arithmetic
     title: Division facts by 2, 5, and 10
     recommended_age: 10
     recommended_level: Year 5
     description: Use inverse multiplication knowledge to solve division facts by 2, 5, and 10.
     success_criteria: Solves 10 inverse-fact questions with at least 80 percent accuracy.
-  - capability_id: division_facts_by_3_4
-    subject: maths
+  - skill_id: division_facts_by_3_4
+    subject_id: maths
+    area_id: arithmetic
     title: Division facts by 3 and 4
     recommended_age: 10
     recommended_level: Year 5
     description: Apply tables knowledge to solve division facts by 3 and 4.
     success_criteria: Scores at least 8 out of 10 on a mixed division check.
-  - capability_id: read_aloud_level_1
-    subject: english
+  - skill_id: read_aloud_level_1
+    subject_id: english
+    area_id: reading
     title: Read aloud fluently from a short passage
     recommended_age: 7
     recommended_level: Year 2

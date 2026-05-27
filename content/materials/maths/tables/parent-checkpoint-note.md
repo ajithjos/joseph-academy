@@ -1,20 +1,21 @@
 ---
 id: cnt_maths_tables_teaching_note_01
 type: teaching_note
-subject: maths
-capability_ids:
+subject_id: maths
+area_id: arithmetic
+skill_ids:
   - times_tables_2_5_10
   - times_tables_3_4
   - division_facts_by_2_5_10
   - division_facts_by_3_4
-milestone_ids:
-  - maths_age_10_tables_and_division
+stage_ids:
+  - multiplication_and_division_fact_fluency
 recommended_age: 10
 difficulty: parent_note
 estimated_minutes: 8
 ---
 
-# Parent Checkpoint For Tables And Division
+# Parent Teaching Note For Tables And Division
 
 Look for patterns rather than isolated errors.
 

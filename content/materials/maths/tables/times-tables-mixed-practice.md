@@ -1,12 +1,13 @@
 ---
 id: cnt_maths_times_tables_sheet_01
 type: worksheet
-subject: maths
-capability_ids:
+subject_id: maths
+area_id: arithmetic
+skill_ids:
   - times_tables_2_5_10
   - times_tables_3_4
-milestone_ids:
-  - maths_age_10_tables_and_division
+stage_ids:
+  - multiplication_and_division_fact_fluency
 recommended_age: 10
 difficulty: core
 estimated_minutes: 15

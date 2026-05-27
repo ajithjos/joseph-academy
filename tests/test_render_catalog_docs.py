@@ -11,8 +11,8 @@ SPEC.loader.exec_module(MODULE)
 def test_render_markdown_generates_catalog_pages() -> None:
     MODULE.render_markdown("production")
     assert (MODULE.GENERATED_ROOT / "catalog-overview.md").exists()
-    assert (MODULE.GENERATED_ROOT / "plan-templates.md").exists()
-    assert (MODULE.LIBRARY_ROOT / "maths" / "foundations" / "number-bonds-to-10-practice.md").exists()
+    assert (MODULE.GENERATED_ROOT / "playlists.md").exists()
+    assert (MODULE.MATERIALS_ROOT / "maths" / "foundations" / "number-bonds-to-10-practice.md").exists()
     assert not (MODULE.DEVELOPER_ROOT / "README.md").exists()
 
 
