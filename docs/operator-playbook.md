@@ -37,12 +37,16 @@ This runbook is for making curriculum changes and validating the local Cornersto
 Use these from the repo root.
 
 ```bash
+make rust-catalog-validate
+make content-validate
 uv run python scripts/render_catalog_docs.py developer
 uv run --with pytest python -m pytest tests/test_render_catalog_docs.py
 cargo test -p catalog --manifest-path rust/Cargo.toml
 cargo check -p control_plane --manifest-path rust/Cargo.toml
 cd fe/flutter/apps/cornerstone && flutter analyze
 ```
+
+Use `make rust-catalog-validate` while shaping the catalog. Use `make content-validate` before considering a content change done.
 
 ## Local Stack Commands
 

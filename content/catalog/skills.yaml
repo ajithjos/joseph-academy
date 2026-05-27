@@ -1,65 +1,81 @@
 skills:
-  - skill_id: number_bonds_to_10
+  - skill_id: number_bonds_to_20
     subject_id: maths
     area_id: arithmetic
-    title: Number bonds to 10
-    recommended_age: 7
-    recommended_level: Year 2
-    description: Recall pairs of numbers that make 10 without counting.
-    success_criteria: Answers 10 bond questions with confidence in under 2 minutes.
-  - skill_id: addition_facts_to_20
+    title: Number bonds to 20
+    recommended_age: 8
+    recommended_level: Year 3
+    description: Recall pairs and simple missing-number relationships within 20 without slow counting.
+    success_criteria: Answers 12 bond and missing-number prompts accurately in under 2 minutes.
+  - skill_id: add_two_digit_numbers_with_bridging
     subject_id: maths
     area_id: arithmetic
-    title: Addition facts to 20
-    recommended_age: 7
-    recommended_level: Year 2
-    description: Solve one-digit and teen addition facts within 20 accurately.
-    success_criteria: Scores at least 8 out of 10 on a mixed addition drill.
-  - skill_id: subtraction_facts_to_20
+    title: Add two-digit numbers with bridging
+    recommended_age: 8
+    recommended_level: Year 3
+    description: Add two-digit numbers mentally and in short written form when the ones cross 10.
+    success_criteria: Solves at least 8 out of 10 bridging addition questions accurately.
+  - skill_id: subtract_two_digit_numbers_with_bridging
     subject_id: maths
     area_id: arithmetic
-    title: Subtraction facts to 20
-    recommended_age: 7
-    recommended_level: Year 2
-    description: Solve subtraction facts within 20 using number sense instead of slow counting.
-    success_criteria: Completes a mixed subtraction drill with at least 80 percent accuracy.
-  - skill_id: times_tables_2_5_10
+    title: Subtract two-digit numbers with bridging
+    recommended_age: 8
+    recommended_level: Year 3
+    description: Subtract two-digit numbers accurately when regrouping or bridging through a ten is needed.
+    success_criteria: Solves at least 8 out of 10 bridging subtraction questions accurately.
+  - skill_id: times_tables_through_12
     subject_id: maths
     area_id: arithmetic
-    title: Times tables 2, 5, and 10
-    recommended_age: 10
-    recommended_level: Year 5
-    description: Recall multiplication facts for the 2, 5, and 10 tables quickly.
-    success_criteria: Answers at least 12 multiplication facts correctly in one session.
-  - skill_id: times_tables_3_4
+    title: Times tables through 12
+    recommended_age: 11
+    recommended_level: Year 6
+    description: Recall multiplication facts through 12 x 12 quickly enough to support written work.
+    success_criteria: Answers at least 18 out of 20 mixed table facts correctly in one session.
+  - skill_id: multiply_two_digit_by_two_digit
     subject_id: maths
     area_id: arithmetic
-    title: Times tables 3 and 4
-    recommended_age: 10
-    recommended_level: Year 5
-    description: Build accurate recall for the 3 and 4 times tables.
-    success_criteria: Scores at least 9 out of 12 on a mixed 3 and 4 tables check.
-  - skill_id: division_facts_by_2_5_10
+    title: Multiply two-digit numbers by two-digit numbers
+    recommended_age: 11
+    recommended_level: Year 6
+    description: Use a secure written method to multiply two-digit numbers and check reasonableness.
+    success_criteria: Completes 4 out of 5 written multiplication questions accurately with a sensible check.
+  - skill_id: short_division_with_remainders
     subject_id: maths
     area_id: arithmetic
-    title: Division facts by 2, 5, and 10
-    recommended_age: 10
-    recommended_level: Year 5
-    description: Use inverse multiplication knowledge to solve division facts by 2, 5, and 10.
-    success_criteria: Solves 10 inverse-fact questions with at least 80 percent accuracy.
-  - skill_id: division_facts_by_3_4
-    subject_id: maths
-    area_id: arithmetic
-    title: Division facts by 3 and 4
-    recommended_age: 10
-    recommended_level: Year 5
-    description: Apply tables knowledge to solve division facts by 3 and 4.
-    success_criteria: Scores at least 8 out of 10 on a mixed division check.
-  - skill_id: read_aloud_level_1
+    title: Short division with remainders
+    recommended_age: 11
+    recommended_level: Year 6
+    description: Use short division with one-digit divisors and interpret remainders sensibly.
+    success_criteria: Solves 4 out of 5 short-division questions accurately and explains the remainder clearly.
+  - skill_id: read_aloud_with_pacing_and_accuracy
     subject_id: english
     area_id: reading
-    title: Read aloud fluently from a short passage
-    recommended_age: 7
-    recommended_level: Year 2
-    description: Read a short age-appropriate text with basic fluency and expression.
-    success_criteria: Reads a short passage aloud with clear pacing and no more than a few prompts.
+    title: Read aloud with pacing and accuracy
+    recommended_age: 8
+    recommended_level: Year 3
+    description: Read a short passage aloud with steady pacing, clear phrasing, and accurate decoding.
+    success_criteria: Reads a short passage aloud with no more than a few prompts and keeps the sense of the text.
+  - skill_id: retell_main_events_in_order
+    subject_id: english
+    area_id: reading
+    title: Retell main events in order
+    recommended_age: 8
+    recommended_level: Year 3
+    description: Retell the important parts of a short text in the correct order using clear language.
+    success_criteria: Retells the beginning, middle, and end of a short passage without losing the main thread.
+  - skill_id: summarise_paragraphs_with_evidence
+    subject_id: english
+    area_id: reading
+    title: Summarise paragraphs with evidence
+    recommended_age: 11
+    recommended_level: Year 6
+    description: Summarise what a paragraph says and support the summary with a direct clue from the text.
+    success_criteria: Produces short paragraph summaries that stay accurate and cite at least one supporting detail.
+  - skill_id: answer_inference_questions_with_text_clues
+    subject_id: english
+    area_id: reading
+    title: Answer inference questions with text clues
+    recommended_age: 11
+    recommended_level: Year 6
+    description: Use text clues and background reasoning together to answer inference questions responsibly.
+    success_criteria: Answers at least 4 out of 5 inference questions with a plausible explanation rooted in the text.

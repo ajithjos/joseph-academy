@@ -1,111 +1,186 @@
 playlists:
-  - playlist_id: arithmetic_fact_fluency_starter
-    title: Arithmetic fact fluency starter
+  - playlist_id: arithmetic_fluency_to_100_starter
+    title: Arithmetic fluency to 100 starter
     subject_id: maths
     area_id: arithmetic
-    recommended_age: 7
-    recommended_level: Year 2
+    recommended_age: 8
+    recommended_level: Year 3
     stage_ids:
-      - arithmetic_fact_fluency_foundations
+      - mental_arithmetic_fluency_to_100
     skill_ids:
-      - number_bonds_to_10
-      - addition_facts_to_20
-      - subtraction_facts_to_20
+      - number_bonds_to_20
+      - add_two_digit_numbers_with_bridging
+      - subtract_two_digit_numbers_with_bridging
     duration_days: 5
     session_pattern:
       sessions:
         - day_offset: 0
-          title: Number bonds starter
+          title: Number bonds to 20
           skill_ids:
-            - number_bonds_to_10
+            - number_bonds_to_20
           material_ids:
-            - cnt_maths_number_bonds_sheet_01
+            - cnt_maths_number_bonds_to_20_sheet_01
         - day_offset: 1
-          title: Addition fluency
+          title: Bridging addition
           skill_ids:
-            - addition_facts_to_20
+            - add_two_digit_numbers_with_bridging
           material_ids:
-            - cnt_maths_addition_facts_sheet_01
+            - cnt_maths_addition_bridging_sheet_01
         - day_offset: 2
-          title: Subtraction fluency
+          title: Bridging subtraction
           skill_ids:
-            - subtraction_facts_to_20
+            - subtract_two_digit_numbers_with_bridging
           material_ids:
-            - cnt_maths_subtraction_facts_sheet_01
+            - cnt_maths_subtraction_bridging_sheet_01
         - day_offset: 3
-          title: Mixed review
+          title: Mixed review and correction
           skill_ids:
-            - number_bonds_to_10
-            - addition_facts_to_20
-            - subtraction_facts_to_20
+            - number_bonds_to_20
+            - add_two_digit_numbers_with_bridging
+            - subtract_two_digit_numbers_with_bridging
           material_ids:
-            - cnt_maths_number_bonds_sheet_01
-            - cnt_maths_addition_facts_sheet_01
-            - cnt_maths_subtraction_facts_sheet_01
+            - cnt_maths_number_bonds_to_20_sheet_01
+            - cnt_maths_addition_bridging_sheet_01
+            - cnt_maths_subtraction_bridging_sheet_01
         - day_offset: 4
           title: Parent teaching note
           skill_ids:
-            - number_bonds_to_10
-            - addition_facts_to_20
-            - subtraction_facts_to_20
+            - number_bonds_to_20
+            - add_two_digit_numbers_with_bridging
+            - subtract_two_digit_numbers_with_bridging
           material_ids:
-            - cnt_maths_foundations_teaching_note_01
-  - playlist_id: multiplication_and_division_fact_fluency_starter
-    title: Multiplication and division fact fluency starter
+            - cnt_maths_arithmetic_fluency_teaching_note_01
+  - playlist_id: written_multiplication_and_division_starter
+    title: Written multiplication and division starter
     subject_id: maths
     area_id: arithmetic
-    recommended_age: 10
-    recommended_level: Year 5
+    recommended_age: 11
+    recommended_level: Year 6
     stage_ids:
-      - multiplication_and_division_fact_fluency
+      - written_multiplication_and_division
     skill_ids:
-      - times_tables_2_5_10
-      - times_tables_3_4
-      - division_facts_by_2_5_10
-      - division_facts_by_3_4
-    duration_days: 6
+      - times_tables_through_12
+      - multiply_two_digit_by_two_digit
+      - short_division_with_remainders
+    duration_days: 5
     session_pattern:
       sessions:
         - day_offset: 0
-          title: Tables warm-up
+          title: Tables through 12 warm-up
           skill_ids:
-            - times_tables_2_5_10
+            - times_tables_through_12
           material_ids:
-            - cnt_maths_times_tables_sheet_01
+            - cnt_maths_tables_to_12_sheet_01
         - day_offset: 1
-          title: 3 and 4 tables focus
+          title: Column multiplication
           skill_ids:
-            - times_tables_3_4
+            - multiply_two_digit_by_two_digit
           material_ids:
-            - cnt_maths_times_tables_sheet_01
+            - cnt_maths_written_multiplication_sheet_01
         - day_offset: 2
-          title: Division by 2, 5, and 10
+          title: Short division with remainders
           skill_ids:
-            - division_facts_by_2_5_10
+            - short_division_with_remainders
           material_ids:
-            - cnt_maths_division_facts_sheet_01
+            - cnt_maths_short_division_sheet_01
         - day_offset: 3
-          title: Division by 3 and 4
+          title: Mixed written-method review
           skill_ids:
-            - division_facts_by_3_4
+            - times_tables_through_12
+            - multiply_two_digit_by_two_digit
+            - short_division_with_remainders
           material_ids:
-            - cnt_maths_division_facts_sheet_01
+            - cnt_maths_tables_to_12_sheet_01
+            - cnt_maths_written_multiplication_sheet_01
+            - cnt_maths_short_division_sheet_01
         - day_offset: 4
-          title: Fact-family review
-          skill_ids:
-            - times_tables_2_5_10
-            - times_tables_3_4
-            - division_facts_by_2_5_10
-            - division_facts_by_3_4
-          material_ids:
-            - cnt_maths_times_tables_sheet_01
-            - cnt_maths_division_facts_sheet_01
-        - day_offset: 5
           title: Parent teaching note
           skill_ids:
-            - times_tables_2_5_10
-            - times_tables_3_4
-            - division_facts_by_2_5_10
-            - division_facts_by_3_4
+            - times_tables_through_12
+            - multiply_two_digit_by_two_digit
+            - short_division_with_remainders
           material_ids:
-            - cnt_maths_tables_teaching_note_01
+            - cnt_maths_written_methods_teaching_note_01
+  - playlist_id: reading_fluency_and_retell_starter
+    title: Reading fluency and retell starter
+    subject_id: english
+    area_id: reading
+    recommended_age: 8
+    recommended_level: Year 3
+    stage_ids:
+      - reading_fluency_and_retell
+    skill_ids:
+      - read_aloud_with_pacing_and_accuracy
+      - retell_main_events_in_order
+    duration_days: 4
+    session_pattern:
+      sessions:
+        - day_offset: 0
+          title: First read aloud
+          skill_ids:
+            - read_aloud_with_pacing_and_accuracy
+          material_ids:
+            - cnt_english_reading_fluency_passage_01
+        - day_offset: 1
+          title: Retell and sequence
+          skill_ids:
+            - retell_main_events_in_order
+          material_ids:
+            - cnt_english_reading_retell_check_01
+        - day_offset: 2
+          title: Reread and improve
+          skill_ids:
+            - read_aloud_with_pacing_and_accuracy
+            - retell_main_events_in_order
+          material_ids:
+            - cnt_english_reading_fluency_passage_01
+            - cnt_english_reading_retell_check_01
+        - day_offset: 3
+          title: Parent teaching note
+          skill_ids:
+            - read_aloud_with_pacing_and_accuracy
+            - retell_main_events_in_order
+          material_ids:
+            - cnt_english_reading_fluency_teaching_note_01
+  - playlist_id: reading_comprehension_with_evidence_starter
+    title: Reading comprehension with evidence starter
+    subject_id: english
+    area_id: reading
+    recommended_age: 11
+    recommended_level: Year 6
+    stage_ids:
+      - reading_comprehension_with_evidence
+    skill_ids:
+      - summarise_paragraphs_with_evidence
+      - answer_inference_questions_with_text_clues
+    duration_days: 4
+    session_pattern:
+      sessions:
+        - day_offset: 0
+          title: Read for gist
+          skill_ids:
+            - summarise_paragraphs_with_evidence
+          material_ids:
+            - cnt_english_reading_comprehension_passage_01
+        - day_offset: 1
+          title: Evidence questions
+          skill_ids:
+            - summarise_paragraphs_with_evidence
+            - answer_inference_questions_with_text_clues
+          material_ids:
+            - cnt_english_reading_evidence_questions_01
+        - day_offset: 2
+          title: Inference discussion
+          skill_ids:
+            - summarise_paragraphs_with_evidence
+            - answer_inference_questions_with_text_clues
+          material_ids:
+            - cnt_english_reading_comprehension_passage_01
+            - cnt_english_reading_evidence_questions_01
+        - day_offset: 3
+          title: Parent teaching note
+          skill_ids:
+            - summarise_paragraphs_with_evidence
+            - answer_inference_questions_with_text_clues
+          material_ids:
+            - cnt_english_reading_comprehension_teaching_note_01

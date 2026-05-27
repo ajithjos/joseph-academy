@@ -1,14 +1,15 @@
-.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-catalog-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-catalog-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
+.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-catalog-validate content-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-catalog-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
 
 PYTHON_RUN ?= uv run
 FLUTTER_APP_DIR ?= $(CURDIR)/fe/flutter/apps/cornerstone
 DOCS_SITE_DIR ?= $(CURDIR)/docs_site
 RUST_MANIFEST ?= $(CURDIR)/rust/Cargo.toml
 FLUTTER_REQUIRED_VERSION ?= 3.41.9
+CONTENT_ROOT ?= $(CURDIR)/content
 
 help:
 	@echo "Primary targets: daily-local, control-plane-compose-up, rust-run"
-	@echo "Validation targets: fmt-check, lint, test, frontend-sanity, docs-site-build"
+	@echo "Validation targets: fmt-check, lint, test, rust-catalog-validate, content-validate, frontend-sanity, docs-site-build"
 	@echo "Control-plane targets: control-plane-db-up, control-plane-db-migrate, control-plane-bootstrap-apply, control-plane-catalog-reload, control-plane-compose-up, control-plane-compose-down, control-plane-compose-reset"
 
 install-dev:
@@ -52,7 +53,10 @@ rust-bootstrap-apply:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
 rust-catalog-validate:
-	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
+	CORNERSTONE_CONTENT_ROOT="$(CONTENT_ROOT)" cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
+
+content-validate: rust-catalog-validate
+	$(PYTHON_RUN) --with pytest python -m pytest tests/test_render_catalog_docs.py
 
 frontend-pub-get:
 	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter pub get'
@@ -101,6 +105,6 @@ control-plane-compose-down:
 control-plane-compose-reset:
 	bash deploy/dev/reset.sh
 
-daily-local: fmt-check lint rust-test frontend-sanity docs-site-build
+daily-local: fmt-check lint rust-test frontend-sanity content-validate docs-site-build
 
 daily: daily-local test

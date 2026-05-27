@@ -12,7 +12,20 @@ def test_render_markdown_generates_catalog_pages() -> None:
     MODULE.render_markdown("production")
     assert (MODULE.GENERATED_ROOT / "catalog-overview.md").exists()
     assert (MODULE.GENERATED_ROOT / "playlists.md").exists()
-    assert (MODULE.MATERIALS_ROOT / "maths" / "foundations" / "number-bonds-to-10-practice.md").exists()
+    assert (
+        MODULE.MATERIALS_ROOT
+        / "maths"
+        / "arithmetic"
+        / "fluency"
+        / "number-bonds-to-20.md"
+    ).exists()
+    assert (
+        MODULE.MATERIALS_ROOT
+        / "english"
+        / "reading"
+        / "fluency"
+        / "echo-at-the-park.md"
+    ).exists()
     assert not (MODULE.DEVELOPER_ROOT / "README.md").exists()
 
 

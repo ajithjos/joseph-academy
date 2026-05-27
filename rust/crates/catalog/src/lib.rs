@@ -197,6 +197,7 @@ pub fn load_catalog_bundle(content_root: &Path) -> anyhow::Result<(CatalogBundle
     let material_documents = load_material_documents(content_root, &materials.materials)?;
 
     validate_catalog(
+        content_root,
         &subjects.subjects,
         &areas.areas,
         &skills.skills,
@@ -370,7 +371,62 @@ fn validate_material_index_against_document(
     Ok(())
 }
 
+fn collect_material_markdown_paths(content_root: &Path) -> anyhow::Result<BTreeSet<String>> {
+    let materials_root = content_root.join("materials");
+    let mut paths = BTreeSet::new();
+    collect_markdown_paths(&materials_root, content_root, &mut paths)?;
+    Ok(paths)
+}
+
+fn collect_markdown_paths(
+    current_dir: &Path,
+    content_root: &Path,
+    paths: &mut BTreeSet<String>,
+) -> anyhow::Result<()> {
+    if !current_dir.exists() {
+        return Ok(());
+    }
+
+    for entry in fs::read_dir(current_dir)
+        .with_context(|| format!("failed to read {}", current_dir.display()))?
+    {
+        let entry = entry.with_context(|| format!("failed to read entry in {}", current_dir.display()))?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_markdown_paths(&path, content_root, paths)?;
+            continue;
+        }
+
+        if path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+            continue;
+        }
+
+        let relative_path = path
+            .strip_prefix(content_root)
+            .with_context(|| format!("{} is outside the content root", path.display()))?
+            .to_string_lossy()
+            .replace('\\', "/");
+        if !paths.insert(relative_path.clone()) {
+            bail!("duplicate markdown path '{}'", relative_path);
+        }
+    }
+
+    Ok(())
+}
+
+fn lookup_required<'a, T>(
+    map: &'a HashMap<&str, &'a T>,
+    key: &str,
+    label: &str,
+    owner_id: &str,
+) -> anyhow::Result<&'a T> {
+    map.get(key)
+        .copied()
+        .ok_or_else(|| anyhow!("{} '{}' references missing id '{}'", label, owner_id, key))
+}
+
 fn validate_catalog(
+    content_root: &Path,
     subjects: &[Subject],
     areas: &[Area],
     skills: &[Skill],
@@ -401,6 +457,26 @@ fn validate_catalog(
             .map(|material| material.material_id.as_str()),
         "material",
     )?;
+    ensure_unique_ids(
+        materials.iter().map(|material| material.path.as_str()),
+        "material path",
+    )?;
+
+    let indexed_material_paths: BTreeSet<String> = materials.iter().map(|material| material.path.clone()).collect();
+    let discovered_material_paths = collect_material_markdown_paths(content_root)?;
+    for path in &indexed_material_paths {
+        if !discovered_material_paths.contains(path) {
+            bail!("indexed material path '{}' is missing from content/materials", path);
+        }
+    }
+    for path in &discovered_material_paths {
+        if !indexed_material_paths.contains(path) {
+            bail!(
+                "markdown material '{}' is not indexed in content/catalog/materials.yaml",
+                path
+            );
+        }
+    }
 
     let subject_ids: BTreeSet<_> = subjects.iter().map(|subject| subject.subject_id.as_str()).collect();
     let area_ids: BTreeSet<_> = areas.iter().map(|area| area.area_id.as_str()).collect();
@@ -410,6 +486,10 @@ fn validate_catalog(
         .map(|stage| stage.stage_id.as_str())
         .collect();
     let material_ids: BTreeSet<_> = material_documents.iter().map(|item| item.id.as_str()).collect();
+    let area_map: HashMap<_, _> = areas.iter().map(|area| (area.area_id.as_str(), area)).collect();
+    let skill_map: HashMap<_, _> = skills.iter().map(|skill| (skill.skill_id.as_str(), skill)).collect();
+    let stage_map: HashMap<_, _> = stages.iter().map(|stage| (stage.stage_id.as_str(), stage)).collect();
+    let material_map: HashMap<_, _> = material_documents.iter().map(|material| (material.id.as_str(), material)).collect();
 
     for area in areas {
         ensure_contains(
@@ -428,11 +508,22 @@ fn validate_catalog(
             &skill.skill_id,
         )?;
         ensure_contains(&area_ids, skill.area_id.as_str(), "skill area", &skill.skill_id)?;
+        let skill_area = lookup_required(&area_map, skill.area_id.as_str(), "skill area", &skill.skill_id)?;
+        if skill_area.subject_id != skill.subject_id {
+            bail!(
+                "skill '{}' uses area '{}' from a different subject",
+                skill.skill_id,
+                skill.area_id
+            );
+        }
     }
 
     for stage in stages {
         ensure_contains(&subject_ids, stage.subject_id.as_str(), "stage subject", &stage.stage_id)?;
         ensure_contains(&area_ids, stage.area_id.as_str(), "stage area", &stage.stage_id)?;
+        if stage.skill_ids.is_empty() {
+            bail!("stage '{}' has no skills", stage.stage_id);
+        }
         for skill_id in &stage.skill_ids {
             ensure_contains(
                 &skill_ids,
@@ -440,6 +531,14 @@ fn validate_catalog(
                 "stage skill",
                 &stage.stage_id,
             )?;
+            let stage_skill = lookup_required(&skill_map, skill_id.as_str(), "stage skill", &stage.stage_id)?;
+            if stage_skill.subject_id != stage.subject_id || stage_skill.area_id != stage.area_id {
+                bail!(
+                    "stage '{}' mixes subject or area boundaries with skill '{}'",
+                    stage.stage_id,
+                    skill_id
+                );
+            }
         }
     }
 
@@ -451,6 +550,17 @@ fn validate_catalog(
             &playlist.playlist_id,
         )?;
         ensure_contains(&area_ids, playlist.area_id.as_str(), "playlist area", &playlist.playlist_id)?;
+        if playlist.stage_ids.is_empty() {
+            bail!("playlist '{}' has no stages", playlist.playlist_id);
+        }
+        if playlist.skill_ids.is_empty() {
+            bail!("playlist '{}' has no skills", playlist.playlist_id);
+        }
+        if playlist.session_pattern.sessions.is_empty() {
+            bail!("playlist '{}' has no sessions", playlist.playlist_id);
+        }
+
+        let mut allowed_stage_skills = BTreeSet::new();
         for stage_id in &playlist.stage_ids {
             ensure_contains(
                 &stage_ids,
@@ -458,14 +568,68 @@ fn validate_catalog(
                 "playlist stage",
                 &playlist.playlist_id,
             )?;
+            let playlist_stage = lookup_required(&stage_map, stage_id.as_str(), "playlist stage", &playlist.playlist_id)?;
+            if playlist_stage.subject_id != playlist.subject_id || playlist_stage.area_id != playlist.area_id {
+                bail!(
+                    "playlist '{}' mixes subject or area boundaries with stage '{}'",
+                    playlist.playlist_id,
+                    stage_id
+                );
+            }
+            for skill_id in &playlist_stage.skill_ids {
+                allowed_stage_skills.insert(skill_id.as_str());
+            }
         }
         for skill_id in &playlist.skill_ids {
             ensure_contains(&skill_ids, skill_id.as_str(), "playlist skill", &playlist.playlist_id)?;
+            let playlist_skill = lookup_required(&skill_map, skill_id.as_str(), "playlist skill", &playlist.playlist_id)?;
+            if playlist_skill.subject_id != playlist.subject_id || playlist_skill.area_id != playlist.area_id {
+                bail!(
+                    "playlist '{}' mixes subject or area boundaries with skill '{}'",
+                    playlist.playlist_id,
+                    skill_id
+                );
+            }
+            if !allowed_stage_skills.contains(skill_id.as_str()) {
+                bail!(
+                    "playlist '{}' includes skill '{}' outside its declared stages",
+                    playlist.playlist_id,
+                    skill_id
+                );
+            }
         }
+
+        let playlist_skill_set: BTreeSet<&str> = playlist.skill_ids.iter().map(|skill_id| skill_id.as_str()).collect();
+        let playlist_stage_set: BTreeSet<&str> = playlist.stage_ids.iter().map(|stage_id| stage_id.as_str()).collect();
+        let mut covered_skills = BTreeSet::new();
+        let mut seen_day_offsets = BTreeSet::new();
         for session in &playlist.session_pattern.sessions {
             if session.day_offset < 0 {
                 bail!("playlist {} uses a negative day_offset", playlist.playlist_id);
             }
+            if !seen_day_offsets.insert(session.day_offset) {
+                bail!(
+                    "playlist '{}' repeats day_offset {}",
+                    playlist.playlist_id,
+                    session.day_offset
+                );
+            }
+            if session.skill_ids.is_empty() {
+                bail!(
+                    "playlist '{}' has session '{}' with no skills",
+                    playlist.playlist_id,
+                    session.title
+                );
+            }
+            if session.material_ids.is_empty() {
+                bail!(
+                    "playlist '{}' has session '{}' with no materials",
+                    playlist.playlist_id,
+                    session.title
+                );
+            }
+
+            let mut session_supported_skills = BTreeSet::new();
             for skill_id in &session.skill_ids {
                 ensure_contains(
                     &skill_ids,
@@ -473,6 +637,24 @@ fn validate_catalog(
                     "session skill",
                     &playlist.playlist_id,
                 )?;
+                if !playlist_skill_set.contains(skill_id.as_str()) {
+                    bail!(
+                        "playlist '{}' session '{}' uses undeclared playlist skill '{}'",
+                        playlist.playlist_id,
+                        session.title,
+                        skill_id
+                    );
+                }
+                let session_skill = lookup_required(&skill_map, skill_id.as_str(), "session skill", &playlist.playlist_id)?;
+                if session_skill.subject_id != playlist.subject_id || session_skill.area_id != playlist.area_id {
+                    bail!(
+                        "playlist '{}' session '{}' mixes subject or area boundaries with skill '{}'",
+                        playlist.playlist_id,
+                        session.title,
+                        skill_id
+                    );
+                }
+                covered_skills.insert(skill_id.as_str());
             }
             for material_id in &session.material_ids {
                 ensure_contains(
@@ -481,7 +663,83 @@ fn validate_catalog(
                     "session material",
                     &playlist.playlist_id,
                 )?;
+                let session_material = lookup_required(
+                    &material_map,
+                    material_id.as_str(),
+                    "session material",
+                    &playlist.playlist_id,
+                )?;
+                if session_material.subject_id != playlist.subject_id
+                    || session_material.area_id != playlist.area_id
+                {
+                    bail!(
+                        "playlist '{}' session '{}' mixes subject or area boundaries with material '{}'",
+                        playlist.playlist_id,
+                        session.title,
+                        material_id
+                    );
+                }
+                if !session_material
+                    .stage_ids
+                    .iter()
+                    .any(|stage_id| playlist_stage_set.contains(stage_id.as_str()))
+                {
+                    bail!(
+                        "playlist '{}' session '{}' uses material '{}' outside the playlist stages",
+                        playlist.playlist_id,
+                        session.title,
+                        material_id
+                    );
+                }
+
+                let mut matched_skill = false;
+                for material_skill_id in &session_material.skill_ids {
+                    if session.skill_ids.contains(material_skill_id) {
+                        session_supported_skills.insert(material_skill_id.as_str());
+                        matched_skill = true;
+                    }
+                }
+                if !matched_skill {
+                    bail!(
+                        "playlist '{}' session '{}' uses material '{}' without matching session skills",
+                        playlist.playlist_id,
+                        session.title,
+                        material_id
+                    );
+                }
             }
+
+            for skill_id in &session.skill_ids {
+                if !session_supported_skills.contains(skill_id.as_str()) {
+                    bail!(
+                        "playlist '{}' session '{}' has no material covering skill '{}'",
+                        playlist.playlist_id,
+                        session.title,
+                        skill_id
+                    );
+                }
+            }
+        }
+
+        for skill_id in &playlist.skill_ids {
+            if !covered_skills.contains(skill_id.as_str()) {
+                bail!(
+                    "playlist '{}' declares skill '{}' but no session covers it",
+                    playlist.playlist_id,
+                    skill_id
+                );
+            }
+        }
+    }
+
+    for material in materials {
+        let expected_prefix = format!("materials/{}/{}/", material.subject_id, material.area_id);
+        if !material.path.starts_with(&expected_prefix) {
+            bail!(
+                "material '{}' must live under '{}'",
+                material.material_id,
+                expected_prefix
+            );
         }
     }
 
@@ -493,6 +751,14 @@ fn validate_catalog(
             &material.id,
         )?;
         ensure_contains(&area_ids, material.area_id.as_str(), "material area", &material.id)?;
+        if material.skill_ids.is_empty() {
+            bail!("material '{}' has no skills", material.id);
+        }
+        if material.stage_ids.is_empty() {
+            bail!("material '{}' has no stages", material.id);
+        }
+
+        let mut allowed_stage_skills = BTreeSet::new();
         for skill_id in &material.skill_ids {
             ensure_contains(
                 &skill_ids,
@@ -500,6 +766,14 @@ fn validate_catalog(
                 "material skill",
                 &material.id,
             )?;
+            let material_skill = lookup_required(&skill_map, skill_id.as_str(), "material skill", &material.id)?;
+            if material_skill.subject_id != material.subject_id || material_skill.area_id != material.area_id {
+                bail!(
+                    "material '{}' mixes subject or area boundaries with skill '{}'",
+                    material.id,
+                    skill_id
+                );
+            }
         }
         for stage_id in &material.stage_ids {
             ensure_contains(
@@ -508,6 +782,111 @@ fn validate_catalog(
                 "material stage",
                 &material.id,
             )?;
+            let material_stage = lookup_required(&stage_map, stage_id.as_str(), "material stage", &material.id)?;
+            if material_stage.subject_id != material.subject_id || material_stage.area_id != material.area_id {
+                bail!(
+                    "material '{}' mixes subject or area boundaries with stage '{}'",
+                    material.id,
+                    stage_id
+                );
+            }
+            for skill_id in &material_stage.skill_ids {
+                allowed_stage_skills.insert(skill_id.as_str());
+            }
+        }
+
+        for skill_id in &material.skill_ids {
+            if !allowed_stage_skills.contains(skill_id.as_str()) {
+                bail!(
+                    "material '{}' includes skill '{}' outside its declared stages",
+                    material.id,
+                    skill_id
+                );
+            }
+        }
+    }
+
+    for subject in subjects {
+        if !areas.iter().any(|area| area.subject_id == subject.subject_id) {
+            bail!("subject '{}' has no areas", subject.subject_id);
+        }
+        if !skills.iter().any(|skill| skill.subject_id == subject.subject_id) {
+            bail!("subject '{}' has no skills", subject.subject_id);
+        }
+        if !stages.iter().any(|stage| stage.subject_id == subject.subject_id) {
+            bail!("subject '{}' has no stages", subject.subject_id);
+        }
+        if !playlists.iter().any(|playlist| playlist.subject_id == subject.subject_id) {
+            bail!("subject '{}' has no playlists", subject.subject_id);
+        }
+        if !material_documents
+            .iter()
+            .any(|material| material.subject_id == subject.subject_id)
+        {
+            bail!("subject '{}' has no materials", subject.subject_id);
+        }
+    }
+
+    for area in areas {
+        if !skills.iter().any(|skill| skill.area_id == area.area_id) {
+            bail!("area '{}' has no skills", area.area_id);
+        }
+        if !stages.iter().any(|stage| stage.area_id == area.area_id) {
+            bail!("area '{}' has no stages", area.area_id);
+        }
+        if !playlists.iter().any(|playlist| playlist.area_id == area.area_id) {
+            bail!("area '{}' has no playlists", area.area_id);
+        }
+        if !material_documents.iter().any(|material| material.area_id == area.area_id) {
+            bail!("area '{}' has no materials", area.area_id);
+        }
+    }
+
+    for skill in skills {
+        if !stages.iter().any(|stage| stage.skill_ids.contains(&skill.skill_id)) {
+            bail!("skill '{}' is not grouped into any stage", skill.skill_id);
+        }
+        if !material_documents
+            .iter()
+            .any(|material| material.skill_ids.contains(&skill.skill_id))
+        {
+            bail!("skill '{}' is not used by any material", skill.skill_id);
+        }
+        if !playlists.iter().any(|playlist| playlist.skill_ids.contains(&skill.skill_id)) {
+            bail!("skill '{}' is not used by any playlist", skill.skill_id);
+        }
+        if !playlists.iter().any(|playlist| {
+            playlist
+                .session_pattern
+                .sessions
+                .iter()
+                .any(|session| session.skill_ids.contains(&skill.skill_id))
+        }) {
+            bail!("skill '{}' is not taught in any playlist session", skill.skill_id);
+        }
+    }
+
+    for stage in stages {
+        if !playlists.iter().any(|playlist| playlist.stage_ids.contains(&stage.stage_id)) {
+            bail!("stage '{}' is not used by any playlist", stage.stage_id);
+        }
+        if !material_documents
+            .iter()
+            .any(|material| material.stage_ids.contains(&stage.stage_id))
+        {
+            bail!("stage '{}' is not used by any material", stage.stage_id);
+        }
+    }
+
+    for material in material_documents {
+        if !playlists.iter().any(|playlist| {
+            playlist
+                .session_pattern
+                .sessions
+                .iter()
+                .any(|session| session.material_ids.contains(&material.id))
+        }) {
+            bail!("material '{}' is not used by any playlist session", material.id);
         }
     }
 

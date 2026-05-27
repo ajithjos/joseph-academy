@@ -23,7 +23,10 @@ Before authoring or reviewing a slice, gather:
 7. Update the catalog YAML entries.
 8. Assemble or revise one or more playlists.
 9. Run the [review checklist](./authoring-rules.md).
-10. Run repo validation commands if the work is being committed to the repository.
+10. Run `make rust-catalog-validate` while iterating if you changed structure, references, or material files.
+11. Run `make content-validate` before finishing the work.
+
+These checks run against the full content set, not only the touched slice. That is deliberate: orphan detection and cross-reference failures usually show up only when the whole catalog is checked together.
 
 ## How To Brief The Author
 
@@ -65,9 +68,12 @@ If the subject or area is new, the work may also need updates to:
 Use these from the repo root when you need to validate repository changes:
 
 ```bash
+make rust-catalog-validate
+make content-validate
 uv run python scripts/render_catalog_docs.py developer
-uv run --with pytest python -m pytest tests/test_render_catalog_docs.py
 cargo test -p catalog --manifest-path rust/Cargo.toml
 cargo check -p control_plane --manifest-path rust/Cargo.toml
 cd fe/flutter/apps/cornerstone && flutter analyze
 ```
+
+Use `make rust-catalog-validate` as the fast structural check. Use `make content-validate` as the normal completion check for newly authored or revised content.
