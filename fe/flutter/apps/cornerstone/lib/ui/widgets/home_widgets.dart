@@ -623,7 +623,7 @@ class _BrandLockup extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final symbolSize = toolbarVariant ? (compact ? 28.0 : 32.0) : (compact ? 36.0 : 44.0);
+    final symbolSize = toolbarVariant ? (compact ? 22.0 : 26.0) : (compact ? 30.0 : 36.0);
     final wordmarkHeight = toolbarVariant ? (compact ? 16.0 : 20.0) : (compact ? 20.0 : 26.0);
     final padding = toolbarVariant
         ? (compact ? const EdgeInsets.fromLTRB(2, 2, 4, 2) : const EdgeInsets.fromLTRB(4, 3, 6, 3))
