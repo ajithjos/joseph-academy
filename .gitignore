@@ -8,6 +8,8 @@ __pycache__/
 **/.dart_tool/
 **/.idea/
 **/build/
+!deploy/config/build/
+!deploy/config/build/images.lock.env
 **/target/
 **/node_modules/
 docs_site/.docusaurus/

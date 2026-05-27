@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'models.dart';
+import '../models/models.dart';
 
 class CornerstoneApiClient {
   CornerstoneApiClient({http.Client? client, String? baseUrl})
@@ -20,7 +20,13 @@ class CornerstoneApiClient {
     if (configuredBaseUrl.isNotEmpty) {
       return configuredBaseUrl;
     }
-    return Uri.base.origin;
+
+    final runtimeBase = Uri.base;
+    if (runtimeBase.scheme == 'http' || runtimeBase.scheme == 'https') {
+      return runtimeBase.origin;
+    }
+
+    return 'http://localhost';
   }
 
   Future<DashboardPayload> fetchDashboard() async {
