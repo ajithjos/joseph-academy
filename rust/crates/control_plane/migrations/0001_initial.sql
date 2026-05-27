@@ -1,10 +1,10 @@
-create table if not exists team (
+create table team (
     team_id text primary key,
     display_name text not null,
     description text not null
 );
 
-create table if not exists user_account (
+create table user_account (
     user_id text primary key,
     username text not null unique,
     display_name text not null,
@@ -14,7 +14,7 @@ create table if not exists user_account (
     notes text null
 );
 
-create table if not exists team_membership (
+create table team_membership (
     team_id text not null references team(team_id) on delete cascade,
     user_id text not null references user_account(user_id) on delete cascade,
     role text not null,
@@ -39,7 +39,7 @@ where
     and ua.sex is not null
     and ua.current_level is not null;
 
-create table if not exists assignment (
+create table assignment (
     assignment_id text primary key,
     learner_id text not null references user_account(user_id) on delete cascade,
     playlist_id text not null,
@@ -52,7 +52,7 @@ create table if not exists assignment (
     created_at timestamptz not null
 );
 
-create table if not exists session (
+create table session (
     session_id text primary key,
     assignment_id text not null references assignment(assignment_id) on delete cascade,
     learner_id text not null references user_account(user_id) on delete cascade,
@@ -64,10 +64,10 @@ create table if not exists session (
     completed_at timestamptz null
 );
 
-create index if not exists session_assignment_idx on session (assignment_id, scheduled_date);
-create index if not exists session_learner_idx on session (learner_id, scheduled_date);
+create index session_assignment_idx on session (assignment_id, scheduled_date);
+create index session_learner_idx on session (learner_id, scheduled_date);
 
-create table if not exists session_material (
+create table session_material (
     session_material_id text primary key,
     session_id text not null references session(session_id) on delete cascade,
     title text not null,
@@ -76,7 +76,7 @@ create table if not exists session_material (
     status text not null
 );
 
-create table if not exists evidence (
+create table evidence (
     evidence_id text primary key,
     session_id text not null references session(session_id) on delete cascade,
     learner_id text not null references user_account(user_id) on delete cascade,
@@ -87,10 +87,10 @@ create table if not exists evidence (
     recorded_at timestamptz not null
 );
 
-create index if not exists evidence_learner_idx on evidence (learner_id, recorded_at desc);
-create index if not exists evidence_session_idx on evidence (session_id, recorded_at desc);
+create index evidence_learner_idx on evidence (learner_id, recorded_at desc);
+create index evidence_session_idx on evidence (session_id, recorded_at desc);
 
-create table if not exists evidence_artifact (
+create table evidence_artifact (
     evidence_artifact_id text primary key,
     evidence_id text not null references evidence(evidence_id) on delete cascade,
     learner_id text not null references user_account(user_id) on delete cascade,
@@ -99,7 +99,7 @@ create table if not exists evidence_artifact (
     summary text not null
 );
 
-create table if not exists learner_skill_progress (
+create table learner_skill_progress (
     learner_id text not null references user_account(user_id) on delete cascade,
     skill_id text not null,
     status text not null,
@@ -110,7 +110,7 @@ create table if not exists learner_skill_progress (
     primary key (learner_id, skill_id)
 );
 
-create table if not exists review_item (
+create table review_item (
     review_item_id text primary key,
     learner_id text not null references user_account(user_id) on delete cascade,
     skill_id text not null,
@@ -120,5 +120,5 @@ create table if not exists review_item (
     created_at timestamptz not null
 );
 
-create index if not exists review_item_learner_idx on review_item (learner_id, due_date);
+create index review_item_learner_idx on review_item (learner_id, due_date);
 

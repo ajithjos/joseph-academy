@@ -24,14 +24,52 @@ else
 fi
 
 export CORNERSTONE_REPO_ROOT="$SCRIPT_DIR"
-export CORNERSTONE_CONTENT_ROOT="${CORNERSTONE_CONTENT_ROOT:-$SCRIPT_DIR/content}"
-export CORNERSTONE_BOOTSTRAP_FILE="${CORNERSTONE_BOOTSTRAP_FILE:-$SCRIPT_DIR/deploy/config/runtime_defaults/identity_bootstrap.yaml}"
-export CORNERSTONE_ARTIFACTS_ROOT="${CORNERSTONE_ARTIFACTS_ROOT:-$SCRIPT_DIR/scratchpad/dev/local/data/01/artifacts}"
-export CORNERSTONE_EXPORTS_ROOT="${CORNERSTONE_EXPORTS_ROOT:-$SCRIPT_DIR/scratchpad/dev/local/data/01/exports}"
-export CORNERSTONE_DATABASE_URL="${CORNERSTONE_DATABASE_URL:-postgres://cornerstone_app:cornerstone_app_dev_password@127.0.0.1:55433/cornerstone}"
-export CORNERSTONE_API_URL="${CORNERSTONE_API_URL:-http://127.0.0.1:8788}"
-export CORNERSTONE_FRONTEND_URL="${CORNERSTONE_FRONTEND_URL:-http://127.0.0.1:8080}"
-export CORNERSTONE_DOCS_URL="${CORNERSTONE_DOCS_URL:-http://127.0.0.1:3001}"
+
+source_env_file() {
+	file="$1"
+	[ -f "$file" ] || return 0
+	set -a
+	. "$file"
+	set +a
+}
+
+resolve_tokens() {
+	value="$1"
+	value="${value//__REPO_ROOT__/$CORNERSTONE_REPO_ROOT}"
+	value="${value//__HOME__/$HOME}"
+	value="${value//__CORNERSTONE_DEV_LOCAL_ROOT__/$CORNERSTONE_DEV_LOCAL_ROOT}"
+	value="${value//__CORNERSTONE_DEV_DATA_REVISION__/$CORNERSTONE_DEV_DATA_REVISION}"
+	printf '%s' "$value"
+}
+
+source_env_file "$SCRIPT_DIR/deploy/dev/.env.dev"
+source_env_file "$SCRIPT_DIR/deploy/dev/.env"
+
+: "${CORNERSTONE_DEV_LOCAL_ROOT:?CORNERSTONE_DEV_LOCAL_ROOT must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_DEV_DATA_REVISION:?CORNERSTONE_DEV_DATA_REVISION must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_POSTGRES_PORT:?CORNERSTONE_POSTGRES_PORT must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_CONTROL_PLANE_PORT:?CORNERSTONE_CONTROL_PLANE_PORT must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_FRONTEND_PORT:?CORNERSTONE_FRONTEND_PORT must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_DOCS_SITE_PORT:?CORNERSTONE_DOCS_SITE_PORT must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_POSTGRES_DB:?CORNERSTONE_POSTGRES_DB must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_POSTGRES_APP_USER:?CORNERSTONE_POSTGRES_APP_USER must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_POSTGRES_APP_PASSWORD:?CORNERSTONE_POSTGRES_APP_PASSWORD must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_ARTIFACTS_HOST:?CORNERSTONE_ARTIFACTS_HOST must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+: "${CORNERSTONE_EXPORTS_HOST:?CORNERSTONE_EXPORTS_HOST must be set in deploy/dev/.env.dev or deploy/dev/.env}"
+
+export CORNERSTONE_DEV_LOCAL_ROOT="$(resolve_tokens "$CORNERSTONE_DEV_LOCAL_ROOT")"
+export CORNERSTONE_ARTIFACTS_ROOT="$(resolve_tokens "$CORNERSTONE_ARTIFACTS_HOST")"
+export CORNERSTONE_EXPORTS_ROOT="$(resolve_tokens "$CORNERSTONE_EXPORTS_HOST")"
+export CORNERSTONE_CONTENT_ROOT="$SCRIPT_DIR/content"
+export CORNERSTONE_BOOTSTRAP_FILE="$SCRIPT_DIR/deploy/config/runtime_defaults/identity_bootstrap.yaml"
+export CORNERSTONE_BIND_ADDRESS="0.0.0.0:$CORNERSTONE_CONTROL_PLANE_PORT"
+export CORNERSTONE_DATABASE_URL="postgres://$CORNERSTONE_POSTGRES_APP_USER:$CORNERSTONE_POSTGRES_APP_PASSWORD@127.0.0.1:$CORNERSTONE_POSTGRES_PORT/$CORNERSTONE_POSTGRES_DB"
+export CORNERSTONE_AUTO_BOOTSTRAP="true"
+export CORNERSTONE_FRONTEND_PUBLIC_URL="http://127.0.0.1:$CORNERSTONE_FRONTEND_PORT"
+export CORNERSTONE_CONTENT_PUBLIC_URL="http://127.0.0.1:$CORNERSTONE_FRONTEND_PORT/content/"
+export CORNERSTONE_API_URL="http://127.0.0.1:$CORNERSTONE_CONTROL_PLANE_PORT"
+export CORNERSTONE_FRONTEND_URL="$CORNERSTONE_FRONTEND_PUBLIC_URL"
+export CORNERSTONE_DOCS_URL="http://127.0.0.1:$CORNERSTONE_DOCS_SITE_PORT"
 
 mkdir -p "$CORNERSTONE_ARTIFACTS_ROOT" "$CORNERSTONE_EXPORTS_ROOT"
 

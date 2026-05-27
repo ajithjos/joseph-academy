@@ -6,6 +6,7 @@ This runbook is for making curriculum changes and validating the local Cornersto
 
 - [Learning product definition](./architecture/learning-product-definition.md)
 - [Simple content model](./authoring/simple-content-model.md)
+- [LLM authoring workflow](./authoring/llm-authoring-workflow.md)
 - [Subject-Area brief template](./authoring/subject-area-brief-template.md)
 - [Curriculum authoring brief](./authoring/track-authoring-brief.md)
 - [AI content generation contract](./authoring/ai-content-generation-contract.md)
@@ -23,6 +24,7 @@ This runbook is for making curriculum changes and validating the local Cornersto
 
 ## Standard Authoring Flow
 
+0. Attach the `llm/` background files and any relevant curriculum files if you are using an LLM, then ask the current request plainly.
 1. Define the subject and area.
 2. Draft the skills.
 3. Group those skills into stages.

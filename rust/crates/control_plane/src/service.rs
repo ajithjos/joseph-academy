@@ -61,10 +61,10 @@ pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) ->
     Ok(state)
 }
 
-pub async fn migrate_database(config: &AppConfig) -> anyhow::Result<()> {
+pub async fn migrate_database(database_url: &str) -> anyhow::Result<()> {
     let pool = PgPoolOptions::new()
         .max_connections(4)
-        .connect(&config.database_url)
+        .connect(database_url)
         .await
         .context("failed to connect to Postgres")?;
     MIGRATOR.run(&pool).await.context("failed to run database migrations")

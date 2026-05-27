@@ -36,19 +36,22 @@ pub async fn run_cli() -> anyhow::Result<()> {
         .init();
 
     let cli = Cli::parse();
-    let config = AppConfig::from_env()?;
 
     match cli.command {
-        Command::Server => run_server(config).await,
-        Command::Migrate => service::migrate_database(&config).await,
+        Command::Server => run_server(AppConfig::from_env()?).await,
+        Command::Migrate => {
+            let database_url = config::database_url_from_env()?;
+            service::migrate_database(&database_url).await
+        }
         Command::BootstrapApply => {
-            let state = service::initialize_state(config, false).await?;
+            let state = service::initialize_state(AppConfig::from_env()?, false).await?;
             let result = service::apply_bootstrap(&state).await?;
             println!("{}", serde_json::to_string_pretty(&result)?);
             Ok(())
         }
         Command::CatalogValidate => {
-            let (bundle, report) = catalog::load_catalog_bundle(&config.content_root)?;
+            let content_root = config::content_root_from_env()?;
+            let (bundle, report) = catalog::load_catalog_bundle(&content_root)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             println!(
                 "Loaded {} subjects, {} areas, {} skills, {} stages, {} playlists, {} materials",
