@@ -56,7 +56,7 @@ rust-library-validate:
 	CORNERSTONE_CONTENT_ROOT="$(CONTENT_ROOT)" cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- library-validate
 
 content-validate: rust-library-validate
-	$(PYTHON_RUN) --with pytest python -m pytest tests/test_render_library_docs.py
+	$(PYTHON_RUN) --with pytest python -m pytest tests/test_pathway_library.py tests/test_sync_docs_site_docs.py
 
 frontend-pub-get:
 	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter pub get'
@@ -76,13 +76,13 @@ docs-site-install:
 	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install'
 
 docs-site-prepare:
-	$(PYTHON_RUN) python scripts/render_library_docs.py developer
+	$(PYTHON_RUN) python scripts/sync_docs_site_docs.py
 
 docs-site-build:
-	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run build:production'
+	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run build'
 
 docs-site-dev:
-	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run start:developer'
+	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run start'
 
 control-plane-db-up:
 	bash deploy/dev/setup.sh --postgres-only

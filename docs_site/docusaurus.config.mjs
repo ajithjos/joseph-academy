@@ -1,5 +1,5 @@
-const siteUrl = process.env.CORNERSTONE_CONTENT_SITE_URL || "http://127.0.0.1:8080";
-const baseUrl = process.env.CORNERSTONE_CONTENT_SITE_BASE_URL || "/content/";
+const siteUrl = process.env.CORNERSTONE_DOCS_SITE_URL || "http://127.0.0.1:3001";
+const baseUrl = process.env.CORNERSTONE_DOCS_SITE_BASE_URL || "/";
 const frontendUrl = `${
   process.env.CORNERSTONE_FRONTEND_SITE_URL || siteUrl
 }`.replace(/\/?$/, "/");
@@ -25,8 +25,8 @@ const brandLockupHtml = `
 `;
 
 const config = {
-  title: "Cornerstone Content",
-  tagline: "Browse repo-owned pathways, playlists, and teaching materials",
+  title: "Cornerstone Developer Docs",
+  tagline: "Developer, operator, and authoring references for the Cornerstone repo",
   url: siteUrl,
   baseUrl,
   organizationName: "cornerstone",
@@ -65,13 +65,10 @@ const config = {
     navbar: {
       items: [
         { type: "html", value: brandLockupHtml, position: "left" },
-        { to: "/", label: "Content", position: "left" },
-        { to: "/generated/library-overview", label: "Overview", position: "left" },
-        {
-          to: "/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway",
-          label: "Pathways",
-          position: "left",
-        },
+        { to: "/", label: "Docs", position: "left" },
+        { to: "/developer/", label: "Overview", position: "left" },
+        { to: "/developer/authoring/", label: "Authoring", position: "left" },
+        { to: "/developer/deploy/", label: "Deploy", position: "left" },
         { href: frontendUrl, label: "Back to Site", position: "right", className: "navbar__back-to-site" }
       ]
     },
@@ -81,11 +78,8 @@ const config = {
         {
           title: "Sources",
           items: [
-            { label: "Library Overview", to: "/generated/library-overview" },
-            {
-              label: "Household Arithmetic Pathway",
-              to: "/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway",
-            }
+            { label: "Developer Overview", to: "/developer/" },
+            { label: "Operator Playbook", to: "/developer/operator-playbook" }
           ]
         }
       ],

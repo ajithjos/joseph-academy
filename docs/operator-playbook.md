@@ -40,14 +40,14 @@ Use these from the repo root.
 uv run --with pytest python -m pytest tests/test_pathway_library.py
 make rust-library-validate
 make content-validate
-uv run python scripts/render_library_docs.py developer
-uv run --with pytest python -m pytest tests/test_render_library_docs.py
+uv run python scripts/sync_docs_site_docs.py
+uv run --with pytest python -m pytest tests/test_sync_docs_site_docs.py
 cargo test -p catalog --manifest-path rust/Cargo.toml
 cargo check -p control_plane --manifest-path rust/Cargo.toml
 cd fe/flutter/apps/cornerstone && flutter analyze
 ```
 
-Use the pathway-library test while shaping cleaned pathway content. Use `make rust-library-validate` and `make content-validate` for the broader runtime and docs-site validation pass.
+Use the pathway-library test while shaping cleaned pathway content. Use `make rust-library-validate` and `make content-validate` for the broader runtime and docs-sync validation pass.
 
 ## Local Stack Commands
 

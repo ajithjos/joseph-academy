@@ -64,6 +64,22 @@ class CornerstoneApiClient {
     return LibraryPayload.fromJson(_decode(response));
   }
 
+  Future<LibraryDocumentsPayload> fetchLibraryDocuments() async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/library/documents'),
+    );
+    return LibraryDocumentsPayload.fromJson(_decode(response));
+  }
+
+  Future<LibraryDocumentData> fetchLibraryDocument(String routePath) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/library/document').replace(
+        queryParameters: {'route_path': routePath},
+      ),
+    );
+    return LibraryDocumentPayload.fromJson(_decode(response)).document;
+  }
+
   Future<LearnerDetailPayload> fetchLearnerDetail(String learnerId) async {
     final response = await _client.get(
       Uri.parse('$baseUrl/api/v1/learners/$learnerId'),

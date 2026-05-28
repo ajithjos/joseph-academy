@@ -1,19 +1,12 @@
 {
-  "name": "cornerstone-docs-site",
+  "name": "cornerstone-developer-docs",
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "prepare": "npm run prepare:production",
-    "prepare:production": "uv run python ../scripts/render_library_docs.py production",
-    "prepare:developer": "uv run python ../scripts/render_library_docs.py developer",
-    "start": "npm run start:developer",
-    "start:developer": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3001 CORNERSTONE_CONTENT_SITE_BASE_URL=/ npm run prepare:developer && docusaurus start --host 0.0.0.0 --port 3001",
-    "start:production": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3002 CORNERSTONE_CONTENT_SITE_BASE_URL=/content/ npm run prepare:production && docusaurus start --host 0.0.0.0 --port 3002",
-    "build": "npm run build:production",
-    "build:production": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:8080 CORNERSTONE_CONTENT_SITE_BASE_URL=/content/ npm run prepare:production && docusaurus build --out-dir build/production",
-    "build:developer": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3004 CORNERSTONE_CONTENT_SITE_BASE_URL=/ npm run prepare:developer && docusaurus build --out-dir build/developer",
-    "serve:production": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3003 CORNERSTONE_CONTENT_SITE_BASE_URL=/content/ docusaurus serve build/production --host 0.0.0.0 --port 3003",
-    "serve:developer": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3004 CORNERSTONE_CONTENT_SITE_BASE_URL=/ docusaurus serve build/developer --host 0.0.0.0 --port 3004"
+    "prepare": "uv run python ../scripts/sync_docs_site_docs.py",
+    "start": "CORNERSTONE_DOCS_SITE_URL=http://127.0.0.1:3001 CORNERSTONE_DOCS_SITE_BASE_URL=/ npm run prepare && docusaurus start --host 0.0.0.0 --port 3001",
+    "build": "CORNERSTONE_DOCS_SITE_URL=http://127.0.0.1:3004 CORNERSTONE_DOCS_SITE_BASE_URL=/ npm run prepare && docusaurus build --out-dir build/developer",
+    "serve": "CORNERSTONE_DOCS_SITE_URL=http://127.0.0.1:3004 CORNERSTONE_DOCS_SITE_BASE_URL=/ docusaurus serve build/developer --host 0.0.0.0 --port 3004"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.1",

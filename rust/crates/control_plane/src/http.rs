@@ -13,14 +13,15 @@ use tower_http::trace::TraceLayer;
 use catalog::LibraryBundle;
 
 use crate::domain::{
-    AssignmentRequest, LibraryReloadResponse, OperationStatusResponse, RecordSessionRequest,
-    ReviewRebuildRequest, ViewerLoginRequest, ViewerSessionResponse,
+    AssignmentRequest, LibraryDocumentResponse, LibraryDocumentsResponse,
+    LibraryReloadResponse, OperationStatusResponse, RecordSessionRequest, ReviewRebuildRequest,
+    ViewerLoginRequest, ViewerSessionResponse,
 };
 use crate::service::{
     AppState, apply_bootstrap, create_assignment, fetch_dashboard, fetch_learner_detail,
-    fetch_library,
-    fetch_viewer_session, list_learners, login_viewer_session, rebuild_review_items,
-    record_session, reload_library,
+    fetch_library, fetch_library_document, fetch_viewer_session, list_learners,
+    list_library_documents, login_viewer_session, rebuild_review_items, record_session,
+    reload_library,
 };
 
 #[derive(Debug)]
@@ -46,15 +47,18 @@ struct ServiceIndexResponse {
     health_url: String,
     api_base_url: String,
     frontend_url: String,
-    content_url: String,
     frontend_preview_mode: String,
-    content_preview_mode: String,
-    content_dev_command: String,
+    docs_dev_command: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
 struct ViewerSessionQuery {
     username: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct LibraryDocumentQuery {
+    route_path: String,
 }
 
 impl IntoResponse for ApiError {
@@ -79,6 +83,8 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/health", get(health))
         .route("/api/v1/library", get(get_library))
         .route("/api/v1/library/reload", post(post_library_reload))
+        .route("/api/v1/library/documents", get(get_library_documents))
+        .route("/api/v1/library/document", get(get_library_document))
         .route("/api/v1/bootstrap/apply", post(post_bootstrap_apply))
         .route(
             "/api/v1/session",
@@ -101,14 +107,12 @@ async fn index(State(state): State<Arc<AppState>>) -> Json<ServiceIndexResponse>
     Json(ServiceIndexResponse {
         status: "ok".to_string(),
         service: "cornerstone control plane".to_string(),
-        message: "This port serves the control-plane API and service index. In local compose, the Flutter frontend serves the generated content site at /content/.".to_string(),
+        message: "This port serves the control-plane API and service index for the Flutter app. Developer docs remain available through the standalone docs-site workflow.".to_string(),
         health_url: "/health".to_string(),
         api_base_url: "/api/v1".to_string(),
         frontend_url: state.config.frontend_public_url.clone(),
-        content_url: state.config.content_public_url.clone(),
         frontend_preview_mode: "static-build".to_string(),
-        content_preview_mode: "embedded-static-build".to_string(),
-        content_dev_command: "make docs-site-dev".to_string(),
+        docs_dev_command: "make docs-site-dev".to_string(),
     })
 }
 
@@ -126,6 +130,25 @@ async fn get_library(State(state): State<Arc<AppState>>) -> Result<Json<LibraryP
 
 async fn post_library_reload(State(state): State<Arc<AppState>>) -> Result<Json<LibraryReloadResponse>, ApiError> {
     Ok(Json(reload_library(&state).await?))
+}
+
+async fn get_library_documents(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<LibraryDocumentsResponse>, ApiError> {
+    Ok(Json(LibraryDocumentsResponse {
+        status: "ok".to_string(),
+        documents: list_library_documents(&state).await,
+    }))
+}
+
+async fn get_library_document(
+    Query(query): Query<LibraryDocumentQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<LibraryDocumentResponse>, ApiError> {
+    Ok(Json(LibraryDocumentResponse {
+        status: "ok".to_string(),
+        document: fetch_library_document(&state, &query.route_path).await?,
+    }))
 }
 
 async fn post_bootstrap_apply(

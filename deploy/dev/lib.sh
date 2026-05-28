@@ -66,7 +66,6 @@ deploy_dev_load_config() {
 	CORNERSTONE_EXPORTS_HOST="$(deploy_resolve_tokens "${CORNERSTONE_EXPORTS_HOST}")"
 
 	CORNERSTONE_FRONTEND_BUILD_HOST="$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone/build/web"
-	CORNERSTONE_DOCS_BUILD_HOST="$DEPLOY_REPO_ROOT/docs_site/build/production"
 	CORNERSTONE_DATABASE_URL="postgres://${CORNERSTONE_POSTGRES_APP_USER}:${CORNERSTONE_POSTGRES_APP_PASSWORD}@postgres:5432/${CORNERSTONE_POSTGRES_DB}"
 	CORNERSTONE_HOST_DATABASE_URL="postgres://${CORNERSTONE_POSTGRES_APP_USER}:${CORNERSTONE_POSTGRES_APP_PASSWORD}@127.0.0.1:${CORNERSTONE_POSTGRES_PORT}/${CORNERSTONE_POSTGRES_DB}"
 
@@ -85,7 +84,6 @@ deploy_dev_load_config() {
 	export CORNERSTONE_ARTIFACTS_HOST
 	export CORNERSTONE_EXPORTS_HOST
 	export CORNERSTONE_FRONTEND_BUILD_HOST
-	export CORNERSTONE_DOCS_BUILD_HOST
 	export CORNERSTONE_DATABASE_URL
 	export CORNERSTONE_POSTGRES_IMAGE
 	export CORNERSTONE_RUST_IMAGE
@@ -103,30 +101,10 @@ deploy_dev_ensure_dirs() {
 
 deploy_dev_prepare_static_artifacts() {
 	local flutter_build_dir="$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone/build/web"
-	local embedded_content_dir="$flutter_build_dir/content"
-
-	echo "[deploy/dev] Rendering library docs..."
-	(
-		cd "$DEPLOY_REPO_ROOT" || exit 1
-		uv run python scripts/render_library_docs.py
-	)
-
-	echo "[deploy/dev] Building Docusaurus site..."
-	(
-		cd "$DEPLOY_REPO_ROOT/docs_site" || exit 1
-		npm install
-		npm run build:production
-	)
-
 	echo "[deploy/dev] Building Flutter web app..."
 	(
 		cd "$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone" || exit 1
 		flutter pub get
 		flutter build web --release --pwa-strategy=none
 	)
-
-	echo "[deploy/dev] Embedding content site under the frontend build..."
-	rm -rf "$embedded_content_dir"
-	mkdir -p "$embedded_content_dir"
-	cp -R "$DEPLOY_REPO_ROOT/docs_site/build/production/." "$embedded_content_dir/"
 }

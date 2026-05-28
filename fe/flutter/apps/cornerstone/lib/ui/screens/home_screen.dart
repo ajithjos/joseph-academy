@@ -34,14 +34,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   ViewerSessionPayload? _viewerSession;
   DashboardPayload? _dashboard;
   LibraryPayload? _library;
+  LibraryDocumentsPayload? _libraryDocuments;
+  LibraryDocumentData? _selectedLibraryDocument;
   LearnerDetailPayload? _learnerDetail;
   String? _selectedLearnerId;
+  String? _selectedLibraryRoutePath;
   _ShellDestination _selectedDestination = _ShellDestination.owner;
   bool _shellNavExpanded = true;
   bool _sessionLoading = true;
   bool _loading = true;
   bool _authBusy = false;
   bool _busy = false;
+  bool _libraryDocumentBusy = false;
   String? _sessionErrorMessage;
   String? _errorMessage;
 
@@ -168,11 +172,15 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           _authBusy = false;
           _dashboard = null;
           _library = null;
+          _libraryDocuments = null;
+          _selectedLibraryDocument = null;
           _learnerDetail = null;
           _selectedLearnerId = null;
+          _selectedLibraryRoutePath = null;
           _selectedDestination = _ShellDestination.owner;
           _loading = false;
           _busy = false;
+          _libraryDocumentBusy = false;
           _errorMessage = null;
         });
         return;
@@ -186,13 +194,17 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _sessionErrorMessage = null;
         _dashboard = null;
         _library = null;
+        _libraryDocuments = null;
+        _selectedLibraryDocument = null;
         _learnerDetail = null;
         _selectedLearnerId = null;
+        _selectedLibraryRoutePath = null;
         _selectedDestination = _defaultDestinationForViewer(
           viewerSession.currentUser!,
         );
         _loading = true;
         _busy = false;
+        _libraryDocumentBusy = false;
         _errorMessage = null;
       });
       await _loadAll(preserveSelection: false);
@@ -240,11 +252,15 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _authBusy = false;
         _dashboard = null;
         _library = null;
+        _libraryDocuments = null;
+        _selectedLibraryDocument = null;
         _learnerDetail = null;
         _selectedLearnerId = null;
+        _selectedLibraryRoutePath = null;
         _selectedDestination = _defaultDestinationForViewer(currentUser);
         _loading = true;
         _busy = false;
+        _libraryDocumentBusy = false;
         _errorMessage = null;
       });
       await _loadAll(preserveSelection: false);
@@ -289,22 +305,38 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     try {
       final dashboard = await _apiClient.fetchDashboard();
       final library = await _apiClient.fetchLibrary();
+      final libraryDocuments = await _apiClient.fetchLibraryDocuments();
       final nextLearnerId = _nextLearnerIdForViewer(
         dashboard,
         preserveSelection: preserveSelection,
       );
+      final nextLibraryRoutePath = _nextLibraryRoutePath(
+        library: library,
+        documents: libraryDocuments,
+        preserveSelection: preserveSelection,
+      );
       LearnerDetailPayload? learnerDetail;
+      LibraryDocumentData? selectedLibraryDocument;
       if (nextLearnerId != null) {
         learnerDetail = await _apiClient.fetchLearnerDetail(nextLearnerId);
+      }
+      if (nextLibraryRoutePath != null) {
+        selectedLibraryDocument = await _apiClient.fetchLibraryDocument(
+          nextLibraryRoutePath,
+        );
       }
       if (!mounted) return;
       setState(() {
         _dashboard = dashboard;
         _library = library;
+        _libraryDocuments = libraryDocuments;
+        _selectedLibraryRoutePath = nextLibraryRoutePath;
+        _selectedLibraryDocument = selectedLibraryDocument;
         _selectedLearnerId = nextLearnerId;
         _learnerDetail = learnerDetail;
         _loading = false;
         _busy = false;
+        _libraryDocumentBusy = false;
       });
     } catch (error) {
       if (!mounted) return;
@@ -313,6 +345,69 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _busy = false;
         _errorMessage = error.toString();
       });
+    }
+  }
+
+  String? _nextLibraryRoutePath({
+    required LibraryPayload library,
+    required LibraryDocumentsPayload documents,
+    bool preserveSelection = true,
+  }) {
+    final availableRoutes = documents.documents
+        .map((document) => document.routePath)
+        .toSet();
+    if (
+        preserveSelection &&
+        _selectedLibraryRoutePath != null &&
+        availableRoutes.contains(_selectedLibraryRoutePath)) {
+      return _selectedLibraryRoutePath;
+    }
+
+    if (library.bundle.pathways.isNotEmpty) {
+      final preferredSourcePath = library.bundle.pathways.first.sourcePath;
+      for (final document in documents.documents) {
+        if (document.sourcePath == preferredSourcePath) {
+          return document.routePath;
+        }
+      }
+    }
+
+    return documents.documents.isNotEmpty ? documents.documents.first.routePath : null;
+  }
+
+  Future<void> _selectLibraryDocument(String routePath) async {
+    final normalizedRoutePath = routePath.trim().replaceAll(RegExp(r'^/+|/+$'), '');
+    if (normalizedRoutePath.isEmpty) {
+      return;
+    }
+    if (
+        normalizedRoutePath == _selectedLibraryRoutePath &&
+        _selectedLibraryDocument != null) {
+      _setDestination(_ShellDestination.library);
+      return;
+    }
+
+    setState(() {
+      _selectedDestination = _ShellDestination.library;
+      _selectedLibraryRoutePath = normalizedRoutePath;
+      _libraryDocumentBusy = true;
+    });
+
+    try {
+      final document = await _apiClient.fetchLibraryDocument(normalizedRoutePath);
+      if (!mounted) return;
+      setState(() {
+        _selectedLibraryDocument = document;
+        _libraryDocumentBusy = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _libraryDocumentBusy = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to load that document: $error')),
+      );
     }
   }
 
@@ -434,7 +529,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return switch (destination) {
       _ShellDestination.owner => 1320,
       _ShellDestination.learner => 1160,
-      _ShellDestination.library => 1100,
+      _ShellDestination.library => 1480,
       _ShellDestination.account => 1040,
     };
   }
@@ -459,23 +554,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-  Future<void> _openContentSite({bool sameTab = false}) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final ok = await launchUrl(
-      Uri.base.resolve('/content/'),
-      webOnlyWindowName: sameTab ? '_self' : '_blank',
-    );
-    if (!ok && mounted) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Unable to open the content site.')),
-      );
-    }
-  }
-
   List<Widget> _buildProfileMenuChildren(BuildContext context) {
     return [
       MenuItemButton(leadingIcon: const Icon(Icons.person_rounded), onPressed: () => _setDestination(_ShellDestination.account), child: const Text('My Account')),
-      MenuItemButton(leadingIcon: const Icon(Icons.menu_book_rounded), onPressed: () => _openContentSite(), child: const Text('Open content site')),
+      MenuItemButton(leadingIcon: const Icon(Icons.auto_stories_rounded), onPressed: () => _setDestination(_ShellDestination.library), child: const Text('Open library')),
       MenuItemButton(leadingIcon: const Icon(Icons.logout_rounded), onPressed: _authBusy ? null : () => _logoutViewer(), child: const Text('Log out')),
       const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Divider(height: 18)),
       SizedBox(width: 284, child: _AppearancePanel(controller: widget.themeController)),
@@ -840,15 +922,6 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   _setDestination(d);
                 },
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.menu_book_rounded),
-              title: const Text('Open content site'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openContentSite(sameTab: true);
-              },
             ),
             ListTile(
               leading: const Icon(Icons.logout_rounded),
@@ -1813,176 +1886,251 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildLibraryView(BuildContext context, LibraryPayload library) {
     final theme = Theme.of(context);
+    final documents = _libraryDocuments;
+    final activeDocument = _selectedLibraryDocument;
     final areaById = {
       for (final area in library.bundle.areas) area.areaId: area,
     };
     final playlistsById = {
       for (final playlist in library.bundle.playlists) playlist.playlistId: playlist,
     };
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-      children: [
-        _PageHeroCard(
-          eyebrow: 'Library',
-          title: 'Learning Library',
-          description: 'Browse the authored pathways first, then drill into the playlists and materials that support each route.',
-          chips: [
-            _StatChip(label: 'Pathways', value: '${library.report.pathwayCount}', icon: Icons.route_rounded),
-            _StatChip(label: 'Playlists', value: '${library.report.playlistCount}', icon: Icons.assignment_rounded),
-            _StatChip(label: 'Materials', value: '${library.report.materialCount}', icon: Icons.menu_book_rounded),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Pathways', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Start with the route itself. Each pathway card shows the ordered playlists and the suggested household entry points.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              if (library.bundle.pathways.isEmpty)
-                Text(
-                  'No pathways are available yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                )
-              else
-                ...library.bundle.pathways.map((pathway) {
-                  final areaTitle = areaById[pathway.areaId]?.title ?? pathway.areaId;
-                  final orderedPlaylists = pathway.playlistIds
-                      .map((playlistId) => playlistsById[playlistId])
-                      .whereType<PlaylistInfo>()
-                      .toList(growable: false);
-                  final entryPoints = pathway.entryPoints.entries.toList(growable: false)
-                    ..sort((left, right) {
-                      final leftAge = int.tryParse(left.key.replaceFirst('age_', '')) ?? 0;
-                      final rightAge = int.tryParse(right.key.replaceFirst('age_', '')) ?? 0;
-                      return leftAge.compareTo(rightAge);
-                    });
+    final routeBySourcePath = {
+      for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
+        document.sourcePath: document.routePath,
+    };
+    final documentsByKey = {
+      for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
+        '${document.kind}:${document.documentId}': document,
+    };
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+    Widget buildNavigatorPanel() {
+      return Column(
+        children: [
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pathways', style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 6),
+                Text(
+                  'Open the route document first, then jump to the supporting playlists and materials as needed.',
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                if (library.bundle.pathways.isEmpty)
+                  Text(
+                    'No pathways are available yet.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  )
+                else
+                  ...library.bundle.pathways.map((pathway) {
+                    final areaTitle = areaById[pathway.areaId]?.title ?? pathway.areaId;
+                    final orderedPlaylists = pathway.playlistIds
+                        .map((playlistId) => playlistsById[playlistId])
+                        .whereType<PlaylistInfo>()
+                        .toList(growable: false);
+                    final entryPoints = pathway.entryPoints.entries.toList(growable: false)
+                      ..sort((left, right) {
+                        final leftAge = int.tryParse(left.key.replaceFirst('age_', '')) ?? 0;
+                        final rightAge = int.tryParse(right.key.replaceFirst('age_', '')) ?? 0;
+                        return leftAge.compareTo(rightAge);
+                      });
+                    final pathwayRoutePath = routeBySourcePath[pathway.sourcePath];
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(pathway.title, style: theme.textTheme.titleLarge),
-                          const SizedBox(height: 8),
-                          Text(
-                            pathway.description,
-                            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                          const SizedBox(height: 14),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _PillBadge(
-                                text: areaTitle,
-                                color: theme.colorScheme.secondaryContainer,
-                                textColor: theme.colorScheme.onSecondaryContainer,
-                              ),
-                              _PillBadge(
-                                text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                textColor: theme.colorScheme.primary,
-                              ),
-                              _PillBadge(
-                                text: '${pathway.stageIds.length} stages',
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                textColor: theme.colorScheme.primary,
-                              ),
-                              _PillBadge(
-                                text: '${orderedPlaylists.length} playlists',
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                textColor: theme.colorScheme.primary,
-                              ),
-                            ],
-                          ),
-                          if (entryPoints.isNotEmpty) ...[
-                            const SizedBox(height: 18),
-                            Text('Entry guidance', style: theme.textTheme.titleSmall),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(pathway.title, style: theme.textTheme.titleLarge),
                             const SizedBox(height: 8),
+                            Text(
+                              pathway.description,
+                              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 14),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: entryPoints.map((entry) {
-                                final age = entry.key.replaceFirst('age_', '');
-                                final playlistTitle = playlistsById[entry.value]?.title ?? entry.value;
-                                return _PillBadge(
-                                  text: 'Age $age: $playlistTitle',
-                                  color: theme.colorScheme.tertiaryContainer,
-                                  textColor: theme.colorScheme.onTertiaryContainer,
-                                );
-                              }).toList(growable: false),
+                              children: [
+                                _PillBadge(
+                                  text: areaTitle,
+                                  color: theme.colorScheme.secondaryContainer,
+                                  textColor: theme.colorScheme.onSecondaryContainer,
+                                ),
+                                _PillBadge(
+                                  text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                  textColor: theme.colorScheme.primary,
+                                ),
+                                _PillBadge(
+                                  text: '${pathway.stageIds.length} stages',
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                  textColor: theme.colorScheme.primary,
+                                ),
+                                _PillBadge(
+                                  text: '${orderedPlaylists.length} playlists',
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                  textColor: theme.colorScheme.primary,
+                                ),
+                              ],
                             ),
-                          ],
-                          if (orderedPlaylists.isNotEmpty) ...[
-                            const SizedBox(height: 18),
-                            Text('Ordered playlists', style: theme.textTheme.titleSmall),
-                            const SizedBox(height: 10),
-                            ...orderedPlaylists.map(
-                              (playlist) => ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                  foregroundColor: theme.colorScheme.primary,
-                                  child: Text(
-                                    '${orderedPlaylists.indexOf(playlist) + 1}',
-                                    style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
-                                  ),
-                                ),
-                                title: Text(playlist.title),
-                                subtitle: Text(
-                                  'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
-                                  style: theme.textTheme.bodySmall,
-                                ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: pathwayRoutePath == null
+                                  ? null
+                                  : () => _selectLibraryDocument(pathwayRoutePath),
+                              icon: const Icon(Icons.description_rounded, size: 18),
+                              label: const Text('Open route document'),
+                            ),
+                            if (entryPoints.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              Text('Entry guidance', style: theme.textTheme.titleSmall),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: entryPoints.map((entry) {
+                                  final age = entry.key.replaceFirst('age_', '');
+                                  final playlistTitle = playlistsById[entry.value]?.title ?? entry.value;
+                                  return _PillBadge(
+                                    text: 'Age $age: $playlistTitle',
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    textColor: theme.colorScheme.onTertiaryContainer,
+                                  );
+                                }).toList(growable: false),
                               ),
-                            ),
+                            ],
+                            if (orderedPlaylists.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              Text('Ordered playlists', style: theme.textTheme.titleSmall),
+                              const SizedBox(height: 10),
+                              ...orderedPlaylists.asMap().entries.map((entry) {
+                                final playlist = entry.value;
+                                final playlistRoute = documentsByKey['playlist:${playlist.playlistId}']?.routePath;
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                    foregroundColor: theme.colorScheme.primary,
+                                    child: Text(
+                                      '${entry.key + 1}',
+                                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                  title: Text(playlist.title),
+                                  subtitle: Text(
+                                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                  trailing: TextButton(
+                                    onPressed: playlistRoute == null
+                                        ? null
+                                        : () => _selectLibraryDocument(playlistRoute),
+                                    child: const Text('Open'),
+                                  ),
+                                );
+                              }),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Supporting materials', style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 6),
+                Text(
+                  'Open the exact worksheet, teaching note, or check without leaving the app.',
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 16),
+                ...library.bundle.materials.map((item) {
+                  final materialRoute = documentsByKey['material:${item.id}']?.routePath;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(item.title),
+                    subtitle: Text(
+                      '${_humanizeLabel(item.kind)} · ${item.estimatedMinutes} min · age ${item.recommendedAge}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    trailing: TextButton(
+                      onPressed: materialRoute == null
+                          ? null
+                          : () => _selectLibraryDocument(materialRoute),
+                      child: const Text('Open'),
                     ),
                   );
                 }),
-            ],
+              ],
+            ),
           ),
+        ],
+      );
+    }
+
+    Widget buildReaderPanel() {
+      return _SurfaceCard(
+        child: _LibraryDocumentReader(
+          document: activeDocument,
+          busy: _libraryDocumentBusy,
+          routeBySourcePath: routeBySourcePath,
+          onOpenLibraryRoute: _selectLibraryDocument,
         ),
-        const SizedBox(height: 20),
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Supporting materials', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Reusable teaching and practice materials that the playlists draw from.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              ...library.bundle.materials.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(item.title),
-                  subtitle: Text(_humanizeLabel(item.kind), style: theme.textTheme.bodySmall),
-                ),
-              ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth > 1240;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          children: [
+            _PageHeroCard(
+              eyebrow: 'Library',
+              title: 'Learning Library',
+              description: 'Browse the authored pathways first, then read the underlying markdown documents directly inside Cornerstone.',
+              chips: [
+                _StatChip(label: 'Pathways', value: '${library.report.pathwayCount}', icon: Icons.route_rounded),
+                _StatChip(label: 'Documents', value: '${documents?.documents.length ?? 0}', icon: Icons.description_rounded),
+                _StatChip(label: 'Materials', value: '${library.report.materialCount}', icon: Icons.menu_book_rounded),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: buildNavigatorPanel()),
+                  const SizedBox(width: 20),
+                  Expanded(flex: 6, child: buildReaderPanel()),
+                ],
+              )
+            else ...[
+              buildNavigatorPanel(),
+              const SizedBox(height: 20),
+              buildReaderPanel(),
             ],
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

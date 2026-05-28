@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +11,7 @@ import 'ui/theme/theme_controller.dart';
 
 part 'app/cornerstone_app.dart';
 part 'ui/screens/home_screen.dart';
+part 'ui/widgets/markdown_widgets.dart';
 part 'ui/widgets/home_widgets.dart';
 
 Future<void> main() async {

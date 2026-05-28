@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, anyhow, bail};
 use chrono::Utc;
@@ -61,6 +61,7 @@ pub struct Skill {
     pub recommended_level: String,
     pub description: String,
     pub success_criteria: String,
+    pub source_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +79,7 @@ pub struct Stage {
     pub recommended_level: String,
     pub description: String,
     pub skill_ids: Vec<String>,
+    pub source_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,6 +99,7 @@ pub struct Playlist {
     pub skill_ids: Vec<String>,
     pub duration_days: i32,
     pub session_pattern: SessionPattern,
+    pub source_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,6 +150,27 @@ pub struct MaterialDocument {
     pub title: String,
     pub body: String,
     pub source_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryDocument {
+    pub route_path: String,
+    pub source_path: String,
+    pub kind: String,
+    pub document_id: String,
+    pub title: String,
+    pub subject_id: String,
+    pub area_id: String,
+    pub pathway_id: String,
+    pub description: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryContent {
+    pub bundle: LibraryBundle,
+    pub documents: Vec<LibraryDocument>,
+    pub report: LibraryValidationReport,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -254,6 +278,7 @@ struct LoadedLibrary {
     playlists: Vec<Playlist>,
     material_index: Vec<MaterialIndexItem>,
     material_documents: Vec<MaterialDocument>,
+    documents: Vec<LibraryDocument>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -288,7 +313,7 @@ pub struct BootstrapMembership {
     pub role: String,
 }
 
-pub fn load_library_bundle(content_root: &Path) -> anyhow::Result<(LibraryBundle, LibraryValidationReport)> {
+pub fn load_library_content(content_root: &Path) -> anyhow::Result<LibraryContent> {
     let registry: LibraryRegistry = read_yaml(content_root.join("library/registry.yaml"))?;
     let loaded = load_library_documents(content_root, &registry.pathways)?;
 
@@ -311,6 +336,8 @@ pub fn load_library_bundle(content_root: &Path) -> anyhow::Result<(LibraryBundle
         &loaded.material_documents,
     )?;
 
+    validate_library_document_routes(&loaded.documents)?;
+
     let bundle = LibraryBundle {
         subjects: registry.subjects,
         areas: registry.areas,
@@ -330,7 +357,16 @@ pub fn load_library_bundle(content_root: &Path) -> anyhow::Result<(LibraryBundle
         playlist_count: bundle.playlists.len(),
         material_count: bundle.materials.len(),
     };
-    Ok((bundle, report))
+    Ok(LibraryContent {
+        bundle,
+        documents: loaded.documents,
+        report,
+    })
+}
+
+pub fn load_library_bundle(content_root: &Path) -> anyhow::Result<(LibraryBundle, LibraryValidationReport)> {
+    let content = load_library_content(content_root)?;
+    Ok((content.bundle, content.report))
 }
 
 pub fn load_bootstrap(bootstrap_path: &Path) -> anyhow::Result<IdentityBootstrap> {
@@ -425,9 +461,23 @@ fn load_library_documents(
                 .unwrap_or_else(|| pathway_meta.title.clone()),
             source_path: pathway_relative_path,
         });
+        loaded.documents.push(LibraryDocument {
+            route_path: route_path_from_source_path(&loaded.pathways.last().expect("pathway document").source_path)?,
+            source_path: loaded.pathways.last().expect("pathway document").source_path.clone(),
+            kind: "pathway".to_string(),
+            document_id: pathway_meta.id.clone(),
+            title: pathway_meta.title.clone(),
+            subject_id: pathway_meta.subject_id.clone(),
+            area_id: pathway_meta.area_id.clone(),
+            pathway_id: pathway_meta.id.clone(),
+            description: markdown_first_paragraph(&pathway_body)
+                .unwrap_or_else(|| pathway_meta.title.clone()),
+            body: pathway_body.clone(),
+        });
 
         let mut stage_skill_map: HashMap<String, Vec<String>> = HashMap::new();
         for skill_path in list_markdown_files(&pathway_root.join("skills"))? {
+            let skill_relative_path = relative_content_path(content_root, &skill_path)?;
             let (skill_meta, skill_body) = read_markdown_frontmatter::<SkillFrontmatter>(&skill_path)?;
             for stage_id in &skill_meta.stage_ids {
                 stage_skill_map
@@ -449,12 +499,40 @@ fn load_library_documents(
                 recommended_level: age_band_label(recommended_age),
                 description,
                 success_criteria,
+                source_path: skill_relative_path.clone(),
+            });
+            loaded.documents.push(LibraryDocument {
+                route_path: route_path_from_source_path(&skill_relative_path)?,
+                source_path: skill_relative_path,
+                kind: "skill".to_string(),
+                document_id: loaded.skills.last().expect("skill document").skill_id.clone(),
+                title: loaded.skills.last().expect("skill document").title.clone(),
+                subject_id: pathway_meta.subject_id.clone(),
+                area_id: pathway_meta.area_id.clone(),
+                pathway_id: pathway_meta.id.clone(),
+                description: loaded.skills.last().expect("skill document").description.clone(),
+                body: skill_body,
             });
         }
 
         let mut stage_documents = HashMap::new();
         for stage_path in list_markdown_files(&pathway_root.join("stages"))? {
+            let stage_relative_path = relative_content_path(content_root, &stage_path)?;
             let (stage_meta, stage_body) = read_markdown_frontmatter::<StageFrontmatter>(&stage_path)?;
+            let stage_description = markdown_first_paragraph(&stage_body)
+                .unwrap_or_else(|| "Pathway stage".to_string());
+            loaded.documents.push(LibraryDocument {
+                route_path: route_path_from_source_path(&stage_relative_path)?,
+                source_path: stage_relative_path.clone(),
+                kind: "stage".to_string(),
+                document_id: stage_meta.id.clone(),
+                title: stage_meta.title.clone(),
+                subject_id: pathway_meta.subject_id.clone(),
+                area_id: pathway_meta.area_id.clone(),
+                pathway_id: pathway_meta.id.clone(),
+                description: stage_description.clone(),
+                body: stage_body.clone(),
+            });
             let mut skill_ids = stage_skill_map.remove(&stage_meta.id).unwrap_or_default();
             skill_ids.sort();
             stage_documents.insert(
@@ -468,9 +546,9 @@ fn load_library_documents(
                         title: stage_meta.title,
                         recommended_age: pathway_meta.recommended_age_min,
                         recommended_level: age_band_label(pathway_meta.recommended_age_min),
-                        description: markdown_first_paragraph(&stage_body)
-                            .unwrap_or_else(|| "Pathway stage".to_string()),
+                        description: stage_description,
                         skill_ids,
+                        source_path: stage_relative_path,
                     },
                 ),
             );
@@ -504,13 +582,28 @@ fn load_library_documents(
 
         let mut playlist_documents = HashMap::new();
         for playlist_path in list_markdown_files(&pathway_root.join("playlists"))? {
-            let (playlist_meta, _) = read_markdown_frontmatter::<PlaylistFrontmatter>(&playlist_path)?;
+            let playlist_relative_path = relative_content_path(content_root, &playlist_path)?;
+            let (playlist_meta, playlist_body) = read_markdown_frontmatter::<PlaylistFrontmatter>(&playlist_path)?;
             if playlist_meta.recommended_age_min > playlist_meta.recommended_age_max {
                 bail!(
                     "playlist '{}' has an invalid recommended age range",
                     playlist_meta.id
                 );
             }
+            let playlist_description = markdown_first_paragraph(&playlist_body)
+                .unwrap_or_else(|| playlist_meta.title.clone());
+            loaded.documents.push(LibraryDocument {
+                route_path: route_path_from_source_path(&playlist_relative_path)?,
+                source_path: playlist_relative_path.clone(),
+                kind: "playlist".to_string(),
+                document_id: playlist_meta.id.clone(),
+                title: playlist_meta.title.clone(),
+                subject_id: pathway_meta.subject_id.clone(),
+                area_id: pathway_meta.area_id.clone(),
+                pathway_id: pathway_meta.id.clone(),
+                description: playlist_description.clone(),
+                body: playlist_body,
+            });
             let sessions = playlist_meta
                 .sessions
                 .into_iter()
@@ -536,6 +629,7 @@ fn load_library_documents(
                     skill_ids: playlist_meta.skill_ids,
                     duration_days: sessions.len() as i32,
                     session_pattern: SessionPattern { sessions },
+                    source_path: playlist_relative_path,
                 },
             );
         }
@@ -594,6 +688,20 @@ fn load_library_documents(
                 title,
                 body: material_body,
                 source_path: material_relative_path,
+            });
+            let material = loaded.material_documents.last().expect("material document");
+            loaded.documents.push(LibraryDocument {
+                route_path: route_path_from_source_path(&material.source_path)?,
+                source_path: material.source_path.clone(),
+                kind: "material".to_string(),
+                document_id: material.id.clone(),
+                title: material.title.clone(),
+                subject_id: material.subject_id.clone(),
+                area_id: material.area_id.clone(),
+                pathway_id: pathway_meta.id.clone(),
+                description: markdown_first_paragraph(&material.body)
+                    .unwrap_or_else(|| material.title.clone()),
+                body: material.body.clone(),
             });
         }
     }
@@ -795,6 +903,123 @@ fn populate_derived_recommended_ages(loaded: &mut LoadedLibrary) {
             material.recommended_age = age;
         }
     }
+}
+
+fn validate_library_document_routes(documents: &[LibraryDocument]) -> anyhow::Result<()> {
+    ensure_unique_ids(
+        documents.iter().map(|document| document.source_path.as_str()),
+        "library document source path",
+    )?;
+    ensure_unique_ids(
+        documents.iter().map(|document| document.route_path.as_str()),
+        "library document route path",
+    )?;
+
+    let known_source_paths: BTreeSet<_> = documents
+        .iter()
+        .map(|document| document.source_path.as_str())
+        .collect();
+
+    for document in documents {
+        for target in extract_markdown_link_targets(&document.body) {
+            let Some(resolved_path) = resolve_library_markdown_target(&document.source_path, &target)? else {
+                continue;
+            };
+            if !known_source_paths.contains(resolved_path.as_str()) {
+                bail!(
+                    "library document '{}' links to missing document '{}' via '{}'",
+                    document.source_path,
+                    resolved_path,
+                    target
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn extract_markdown_link_targets(body: &str) -> Vec<String> {
+    let mut targets = Vec::new();
+    let bytes = body.as_bytes();
+    let mut index = 0usize;
+
+    while index + 1 < bytes.len() {
+        if bytes[index] == b'!' {
+            index += 1;
+            continue;
+        }
+        if bytes[index] == b']' && bytes[index + 1] == b'(' {
+            let start = index + 2;
+            let mut end = start;
+            while end < bytes.len() && bytes[end] != b')' {
+                end += 1;
+            }
+            if end < bytes.len() {
+                let candidate = body[start..end].trim();
+                if !candidate.is_empty() {
+                    targets.push(candidate.to_string());
+                }
+                index = end;
+            }
+        }
+        index += 1;
+    }
+
+    targets
+}
+
+fn resolve_library_markdown_target(current_source_path: &str, target: &str) -> anyhow::Result<Option<String>> {
+    if target.starts_with('#')
+        || target.starts_with("http://")
+        || target.starts_with("https://")
+        || target.starts_with("mailto:")
+    {
+        return Ok(None);
+    }
+
+    let without_fragment = target.split('#').next().unwrap_or("");
+    let without_query = without_fragment.split('?').next().unwrap_or("").trim();
+    if without_query.is_empty() || !without_query.ends_with(".md") {
+        return Ok(None);
+    }
+
+    let current_parent = Path::new(current_source_path)
+        .parent()
+        .ok_or_else(|| anyhow!("document '{}' has no parent path", current_source_path))?;
+    let joined = current_parent.join(without_query);
+    let normalized = normalize_relative_path(&joined);
+
+    if !normalized.starts_with("library/") {
+        return Ok(None);
+    }
+
+    Ok(Some(normalized))
+}
+
+fn normalize_relative_path(path: &Path) -> String {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+            Component::RootDir | Component::Prefix(_) => {}
+        }
+    }
+    normalized.to_string_lossy().replace('\\', "/")
+}
+
+fn route_path_from_source_path(source_path: &str) -> anyhow::Result<String> {
+    let trimmed = source_path
+        .strip_prefix("library/")
+        .ok_or_else(|| anyhow!("library document '{}' must live under library/", source_path))?;
+    let route = trimmed
+        .strip_suffix(".md")
+        .ok_or_else(|| anyhow!("library document '{}' must end with .md", source_path))?;
+    Ok(route.to_string())
 }
 
 fn lookup_required<'a, T>(

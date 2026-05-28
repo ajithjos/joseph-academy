@@ -13,7 +13,6 @@ pub struct AppConfig {
     pub exports_root: PathBuf,
     pub auto_bootstrap: bool,
     pub frontend_public_url: String,
-    pub content_public_url: String,
 }
 
 impl AppConfig {
@@ -27,7 +26,6 @@ impl AppConfig {
             exports_root: required_path("CORNERSTONE_EXPORTS_ROOT")?,
             auto_bootstrap: required_bool("CORNERSTONE_AUTO_BOOTSTRAP")?,
             frontend_public_url: required_env("CORNERSTONE_FRONTEND_PUBLIC_URL")?,
-            content_public_url: required_env("CORNERSTONE_CONTENT_PUBLIC_URL")?,
         })
     }
 }

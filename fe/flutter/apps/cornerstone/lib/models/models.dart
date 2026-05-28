@@ -63,6 +63,112 @@ class LibraryPayload {
   final LibraryBundle bundle;
 }
 
+class LibraryDocumentsPayload {
+  LibraryDocumentsPayload({required this.status, required this.documents});
+
+  factory LibraryDocumentsPayload.fromJson(Map<String, dynamic> json) {
+    return LibraryDocumentsPayload(
+      status: json['status'] as String,
+      documents: (json['documents'] as List<dynamic>)
+          .map(
+            (item) => LibraryDocumentSummary.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final String status;
+  final List<LibraryDocumentSummary> documents;
+}
+
+class LibraryDocumentPayload {
+  LibraryDocumentPayload({required this.status, required this.document});
+
+  factory LibraryDocumentPayload.fromJson(Map<String, dynamic> json) {
+    return LibraryDocumentPayload(
+      status: json['status'] as String,
+      document: LibraryDocumentData.fromJson(
+        json['document'] as Map<String, dynamic>,
+      ),
+    );
+  }
+
+  final String status;
+  final LibraryDocumentData document;
+}
+
+class LibraryDocumentSummary {
+  LibraryDocumentSummary({
+    required this.routePath,
+    required this.sourcePath,
+    required this.kind,
+    required this.documentId,
+    required this.title,
+    required this.subjectId,
+    required this.areaId,
+    required this.pathwayId,
+    required this.description,
+  });
+
+  factory LibraryDocumentSummary.fromJson(Map<String, dynamic> json) {
+    return LibraryDocumentSummary(
+      routePath: json['route_path'] as String,
+      sourcePath: json['source_path'] as String,
+      kind: json['kind'] as String,
+      documentId: json['document_id'] as String,
+      title: json['title'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      pathwayId: json['pathway_id'] as String,
+      description: json['description'] as String,
+    );
+  }
+
+  final String routePath;
+  final String sourcePath;
+  final String kind;
+  final String documentId;
+  final String title;
+  final String subjectId;
+  final String areaId;
+  final String pathwayId;
+  final String description;
+}
+
+class LibraryDocumentData extends LibraryDocumentSummary {
+  LibraryDocumentData({
+    required super.routePath,
+    required super.sourcePath,
+    required super.kind,
+    required super.documentId,
+    required super.title,
+    required super.subjectId,
+    required super.areaId,
+    required super.pathwayId,
+    required super.description,
+    required this.body,
+  });
+
+  factory LibraryDocumentData.fromJson(Map<String, dynamic> json) {
+    return LibraryDocumentData(
+      routePath: json['route_path'] as String,
+      sourcePath: json['source_path'] as String,
+      kind: json['kind'] as String,
+      documentId: json['document_id'] as String,
+      title: json['title'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      pathwayId: json['pathway_id'] as String,
+      description: json['description'] as String,
+      body: json['body'] as String,
+    );
+  }
+
+  final String body;
+}
+
 class LibraryBundle {
   LibraryBundle({
     required this.subjects,

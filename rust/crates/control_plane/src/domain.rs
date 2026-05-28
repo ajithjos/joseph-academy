@@ -24,6 +24,45 @@ pub struct LibraryReloadResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct LibraryDocumentSummary {
+    pub route_path: String,
+    pub source_path: String,
+    pub kind: String,
+    pub document_id: String,
+    pub title: String,
+    pub subject_id: String,
+    pub area_id: String,
+    pub pathway_id: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryDocumentsResponse {
+    pub status: String,
+    pub documents: Vec<LibraryDocumentSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryDocumentPayload {
+    pub route_path: String,
+    pub source_path: String,
+    pub kind: String,
+    pub document_id: String,
+    pub title: String,
+    pub subject_id: String,
+    pub area_id: String,
+    pub pathway_id: String,
+    pub description: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryDocumentResponse {
+    pub status: String,
+    pub document: LibraryDocumentPayload,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct BootstrapApplyResponse {
     pub status: String,
     pub team_id: String,

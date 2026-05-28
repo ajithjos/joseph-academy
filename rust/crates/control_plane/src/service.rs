@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use anyhow::{Context, anyhow, bail};
-use catalog::{LibraryBundle, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_bundle};
+use catalog::{LibraryBundle, LibraryDocument, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_content};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
@@ -14,12 +14,12 @@ use uuid::Uuid;
 use crate::config::AppConfig;
 use crate::domain::{
     AssignmentRequest, AssignmentResponse, AssignmentRow, AssignmentSummary, BootstrapApplyResponse,
-    DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, LibraryReloadResponse,
-    HouseholdMemberSummary, LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary,
-    RecordSessionRequest, RecordSessionResponse, ReviewItemRow, ReviewItemSummary,
-    ReviewRebuildResponse, SessionDetail, SessionMaterialRow, SessionMaterialSummary, SessionRow,
-    SessionSummary, SkillProgressRow, SkillProgressSummary, StageProgress, TeamRow, TeamSummary,
-    ViewerSessionResponse,
+    DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, HouseholdMemberSummary,
+    LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary, LibraryDocumentPayload,
+    LibraryDocumentSummary, LibraryReloadResponse, RecordSessionRequest, RecordSessionResponse,
+    ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail, SessionMaterialRow,
+    SessionMaterialSummary, SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
+    StageProgress, TeamRow, TeamSummary, ViewerSessionResponse,
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
@@ -29,6 +29,7 @@ pub struct AppState {
     pub config: AppConfig,
     pub pool: PgPool,
     pub library: Arc<RwLock<LibraryBundle>>,
+    pub library_documents: Arc<RwLock<Vec<LibraryDocument>>>,
     pub library_report: Arc<RwLock<LibraryValidationReport>>,
 }
 
@@ -40,7 +41,7 @@ pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) ->
         .await
         .with_context(|| format!("failed to create {}", config.exports_root.display()))?;
 
-    let (library, library_report) = load_library_bundle(&config.content_root)?;
+    let library_content = load_library_content(&config.content_root)?;
     let pool = PgPoolOptions::new()
         .max_connections(8)
         .connect(&config.database_url)
@@ -51,8 +52,9 @@ pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) ->
     let state = Arc::new(AppState {
         config,
         pool,
-        library: Arc::new(RwLock::new(library)),
-        library_report: Arc::new(RwLock::new(library_report)),
+        library: Arc::new(RwLock::new(library_content.bundle)),
+        library_documents: Arc::new(RwLock::new(library_content.documents)),
+        library_report: Arc::new(RwLock::new(library_content.report)),
     });
 
     if run_startup_bootstrap && state.config.auto_bootstrap {
@@ -72,14 +74,18 @@ pub async fn migrate_database(database_url: &str) -> anyhow::Result<()> {
 }
 
 pub async fn reload_library(state: &Arc<AppState>) -> anyhow::Result<LibraryReloadResponse> {
-    let (library, report) = load_library_bundle(&state.config.content_root)?;
+    let library_content = load_library_content(&state.config.content_root)?;
     {
         let mut library_guard = state.library.write().await;
-        *library_guard = library;
+        *library_guard = library_content.bundle;
+    }
+    {
+        let mut documents_guard = state.library_documents.write().await;
+        *documents_guard = library_content.documents;
     }
     {
         let mut report_guard = state.library_report.write().await;
-        *report_guard = report;
+        *report_guard = library_content.report;
     }
     Ok(library_report_response(&*state.library_report.read().await))
 }
@@ -164,6 +170,33 @@ pub async fn fetch_library(state: &Arc<AppState>) -> (LibraryBundle, LibraryRelo
     let bundle = state.library.read().await.clone();
     let report = library_report_response(&*state.library_report.read().await);
     (bundle, report)
+}
+
+pub async fn list_library_documents(state: &Arc<AppState>) -> Vec<LibraryDocumentSummary> {
+    state
+        .library_documents
+        .read()
+        .await
+        .iter()
+        .map(library_document_summary)
+        .collect()
+}
+
+pub async fn fetch_library_document(
+    state: &Arc<AppState>,
+    route_path: &str,
+) -> anyhow::Result<LibraryDocumentPayload> {
+    let normalized = route_path.trim().trim_matches('/');
+    if normalized.is_empty() {
+        bail!("route_path is required");
+    }
+
+    let documents = state.library_documents.read().await;
+    let document = documents
+        .iter()
+        .find(|document| document.route_path == normalized)
+        .ok_or_else(|| anyhow!("library document '{}' not found", normalized))?;
+    Ok(library_document_payload(document))
 }
 
 pub async fn fetch_viewer_session(
@@ -475,6 +508,35 @@ fn library_report_response(report: &LibraryValidationReport) -> LibraryReloadRes
         playlist_count: report.playlist_count,
         material_count: report.material_count,
         loaded_at_utc: report.loaded_at_utc.clone(),
+    }
+}
+
+fn library_document_summary(document: &LibraryDocument) -> LibraryDocumentSummary {
+    LibraryDocumentSummary {
+        route_path: document.route_path.clone(),
+        source_path: document.source_path.clone(),
+        kind: document.kind.clone(),
+        document_id: document.document_id.clone(),
+        title: document.title.clone(),
+        subject_id: document.subject_id.clone(),
+        area_id: document.area_id.clone(),
+        pathway_id: document.pathway_id.clone(),
+        description: document.description.clone(),
+    }
+}
+
+fn library_document_payload(document: &LibraryDocument) -> LibraryDocumentPayload {
+    LibraryDocumentPayload {
+        route_path: document.route_path.clone(),
+        source_path: document.source_path.clone(),
+        kind: document.kind.clone(),
+        document_id: document.document_id.clone(),
+        title: document.title.clone(),
+        subject_id: document.subject_id.clone(),
+        area_id: document.area_id.clone(),
+        pathway_id: document.pathway_id.clone(),
+        description: document.description.clone(),
+        body: document.body.clone(),
     }
 }
 
