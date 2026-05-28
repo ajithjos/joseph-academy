@@ -53,7 +53,7 @@ rust-bootstrap-apply:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
 rust-library-validate:
-	CORNERSTONE_CONTENT_ROOT="$(CONTENT_ROOT)" cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
+	CORNERSTONE_CONTENT_ROOT="$(CONTENT_ROOT)" cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- library-validate
 
 content-validate: rust-library-validate
 	$(PYTHON_RUN) --with pytest python -m pytest tests/test_render_library_docs.py
@@ -94,7 +94,7 @@ control-plane-bootstrap-apply:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
 control-plane-library-reload:
-	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
+	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- library-validate
 
 control-plane-compose-up:
 	bash deploy/dev/setup.sh

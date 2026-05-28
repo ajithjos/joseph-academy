@@ -11,10 +11,11 @@ pub struct OperationStatusResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CatalogReloadResponse {
+pub struct LibraryReloadResponse {
     pub status: String,
     pub subject_count: usize,
     pub area_count: usize,
+    pub pathway_count: usize,
     pub skill_count: usize,
     pub stage_count: usize,
     pub playlist_count: usize,
@@ -35,7 +36,7 @@ pub struct BootstrapApplyResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct DashboardResponse {
     pub team: Option<TeamSummary>,
-    pub catalog: CatalogReloadResponse,
+    pub library: LibraryReloadResponse,
     pub learners: Vec<LearnerDashboard>,
 }
 

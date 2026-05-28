@@ -150,7 +150,7 @@ pub struct MaterialDocument {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CatalogBundle {
+pub struct LibraryBundle {
     pub subjects: Vec<Subject>,
     pub areas: Vec<Area>,
     #[serde(default)]
@@ -162,10 +162,11 @@ pub struct CatalogBundle {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CatalogValidationReport {
+pub struct LibraryValidationReport {
     pub loaded_at_utc: String,
     pub subject_count: usize,
     pub area_count: usize,
+    pub pathway_count: usize,
     pub skill_count: usize,
     pub stage_count: usize,
     pub playlist_count: usize,
@@ -287,7 +288,7 @@ pub struct BootstrapMembership {
     pub role: String,
 }
 
-pub fn load_catalog_bundle(content_root: &Path) -> anyhow::Result<(CatalogBundle, CatalogValidationReport)> {
+pub fn load_library_bundle(content_root: &Path) -> anyhow::Result<(LibraryBundle, LibraryValidationReport)> {
     let registry: LibraryRegistry = read_yaml(content_root.join("library/registry.yaml"))?;
     let loaded = load_library_documents(content_root, &registry.pathways)?;
 
@@ -310,7 +311,7 @@ pub fn load_catalog_bundle(content_root: &Path) -> anyhow::Result<(CatalogBundle
         &loaded.material_documents,
     )?;
 
-    let bundle = CatalogBundle {
+    let bundle = LibraryBundle {
         subjects: registry.subjects,
         areas: registry.areas,
         pathways: loaded.pathways,
@@ -319,10 +320,11 @@ pub fn load_catalog_bundle(content_root: &Path) -> anyhow::Result<(CatalogBundle
         playlists: loaded.playlists,
         materials: loaded.material_documents,
     };
-    let report = CatalogValidationReport {
+    let report = LibraryValidationReport {
         loaded_at_utc: Utc::now().to_rfc3339(),
         subject_count: bundle.subjects.len(),
         area_count: bundle.areas.len(),
+        pathway_count: bundle.pathways.len(),
         skill_count: bundle.skills.len(),
         stage_count: bundle.stages.len(),
         playlist_count: bundle.playlists.len(),
@@ -335,7 +337,7 @@ pub fn load_bootstrap(bootstrap_path: &Path) -> anyhow::Result<IdentityBootstrap
     read_yaml(bootstrap_path)
 }
 
-impl CatalogBundle {
+impl LibraryBundle {
     pub fn skill_map(&self) -> HashMap<&str, &Skill> {
         self.skills
             .iter()
@@ -1378,7 +1380,7 @@ mod tests {
             .join("../../../content")
             .canonicalize()
             .expect("content root");
-        let result = load_catalog_bundle(&root);
+        let result = load_library_bundle(&root);
         assert!(result.is_ok(), "catalog should load: {result:?}");
     }
 }

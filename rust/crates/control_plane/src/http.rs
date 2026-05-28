@@ -10,14 +10,17 @@ use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
+use catalog::LibraryBundle;
+
 use crate::domain::{
-    AssignmentRequest, CatalogReloadResponse, OperationStatusResponse, RecordSessionRequest,
+    AssignmentRequest, LibraryReloadResponse, OperationStatusResponse, RecordSessionRequest,
     ReviewRebuildRequest, ViewerLoginRequest, ViewerSessionResponse,
 };
 use crate::service::{
-    AppState, apply_bootstrap, create_assignment, fetch_catalog, fetch_dashboard, fetch_learner_detail,
+    AppState, apply_bootstrap, create_assignment, fetch_dashboard, fetch_learner_detail,
+    fetch_library,
     fetch_viewer_session, list_learners, login_viewer_session, rebuild_review_items,
-    record_session, reload_catalog,
+    record_session, reload_library,
 };
 
 #[derive(Debug)]
@@ -30,9 +33,9 @@ struct ErrorPayload {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct CatalogPayload {
-    report: CatalogReloadResponse,
-    bundle: catalog::CatalogBundle,
+struct LibraryPayload {
+    report: LibraryReloadResponse,
+    bundle: LibraryBundle,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -74,8 +77,8 @@ pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(index))
         .route("/health", get(health))
-        .route("/api/v1/catalog", get(get_catalog))
-        .route("/api/v1/catalog/reload", post(post_catalog_reload))
+        .route("/api/v1/library", get(get_library))
+        .route("/api/v1/library/reload", post(post_library_reload))
         .route("/api/v1/bootstrap/apply", post(post_bootstrap_apply))
         .route(
             "/api/v1/session",
@@ -116,13 +119,13 @@ async fn health() -> Json<OperationStatusResponse> {
     })
 }
 
-async fn get_catalog(State(state): State<Arc<AppState>>) -> Result<Json<CatalogPayload>, ApiError> {
-    let (bundle, report) = fetch_catalog(&state).await;
-    Ok(Json(CatalogPayload { report, bundle }))
+async fn get_library(State(state): State<Arc<AppState>>) -> Result<Json<LibraryPayload>, ApiError> {
+    let (bundle, report) = fetch_library(&state).await;
+    Ok(Json(LibraryPayload { report, bundle }))
 }
 
-async fn post_catalog_reload(State(state): State<Arc<AppState>>) -> Result<Json<CatalogReloadResponse>, ApiError> {
-    Ok(Json(reload_catalog(&state).await?))
+async fn post_library_reload(State(state): State<Arc<AppState>>) -> Result<Json<LibraryReloadResponse>, ApiError> {
+    Ok(Json(reload_library(&state).await?))
 }
 
 async fn post_bootstrap_apply(

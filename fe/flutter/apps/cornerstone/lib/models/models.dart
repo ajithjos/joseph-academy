@@ -1,12 +1,12 @@
 class DashboardPayload {
-  DashboardPayload({required this.catalog, required this.learners, this.team});
+  DashboardPayload({required this.library, required this.learners, this.team});
 
   factory DashboardPayload.fromJson(Map<String, dynamic> json) {
     return DashboardPayload(
       team: json['team'] == null
           ? null
           : TeamInfo.fromJson(json['team'] as Map<String, dynamic>),
-      catalog: CatalogReport.fromJson(json['catalog'] as Map<String, dynamic>),
+      library: LibraryReport.fromJson(json['library'] as Map<String, dynamic>),
       learners: (json['learners'] as List<dynamic>)
           .map((item) => LearnerDashboard.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -14,7 +14,7 @@ class DashboardPayload {
   }
 
   final TeamInfo? team;
-  final CatalogReport catalog;
+  final LibraryReport library;
   final List<LearnerDashboard> learners;
 }
 
@@ -49,37 +49,41 @@ class ViewerSessionPayload {
   final List<ViewerUser> availableUsers;
 }
 
-class CatalogPayload {
-  CatalogPayload({required this.report, required this.bundle});
+class LibraryPayload {
+  LibraryPayload({required this.report, required this.bundle});
 
-  factory CatalogPayload.fromJson(Map<String, dynamic> json) {
-    return CatalogPayload(
-      report: CatalogReport.fromJson(json['report'] as Map<String, dynamic>),
-      bundle: CatalogBundle.fromJson(json['bundle'] as Map<String, dynamic>),
+  factory LibraryPayload.fromJson(Map<String, dynamic> json) {
+    return LibraryPayload(
+      report: LibraryReport.fromJson(json['report'] as Map<String, dynamic>),
+      bundle: LibraryBundle.fromJson(json['bundle'] as Map<String, dynamic>),
     );
   }
 
-  final CatalogReport report;
-  final CatalogBundle bundle;
+  final LibraryReport report;
+  final LibraryBundle bundle;
 }
 
-class CatalogBundle {
-  CatalogBundle({
+class LibraryBundle {
+  LibraryBundle({
     required this.subjects,
     required this.areas,
+    required this.pathways,
     required this.skills,
     required this.stages,
     required this.playlists,
     required this.materials,
   });
 
-  factory CatalogBundle.fromJson(Map<String, dynamic> json) {
-    return CatalogBundle(
+  factory LibraryBundle.fromJson(Map<String, dynamic> json) {
+    return LibraryBundle(
       subjects: (json['subjects'] as List<dynamic>)
           .map((item) => SubjectInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
       areas: (json['areas'] as List<dynamic>)
           .map((item) => AreaInfo.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      pathways: ((json['pathways'] as List<dynamic>?) ?? const <dynamic>[])
+          .map((item) => PathwayInfo.fromJson(item as Map<String, dynamic>))
           .toList(),
       skills: (json['skills'] as List<dynamic>)
           .map((item) => SkillInfo.fromJson(item as Map<String, dynamic>))
@@ -98,16 +102,18 @@ class CatalogBundle {
 
   final List<SubjectInfo> subjects;
   final List<AreaInfo> areas;
+  final List<PathwayInfo> pathways;
   final List<SkillInfo> skills;
   final List<StageInfo> stages;
   final List<PlaylistInfo> playlists;
   final List<MaterialInfo> materials;
 }
 
-class CatalogReport {
-  CatalogReport({
+class LibraryReport {
+  LibraryReport({
     required this.subjectCount,
     required this.areaCount,
+    required this.pathwayCount,
     required this.skillCount,
     required this.stageCount,
     required this.playlistCount,
@@ -115,10 +121,11 @@ class CatalogReport {
     required this.loadedAtUtc,
   });
 
-  factory CatalogReport.fromJson(Map<String, dynamic> json) {
-    return CatalogReport(
+  factory LibraryReport.fromJson(Map<String, dynamic> json) {
+    return LibraryReport(
       subjectCount: (json['subject_count'] as num).toInt(),
       areaCount: (json['area_count'] as num).toInt(),
+      pathwayCount: (json['pathway_count'] as num?)?.toInt() ?? 0,
       skillCount: (json['skill_count'] as num).toInt(),
       stageCount: (json['stage_count'] as num).toInt(),
       playlistCount: (json['playlist_count'] as num).toInt(),
@@ -129,6 +136,7 @@ class CatalogReport {
 
   final int subjectCount;
   final int areaCount;
+  final int pathwayCount;
   final int skillCount;
   final int stageCount;
   final int playlistCount;
@@ -587,6 +595,56 @@ class AreaInfo {
   final String subjectId;
   final String title;
   final String description;
+}
+
+class PathwayInfo {
+  PathwayInfo({
+    required this.pathwayId,
+    required this.title,
+    required this.subjectId,
+    required this.areaId,
+    required this.recommendedAgeMin,
+    required this.recommendedAgeMax,
+    required this.stageIds,
+    required this.playlistIds,
+    required this.entryPoints,
+    required this.description,
+    required this.sourcePath,
+  });
+
+  factory PathwayInfo.fromJson(Map<String, dynamic> json) {
+    return PathwayInfo(
+      pathwayId: json['pathway_id'] as String,
+      title: json['title'] as String,
+      subjectId: json['subject_id'] as String,
+      areaId: json['area_id'] as String,
+      recommendedAgeMin: (json['recommended_age_min'] as num).toInt(),
+      recommendedAgeMax: (json['recommended_age_max'] as num).toInt(),
+      stageIds: (json['stage_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      playlistIds: (json['playlist_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      entryPoints: (json['entry_points'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, value as String),
+      ),
+      description: json['description'] as String,
+      sourcePath: json['source_path'] as String,
+    );
+  }
+
+  final String pathwayId;
+  final String title;
+  final String subjectId;
+  final String areaId;
+  final int recommendedAgeMin;
+  final int recommendedAgeMax;
+  final List<String> stageIds;
+  final List<String> playlistIds;
+  final Map<String, String> entryPoints;
+  final String description;
+  final String sourcePath;
 }
 
 class SkillInfo {

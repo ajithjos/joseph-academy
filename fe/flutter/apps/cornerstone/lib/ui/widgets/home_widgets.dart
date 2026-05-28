@@ -14,7 +14,7 @@ String _humanizeLabel(String value) {
 class _LearnerOperationsPanel extends StatelessWidget {
   const _LearnerOperationsPanel({
     required this.detail,
-    required this.catalog,
+    required this.library,
     required this.currentActionSession,
     required this.scoreController,
     required this.maxScoreController,
@@ -25,7 +25,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
   });
 
   final LearnerDetailPayload detail;
-  final CatalogBundle catalog;
+  final LibraryBundle library;
   final SessionDetail? currentActionSession;
   final TextEditingController scoreController;
   final TextEditingController maxScoreController;
@@ -98,7 +98,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
           child: Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: catalog.playlists
+            children: library.playlists
                 .map(
                   (playlist) => ActionChip(
                     label: Text(playlist.title),

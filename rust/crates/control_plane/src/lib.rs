@@ -25,7 +25,7 @@ enum Command {
     Server,
     Migrate,
     BootstrapApply,
-    CatalogValidate,
+    LibraryValidate,
 }
 
 pub async fn run_cli() -> anyhow::Result<()> {
@@ -49,14 +49,15 @@ pub async fn run_cli() -> anyhow::Result<()> {
             println!("{}", serde_json::to_string_pretty(&result)?);
             Ok(())
         }
-        Command::CatalogValidate => {
+        Command::LibraryValidate => {
             let content_root = config::content_root_from_env()?;
-            let (bundle, report) = catalog::load_catalog_bundle(&content_root)?;
+            let (bundle, report) = catalog::load_library_bundle(&content_root)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             println!(
-                "Loaded {} subjects, {} areas, {} skills, {} stages, {} playlists, {} materials",
+                "Loaded {} subjects, {} areas, {} pathways, {} skills, {} stages, {} playlists, {} materials",
                 bundle.subjects.len(),
                 bundle.areas.len(),
+                bundle.pathways.len(),
                 bundle.skills.len(),
                 bundle.stages.len(),
                 bundle.playlists.len(),

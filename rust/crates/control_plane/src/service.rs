@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use anyhow::{Context, anyhow, bail};
-use catalog::{CatalogBundle, CatalogValidationReport, Playlist, load_bootstrap, load_catalog_bundle};
+use catalog::{LibraryBundle, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_bundle};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::config::AppConfig;
 use crate::domain::{
     AssignmentRequest, AssignmentResponse, AssignmentRow, AssignmentSummary, BootstrapApplyResponse,
-    CatalogReloadResponse, DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow,
+    DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, LibraryReloadResponse,
     HouseholdMemberSummary, LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary,
     RecordSessionRequest, RecordSessionResponse, ReviewItemRow, ReviewItemSummary,
     ReviewRebuildResponse, SessionDetail, SessionMaterialRow, SessionMaterialSummary, SessionRow,
@@ -28,8 +28,8 @@ static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 pub struct AppState {
     pub config: AppConfig,
     pub pool: PgPool,
-    pub catalog: Arc<RwLock<CatalogBundle>>,
-    pub catalog_report: Arc<RwLock<CatalogValidationReport>>,
+    pub library: Arc<RwLock<LibraryBundle>>,
+    pub library_report: Arc<RwLock<LibraryValidationReport>>,
 }
 
 pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) -> anyhow::Result<Arc<AppState>> {
@@ -40,7 +40,7 @@ pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) ->
         .await
         .with_context(|| format!("failed to create {}", config.exports_root.display()))?;
 
-    let (catalog, catalog_report) = load_catalog_bundle(&config.content_root)?;
+    let (library, library_report) = load_library_bundle(&config.content_root)?;
     let pool = PgPoolOptions::new()
         .max_connections(8)
         .connect(&config.database_url)
@@ -51,8 +51,8 @@ pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) ->
     let state = Arc::new(AppState {
         config,
         pool,
-        catalog: Arc::new(RwLock::new(catalog)),
-        catalog_report: Arc::new(RwLock::new(catalog_report)),
+        library: Arc::new(RwLock::new(library)),
+        library_report: Arc::new(RwLock::new(library_report)),
     });
 
     if run_startup_bootstrap && state.config.auto_bootstrap {
@@ -71,17 +71,17 @@ pub async fn migrate_database(database_url: &str) -> anyhow::Result<()> {
     MIGRATOR.run(&pool).await.context("failed to run database migrations")
 }
 
-pub async fn reload_catalog(state: &Arc<AppState>) -> anyhow::Result<CatalogReloadResponse> {
-    let (catalog, report) = load_catalog_bundle(&state.config.content_root)?;
+pub async fn reload_library(state: &Arc<AppState>) -> anyhow::Result<LibraryReloadResponse> {
+    let (library, report) = load_library_bundle(&state.config.content_root)?;
     {
-        let mut catalog_guard = state.catalog.write().await;
-        *catalog_guard = catalog;
+        let mut library_guard = state.library.write().await;
+        *library_guard = library;
     }
     {
-        let mut report_guard = state.catalog_report.write().await;
+        let mut report_guard = state.library_report.write().await;
         *report_guard = report;
     }
-    Ok(catalog_report_response(&*state.catalog_report.read().await))
+    Ok(library_report_response(&*state.library_report.read().await))
 }
 
 pub async fn apply_bootstrap(state: &Arc<AppState>) -> anyhow::Result<BootstrapApplyResponse> {
@@ -160,9 +160,9 @@ pub async fn apply_bootstrap(state: &Arc<AppState>) -> anyhow::Result<BootstrapA
     })
 }
 
-pub async fn fetch_catalog(state: &Arc<AppState>) -> (CatalogBundle, CatalogReloadResponse) {
-    let bundle = state.catalog.read().await.clone();
-    let report = catalog_report_response(&*state.catalog_report.read().await);
+pub async fn fetch_library(state: &Arc<AppState>) -> (LibraryBundle, LibraryReloadResponse) {
+    let bundle = state.library.read().await.clone();
+    let report = library_report_response(&*state.library_report.read().await);
     (bundle, report)
 }
 
@@ -218,12 +218,12 @@ pub async fn fetch_dashboard(state: &Arc<AppState>) -> anyhow::Result<DashboardR
     .fetch_all(&state.pool)
     .await?;
 
-    let catalog = state.catalog.read().await.clone();
-    let learner_dashboards = build_dashboard_cards(state, &catalog, &learners).await?;
+    let library = state.library.read().await.clone();
+    let learner_dashboards = build_dashboard_cards(state, &library, &learners).await?;
 
     Ok(DashboardResponse {
         team,
-        catalog: catalog_report_response(&*state.catalog_report.read().await),
+        library: library_report_response(&*state.library_report.read().await),
         learners: learner_dashboards,
     })
 }
@@ -287,10 +287,10 @@ pub async fn create_assignment(
     state: &Arc<AppState>,
     request: AssignmentRequest,
 ) -> anyhow::Result<AssignmentResponse> {
-    let catalog = state.catalog.read().await.clone();
+    let library = state.library.read().await.clone();
     let assignment = create_assignment_internal(
         state,
-        &catalog,
+        &library,
         &request.learner_id,
         &request.playlist_id,
         request.start_date,
@@ -464,11 +464,12 @@ pub async fn rebuild_review_items(
     })
 }
 
-fn catalog_report_response(report: &CatalogValidationReport) -> CatalogReloadResponse {
-    CatalogReloadResponse {
+fn library_report_response(report: &LibraryValidationReport) -> LibraryReloadResponse {
+    LibraryReloadResponse {
         status: "ok".to_string(),
         subject_count: report.subject_count,
         area_count: report.area_count,
+        pathway_count: report.pathway_count,
         skill_count: report.skill_count,
         stage_count: report.stage_count,
         playlist_count: report.playlist_count,
@@ -524,7 +525,7 @@ fn member_row_to_summary(row: HouseholdMemberRow) -> HouseholdMemberSummary {
 
 async fn build_dashboard_cards(
     state: &Arc<AppState>,
-    catalog: &CatalogBundle,
+    library: &LibraryBundle,
     learners: &[LearnerRow],
 ) -> anyhow::Result<Vec<LearnerDashboard>> {
     let mut dashboards = Vec::new();
@@ -544,7 +545,7 @@ async fn build_dashboard_cards(
         let progress = fetch_progress(&state.pool, &learner.learner_id).await?;
         let latest_evidence = fetch_latest_evidence_for_learner(&state.pool, &learner.learner_id).await?;
         let (progress_status_counts, stage_progress) =
-            summarize_progress(catalog, active_assignment.as_ref(), &progress);
+            summarize_progress(library, active_assignment.as_ref(), &progress);
 
         dashboards.push(LearnerDashboard {
             learner_id: learner.learner_id.clone(),
@@ -564,7 +565,7 @@ async fn build_dashboard_cards(
 }
 
 fn summarize_progress(
-    catalog: &CatalogBundle,
+    library: &LibraryBundle,
     active_assignment: Option<&AssignmentSummary>,
     progress: &[SkillProgressSummary],
 ) -> (BTreeMap<String, i64>, Vec<StageProgress>) {
@@ -576,7 +577,7 @@ fn summarize_progress(
     let Some(active_assignment) = active_assignment else {
         return (counts, Vec::new());
     };
-    let Some(playlist) = catalog.playlist(&active_assignment.playlist_id) else {
+    let Some(playlist) = library.playlist(&active_assignment.playlist_id) else {
         return (counts, Vec::new());
     };
 
@@ -603,7 +604,7 @@ fn summarize_progress(
         .stage_ids
         .iter()
         .filter_map(|stage_id| {
-            let stage = catalog.stages.iter().find(|stage| stage.stage_id == *stage_id)?;
+            let stage = library.stages.iter().find(|stage| stage.stage_id == *stage_id)?;
             let completed_skills = stage
                 .skill_ids
                 .iter()
@@ -629,7 +630,7 @@ async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::R
     )
     .fetch_all(&state.pool)
     .await?;
-    let catalog = state.catalog.read().await.clone();
+    let library = state.library.read().await.clone();
     let today = Utc::now().date_naive();
 
     let mut seeded = 0usize;
@@ -643,10 +644,10 @@ async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::R
         if active_count > 0 {
             continue;
         }
-        if let Some(playlist) = choose_default_playlist(&catalog, calculate_age(learner.date_of_birth)) {
+        if let Some(playlist) = choose_default_playlist(&library, calculate_age(learner.date_of_birth)) {
             let _ = create_assignment_internal(
                 state,
-                &catalog,
+            &library,
                 &learner.learner_id,
                 &playlist.playlist_id,
                 today,
@@ -658,28 +659,28 @@ async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::R
     Ok(seeded)
 }
 
-fn choose_default_playlist(catalog: &CatalogBundle, age: i32) -> Option<&Playlist> {
+fn choose_default_playlist(library: &LibraryBundle, age: i32) -> Option<&Playlist> {
     let normalized_age = age.clamp(0, u8::MAX as i32) as u8;
 
-    let pathway_candidate = catalog
+    let pathway_candidate = library
         .pathways
         .iter()
         .min_by_key(|pathway| pathway_age_distance(pathway, normalized_age));
     if let Some(pathway) = pathway_candidate {
         if let Some(playlist_id) = choose_pathway_entry_point(pathway, normalized_age) {
-            if let Some(playlist) = catalog.playlist(playlist_id) {
+            if let Some(playlist) = library.playlist(playlist_id) {
                 return Some(playlist);
             }
         }
     }
 
-    catalog
+    library
         .playlists
         .iter()
         .min_by_key(|playlist| (playlist.recommended_age as i32 - age).abs())
 }
 
-fn pathway_age_distance(pathway: &catalog::Pathway, age: u8) -> u8 {
+fn pathway_age_distance(pathway: &Pathway, age: u8) -> u8 {
     if age < pathway.recommended_age_min {
         pathway.recommended_age_min - age
     } else if age > pathway.recommended_age_max {
@@ -689,7 +690,7 @@ fn pathway_age_distance(pathway: &catalog::Pathway, age: u8) -> u8 {
     }
 }
 
-fn choose_pathway_entry_point<'a>(pathway: &'a catalog::Pathway, age: u8) -> Option<&'a str> {
+fn choose_pathway_entry_point<'a>(pathway: &'a Pathway, age: u8) -> Option<&'a str> {
     let mut thresholds = pathway
         .entry_points
         .iter()
@@ -711,12 +712,12 @@ fn choose_pathway_entry_point<'a>(pathway: &'a catalog::Pathway, age: u8) -> Opt
 
 async fn create_assignment_internal(
     state: &Arc<AppState>,
-    catalog: &CatalogBundle,
+    library: &LibraryBundle,
     learner_id: &str,
     playlist_id: &str,
     start_date: NaiveDate,
 ) -> anyhow::Result<AssignmentSummary> {
-    let playlist = catalog
+    let playlist = library
         .playlist(playlist_id)
         .cloned()
         .ok_or_else(|| anyhow!("unknown playlist '{playlist_id}'"))?;
@@ -760,7 +761,7 @@ async fn create_assignment_internal(
         .await?;
 
         for skill_id in &session.skill_ids {
-            let material_id = choose_material_for_skill(catalog, session, skill_id).ok_or_else(|| {
+            let material_id = choose_material_for_skill(library, session, skill_id).ok_or_else(|| {
                 anyhow!(
                     "playlist '{}' has no material for skill '{}'",
                     playlist_id,
@@ -795,12 +796,12 @@ async fn create_assignment_internal(
 }
 
 fn choose_material_for_skill<'a>(
-    catalog: &'a CatalogBundle,
-    session: &'a catalog::PlaylistSession,
+    library: &'a LibraryBundle,
+    session: &'a PlaylistSession,
     skill_id: &str,
 ) -> Option<&'a str> {
     for material_id in &session.material_ids {
-        let material = catalog.materials.iter().find(|item| item.id == *material_id)?;
+        let material = library.materials.iter().find(|item| item.id == *material_id)?;
         if material.skill_ids.iter().any(|item| item == skill_id) {
             return Some(material_id.as_str());
         }

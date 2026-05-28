@@ -59,9 +59,9 @@ class CornerstoneApiClient {
     _decode(response);
   }
 
-  Future<CatalogPayload> fetchCatalog() async {
-    final response = await _client.get(Uri.parse('$baseUrl/api/v1/catalog'));
-    return CatalogPayload.fromJson(_decode(response));
+  Future<LibraryPayload> fetchLibrary() async {
+    final response = await _client.get(Uri.parse('$baseUrl/api/v1/library'));
+    return LibraryPayload.fromJson(_decode(response));
   }
 
   Future<LearnerDetailPayload> fetchLearnerDetail(String learnerId) async {

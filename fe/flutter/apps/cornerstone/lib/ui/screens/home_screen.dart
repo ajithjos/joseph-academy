@@ -3,7 +3,7 @@ part of '../../main.dart';
 enum _ShellDestination {
   owner('Owner', 'Manage learners, assignments, and household progress.', Icons.dashboard_rounded),
   learner('Learner', 'Follow today\'s active session and material sequence.', Icons.school_rounded),
-  catalog('Library', 'Browse playlists and learning materials.', Icons.auto_stories_rounded),
+  library('Library', 'Browse pathways, playlists, and learning materials.', Icons.auto_stories_rounded),
   account('My Account', 'Profile and appearance.', Icons.person_rounded);
 
   const _ShellDestination(this.label, this.subtitle, this.icon);
@@ -33,7 +33,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   ViewerSessionPayload? _viewerSession;
   DashboardPayload? _dashboard;
-  CatalogPayload? _catalog;
+  LibraryPayload? _library;
   LearnerDetailPayload? _learnerDetail;
   String? _selectedLearnerId;
   _ShellDestination _selectedDestination = _ShellDestination.owner;
@@ -72,7 +72,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     }
     return const <_ShellDestination>[
       _ShellDestination.learner,
-      _ShellDestination.catalog,
+      _ShellDestination.library,
       _ShellDestination.account,
     ];
   }
@@ -167,7 +167,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           _sessionLoading = false;
           _authBusy = false;
           _dashboard = null;
-          _catalog = null;
+          _library = null;
           _learnerDetail = null;
           _selectedLearnerId = null;
           _selectedDestination = _ShellDestination.owner;
@@ -185,7 +185,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _authBusy = false;
         _sessionErrorMessage = null;
         _dashboard = null;
-        _catalog = null;
+        _library = null;
         _learnerDetail = null;
         _selectedLearnerId = null;
         _selectedDestination = _defaultDestinationForViewer(
@@ -239,7 +239,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _viewerSession = viewerSession;
         _authBusy = false;
         _dashboard = null;
-        _catalog = null;
+        _library = null;
         _learnerDetail = null;
         _selectedLearnerId = null;
         _selectedDestination = _defaultDestinationForViewer(currentUser);
@@ -288,7 +288,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     });
     try {
       final dashboard = await _apiClient.fetchDashboard();
-      final catalog = await _apiClient.fetchCatalog();
+      final library = await _apiClient.fetchLibrary();
       final nextLearnerId = _nextLearnerIdForViewer(
         dashboard,
         preserveSelection: preserveSelection,
@@ -300,7 +300,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       if (!mounted) return;
       setState(() {
         _dashboard = dashboard;
-        _catalog = catalog;
+        _library = library;
         _selectedLearnerId = nextLearnerId;
         _learnerDetail = learnerDetail;
         _loading = false;
@@ -434,7 +434,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return switch (destination) {
       _ShellDestination.owner => 1320,
       _ShellDestination.learner => 1160,
-      _ShellDestination.catalog => 1100,
+      _ShellDestination.library => 1100,
       _ShellDestination.account => 1040,
     };
   }
@@ -1215,14 +1215,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildContentBody(BuildContext context) {
     final dashboard = _dashboard;
-    final catalog = _catalog;
+    final library = _library;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_errorMessage != null) return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
-    if (dashboard == null || catalog == null) return const Center(child: Text('No data loaded'));
+    if (dashboard == null || library == null) return const Center(child: Text('No data loaded'));
     final content = switch (_selectedDestination) {
-      _ShellDestination.owner => _buildOwnerView(context, dashboard, catalog),
+      _ShellDestination.owner => _buildOwnerView(context, dashboard, library),
       _ShellDestination.learner => _buildLearnerView(context),
-      _ShellDestination.catalog => _buildCatalogView(context, catalog),
+      _ShellDestination.library => _buildLibraryView(context, library),
       _ShellDestination.account => _buildAccountView(context, dashboard),
     };
     return _wrapMainContent(content);
@@ -1423,7 +1423,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     );
   }
 
-  Widget _buildOwnerView(BuildContext context, DashboardPayload dashboard, CatalogPayload catalog) {
+  Widget _buildOwnerView(BuildContext context, DashboardPayload dashboard, LibraryPayload library) {
     final detail = _learnerDetail;
     final theme = Theme.of(context);
     final viewer = _currentViewer;
@@ -1502,7 +1502,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     const SizedBox(height: 20),
                     _LearnerOperationsPanel(
                       detail: detail,
-                      catalog: catalog.bundle,
+                      library: library.bundle,
                       currentActionSession: _currentActionSession,
                       scoreController: _scoreController,
                       maxScoreController: _maxScoreController,
@@ -1811,18 +1811,25 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     );
   }
 
-  Widget _buildCatalogView(BuildContext context, CatalogPayload catalog) {
+  Widget _buildLibraryView(BuildContext context, LibraryPayload library) {
     final theme = Theme.of(context);
+    final areaById = {
+      for (final area in library.bundle.areas) area.areaId: area,
+    };
+    final playlistsById = {
+      for (final playlist in library.bundle.playlists) playlist.playlistId: playlist,
+    };
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
           eyebrow: 'Library',
           title: 'Learning Library',
-          description: 'Browse the learning journeys and teaching materials available in Cornerstone.',
+          description: 'Browse the authored pathways first, then drill into the playlists and materials that support each route.',
           chips: [
-            _StatChip(label: 'Playlists', value: '${catalog.report.playlistCount}', icon: Icons.assignment_rounded),
-            _StatChip(label: 'Materials', value: '${catalog.report.materialCount}', icon: Icons.menu_book_rounded),
+            _StatChip(label: 'Pathways', value: '${library.report.pathwayCount}', icon: Icons.route_rounded),
+            _StatChip(label: 'Playlists', value: '${library.report.playlistCount}', icon: Icons.assignment_rounded),
+            _StatChip(label: 'Materials', value: '${library.report.materialCount}', icon: Icons.menu_book_rounded),
           ],
         ),
         const SizedBox(height: 20),
@@ -1830,23 +1837,126 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Learning journeys', style: theme.textTheme.headlineSmall),
+              Text('Pathways', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Choose a sequence that fits the learner\'s age, level, and current focus.',
+                'Start with the route itself. Each pathway card shows the ordered playlists and the suggested household entry points.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              ...catalog.bundle.playlists.map(
-                (playlist) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(playlist.title),
-                  subtitle: Text(
-                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ),
+              if (library.bundle.pathways.isEmpty)
+                Text(
+                  'No pathways are available yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                )
+              else
+                ...library.bundle.pathways.map((pathway) {
+                  final areaTitle = areaById[pathway.areaId]?.title ?? pathway.areaId;
+                  final orderedPlaylists = pathway.playlistIds
+                      .map((playlistId) => playlistsById[playlistId])
+                      .whereType<PlaylistInfo>()
+                      .toList(growable: false);
+                  final entryPoints = pathway.entryPoints.entries.toList(growable: false)
+                    ..sort((left, right) {
+                      final leftAge = int.tryParse(left.key.replaceFirst('age_', '')) ?? 0;
+                      final rightAge = int.tryParse(right.key.replaceFirst('age_', '')) ?? 0;
+                      return leftAge.compareTo(rightAge);
+                    });
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(pathway.title, style: theme.textTheme.titleLarge),
+                          const SizedBox(height: 8),
+                          Text(
+                            pathway.description,
+                            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _PillBadge(
+                                text: areaTitle,
+                                color: theme.colorScheme.secondaryContainer,
+                                textColor: theme.colorScheme.onSecondaryContainer,
+                              ),
+                              _PillBadge(
+                                text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                textColor: theme.colorScheme.primary,
+                              ),
+                              _PillBadge(
+                                text: '${pathway.stageIds.length} stages',
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                textColor: theme.colorScheme.primary,
+                              ),
+                              _PillBadge(
+                                text: '${orderedPlaylists.length} playlists',
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                textColor: theme.colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                          if (entryPoints.isNotEmpty) ...[
+                            const SizedBox(height: 18),
+                            Text('Entry guidance', style: theme.textTheme.titleSmall),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: entryPoints.map((entry) {
+                                final age = entry.key.replaceFirst('age_', '');
+                                final playlistTitle = playlistsById[entry.value]?.title ?? entry.value;
+                                return _PillBadge(
+                                  text: 'Age $age: $playlistTitle',
+                                  color: theme.colorScheme.tertiaryContainer,
+                                  textColor: theme.colorScheme.onTertiaryContainer,
+                                );
+                              }).toList(growable: false),
+                            ),
+                          ],
+                          if (orderedPlaylists.isNotEmpty) ...[
+                            const SizedBox(height: 18),
+                            Text('Ordered playlists', style: theme.textTheme.titleSmall),
+                            const SizedBox(height: 10),
+                            ...orderedPlaylists.map(
+                              (playlist) => ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                  foregroundColor: theme.colorScheme.primary,
+                                  child: Text(
+                                    '${orderedPlaylists.indexOf(playlist) + 1}',
+                                    style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                title: Text(playlist.title),
+                                subtitle: Text(
+                                  'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
             ],
           ),
         ),
@@ -1855,14 +1965,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Materials', style: theme.textTheme.headlineSmall),
+              Text('Supporting materials', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Core teaching materials that support the learning journeys above.',
+                'Reusable teaching and practice materials that the playlists draw from.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              ...catalog.bundle.materials.map(
+              ...library.bundle.materials.map(
                 (item) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(item.title),
