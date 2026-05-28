@@ -4,8 +4,8 @@ These docs describe the canonical Cornerstone model and the authoring workflow a
 
 ## Core
 
-- `architecture/learning-product-definition.md`: the stable object model for subject, area, stage, skill, material, playlist, team, learner, assignment, session, evidence, and progress
-- `architecture/planning-authoring-and-runtime.md`: how to think about whole-plan pathways, curriculum objects, runtime tracking, and YAML versus markdown maintenance
+- `architecture/learning-product-definition.md`: the stable object model for subject, area, pathway, stage, skill, material, playlist, team, learner, assignment, session, evidence, and progress
+- `architecture/planning-authoring-and-runtime.md`: how the cleaned pathway-contained content tree, runtime tracking, and source formats fit together
 - `operator-playbook.md`: the end-to-end operating workflow for authoring, validating, and running the stack
 
 ## Authoring

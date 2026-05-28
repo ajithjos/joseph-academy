@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LIBRARY_ROOT = REPO_ROOT / "content" / "library"
+PATHWAY_ROOT = (
+    LIBRARY_ROOT
+    / "maths"
+    / "arithmetic"
+    / "household-arithmetic-fact-fluency"
+)
+
+
+def load_yaml(path: Path) -> dict:
+    return yaml.safe_load(path.read_text())
+
+
+def load_markdown_frontmatter(path: Path) -> dict:
+    text = path.read_text()
+    assert text.startswith("---\n"), f"missing frontmatter start: {path}"
+    end = text.find("\n---\n", 4)
+    assert end != -1, f"missing frontmatter end: {path}"
+    return yaml.safe_load(text[4:end])
+
+
+def collect_markdown(directory: Path) -> dict[str, dict]:
+    items: dict[str, dict] = {}
+    for path in sorted(directory.glob("*.md")):
+        item = load_markdown_frontmatter(path)
+        items[item["id"]] = item
+    return items
+
+
+def test_household_arithmetic_pathway_tree_is_coherent() -> None:
+    registry = load_yaml(LIBRARY_ROOT / "registry.yaml")
+    pathway_entries = registry["pathways"]
+    pathway_entry = next(
+        item
+        for item in pathway_entries
+        if item["pathway_id"] == "household_arithmetic_fact_fluency"
+    )
+
+    pathway_path = LIBRARY_ROOT / pathway_entry["path"]
+    assert pathway_path.exists()
+
+    pathway = load_markdown_frontmatter(pathway_path)
+    stages = collect_markdown(PATHWAY_ROOT / "stages")
+    skills = collect_markdown(PATHWAY_ROOT / "skills")
+    playlists = collect_markdown(PATHWAY_ROOT / "playlists")
+    materials = collect_markdown(PATHWAY_ROOT / "materials")
+
+    assert pathway["id"] == pathway_entry["pathway_id"]
+    assert pathway["subject_id"] == pathway_entry["subject_id"]
+    assert pathway["area_id"] == pathway_entry["area_id"]
+    assert set(pathway["stage_ids"]) == set(stages)
+    assert set(pathway["playlist_ids"]) == set(playlists)
+
+    for age_key in ("age_5", "age_7", "age_10"):
+        assert pathway["entry_points"][age_key] in playlists
+
+    used_stage_ids = set()
+    used_skill_ids = set()
+    used_material_ids = set()
+
+    for skill in skills.values():
+        assert skill["stage_ids"]
+        for stage_id in skill["stage_ids"]:
+            assert stage_id in stages
+            used_stage_ids.add(stage_id)
+        used_skill_ids.add(skill["id"])
+
+    material_skill_ids = set()
+    for material in materials.values():
+        assert material["stage_ids"]
+        assert material["skill_ids"]
+        for stage_id in material["stage_ids"]:
+            assert stage_id in stages
+            used_stage_ids.add(stage_id)
+        for skill_id in material["skill_ids"]:
+            assert skill_id in skills
+            material_skill_ids.add(skill_id)
+        used_material_ids.add(material["id"])
+
+    playlist_stage_ids = set()
+    playlist_skill_ids = set()
+    playlist_material_ids = set()
+    for playlist in playlists.values():
+        assert playlist["stage_ids"]
+        assert playlist["skill_ids"]
+        assert playlist["sessions"]
+        for stage_id in playlist["stage_ids"]:
+            assert stage_id in stages
+            playlist_stage_ids.add(stage_id)
+        for skill_id in playlist["skill_ids"]:
+            assert skill_id in skills
+            playlist_skill_ids.add(skill_id)
+        for session in playlist["sessions"]:
+            assert session["material_ids"]
+            assert session["skill_ids"]
+            for material_id in session["material_ids"]:
+                assert material_id in materials
+                playlist_material_ids.add(material_id)
+            for skill_id in session["skill_ids"]:
+                assert skill_id in skills
+                assert skill_id in playlist["skill_ids"]
+
+    assert set(stages) == used_stage_ids | playlist_stage_ids
+    assert set(skills) == used_skill_ids == material_skill_ids | {
+        "count_small_groups_within_5"
+    }
+    assert set(materials) == used_material_ids == playlist_material_ids
+    assert set(playlists) == set(pathway["playlist_ids"])

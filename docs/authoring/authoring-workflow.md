@@ -7,26 +7,27 @@ Use this workflow whether a human expert is writing curriculum directly or an AI
 Before authoring or reviewing a slice, gather:
 
 - this directory
-- the in-scope `content/catalog/*.yaml` files
-- the in-scope `content/materials/**/*.md` files
+- `content/library/registry.yaml`
+- the in-scope pathway directory under `content/library/{subject}/{area}/{pathway}/`
 - a filled-in [Curriculum slice brief template](./curriculum-slice-brief-template.md), when available
 - explicit constraints about which files may change and which must stay fixed
 
 ## Standard Authoring Flow
 
 1. Define the subject, area, learner context, and desired outcome.
-2. Review existing ids, stages, skills, materials, and playlists before creating anything new.
-3. Draft or revise the skills for the slice.
-4. Group those skills into stages that make sense to a parent or coach.
-5. Decide what materials are needed for explanation, practice, review, and checking.
-6. Write or revise the markdown materials.
-7. Update the catalog YAML entries.
+2. Review the existing pathway registry and in-scope pathway files before creating anything new.
+3. Draft or revise the pathway as the whole route.
+4. Draft or revise the skills for the slice.
+5. Group those skills into stages that make sense to a parent or coach.
+6. Decide what materials are needed for explanation, practice, review, and checking.
+7. Write or revise the markdown materials.
 8. Assemble or revise one or more playlists.
+9. Add or revise entry guidance for age or current readiness.
 9. Run the [review checklist](./authoring-rules.md).
-10. Run `make rust-catalog-validate` while iterating if you changed structure, references, or material files.
-11. Run `make content-validate` before finishing the work.
+10. Run `uv run --with pytest python -m pytest tests/test_pathway_library.py` while iterating on the cleaned tree.
+11. Run legacy validation commands only if you changed compatibility files.
 
-These checks run against the full content set, not only the touched slice. That is deliberate: orphan detection and cross-reference failures usually show up only when the whole catalog is checked together.
+These checks should cover the whole in-scope pathway, not only one individual file.
 
 ## How To Brief The Author
 
@@ -45,29 +46,25 @@ If essential slice facts are missing, ask only for those missing facts.
 
 Good output should include:
 
-1. the exact YAML entries to add or update
+1. the exact registry and Markdown files to add or update
 2. the exact markdown materials to add or update
 3. a short explanation of why the stage and skill boundaries make sense
 4. validation notes for cross-references, naming consistency, and reuse choices
 
 The author should produce only the files required for the slice:
 
-- `content/catalog/skills.yaml`
-- `content/catalog/stages.yaml`
-- `content/catalog/materials.yaml`
-- `content/catalog/playlists.yaml`
-- one or more markdown files under `content/materials/{subject}/...`
+- `content/library/registry.yaml`, when subject, area, or pathway registry changes are needed
+- `content/library/{subject}/{area}/{pathway}/pathway.md`
+- stage, skill, playlist, and material files under that pathway directory
 
-If the subject or area is new, the work may also need updates to:
-
-- `content/catalog/subjects.yaml`
-- `content/catalog/areas.yaml`
+If a legacy compatibility surface is still in scope, say so explicitly and keep that as a separate migration step.
 
 ## Repo Validation Commands
 
 Use these from the repo root when you need to validate repository changes:
 
 ```bash
+uv run --with pytest python -m pytest tests/test_pathway_library.py
 make rust-catalog-validate
 make content-validate
 uv run python scripts/render_catalog_docs.py developer
@@ -76,4 +73,4 @@ cargo check -p control_plane --manifest-path rust/Cargo.toml
 cd fe/flutter/apps/cornerstone && flutter analyze
 ```
 
-Use `make rust-catalog-validate` as the fast structural check. Use `make content-validate` as the normal completion check for newly authored or revised content.
+Use the pathway-library test as the fast structural check for cleaned slices. Use the legacy validation commands only when legacy compatibility files are touched.

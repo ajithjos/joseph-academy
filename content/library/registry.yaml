@@ -1,0 +1,19 @@
+subjects:
+  - subject_id: maths
+    title: Maths
+    description: Number facts, operations, and fluency for primary learners.
+
+areas:
+  - area_id: arithmetic
+    subject_id: maths
+    title: Arithmetic
+    description: Number facts, written operations, and fluency for primary learners.
+
+pathways:
+  - pathway_id: household_arithmetic_fact_fluency
+    subject_id: maths
+    area_id: arithmetic
+    title: Household Arithmetic Fact Fluency
+    status: active
+    brief_source: docs/authoring/examples/household-arithmetic-fact-fluency-brief.md
+    path: maths/arithmetic/household-arithmetic-fact-fluency/pathway.md

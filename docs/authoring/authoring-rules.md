@@ -4,9 +4,9 @@ These rules apply whether the work is being done by a human author, subject expe
 
 ## Source Of Truth
 
-- Treat the existing `content/catalog/*.yaml` and `content/materials/**/*.md` files as the source of truth for schema, ids, naming, and established structure.
+- Treat `content/library/registry.yaml` and pathway-contained files under `content/library/{subject}/{area}/{pathway}/` as the source of truth for cleaned curriculum slices.
 - Reuse existing objects when that is clearly better than creating duplicates.
-- If existing files conflict with this directory, prefer the real repository files and then update the docs if needed.
+- Legacy `content/catalog/` and `content/materials/` remain compatibility inputs until runtime migration. Do not design new slices around that older split.
 
 ## Required Vocabulary
 
@@ -14,6 +14,7 @@ Use these curriculum names:
 
 - Subject
 - Area
+- Pathway
 - Stage
 - Skill
 - Material
@@ -42,14 +43,17 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 ## Curriculum Structure Rules
 
 - Keep ids in `snake_case`.
-- Keep subject and area explicit in catalog objects.
+- Keep subject and area explicit in the registry and pathway frontmatter.
 - Track learner progress at the skill level, not at the material level.
+- Use pathway as the contained authoring boundary for one whole route.
 - Use stages to group related skills in parent-facing language.
+- Use stages for learning progression, not for age bands.
 - Use materials as reusable teaching or practice artifacts.
 - Use playlists as ordered session plans that reference real materials.
-- Keep material files under `content/materials/{subject_id}/{area_id}/...` so the tree stays intuitive to browse.
+- Keep stage, skill, playlist, and material files inside `content/library/{subject_id}/{area_id}/{pathway_id}/`.
 - Do not hide curriculum structure inside playlists.
 - Do not invent compatibility aliases or parallel schema.
+- Do not add a separate pathway YAML file unless the metadata truly no longer fits the pathway document.
 - Do not add placeholder materials that will never be used.
 
 ## Material Quality Rules
@@ -57,23 +61,23 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Materials should be usable in a real session by a parent, teacher, or coach.
 - Prefer concrete prompts, examples, checks, and adaptations over abstract guidance.
 - Write for repeatable use, not for a one-time demo activity.
-- Keep markdown material frontmatter aligned with the corresponding `materials.yaml` entry.
+- Keep material metadata in the material file itself. Do not duplicate it in a separate material index.
 - Make review and recap deliberate when the slice needs them; do not leave reinforcement to chance.
 
 ## Validation Rules
 
-- Every active subject and area must have downstream curriculum, not just top-level placeholder entries.
+- Every active pathway must contain real downstream curriculum, not just a top-level pathway document.
 - Every skill must appear in at least one stage, one material, and one playlist session.
 - Every stage must be used by at least one material and one playlist.
-- Every indexed material must be used by at least one playlist session.
-- Every markdown file under `content/materials/` must be indexed in `content/catalog/materials.yaml`.
-- Session materials must match the session skills and stay within the playlist's subject, area, and stages.
+- Every material file inside a pathway must be used by at least one playlist session unless it is clearly marked as a reference note in the pathway.
+- Session materials must match the session skills and stay within the playlist's pathway and stages.
+- Entry guidance must point to real playlists.
 
 ## Validation Commands
 
-- Run `make rust-catalog-validate` while you are iterating on structure, ids, and references.
-- Run `make content-validate` before you consider authored content complete. This runs the catalog validator and the docs render tests together.
-- Validate the full content set after any slice change. The current checks are cross-reference checks, not slice-scoped checks.
+- Run `uv run --with pytest python -m pytest tests/test_pathway_library.py` while iterating on the cleaned pathway tree.
+- Run `make rust-catalog-validate` and `make content-validate` if you also touched the legacy compatibility inputs.
+- Validate the full in-scope pathway after any slice change.
 
 ## Review Checklist
 
@@ -82,9 +86,8 @@ Before accepting authored output, check that:
 1. every referenced `skill_id` exists
 2. every referenced `stage_id` exists
 3. every playlist references real materials
-4. every material frontmatter matches the corresponding `materials.yaml` entry
-5. subject and area ids are consistent across the whole slice
-6. every skill, stage, and material has downstream usage and no orphan remains
-7. there is no stray markdown under `content/materials/`
-8. no duplicate object exists for the same teaching job
-9. all explicit constraints from the brief are respected
+4. subject, area, and pathway ids are consistent across the whole slice
+5. every skill, stage, and material has downstream usage and no orphan remains
+6. there is no stray markdown outside the owning pathway directory
+7. no duplicate object exists for the same teaching job
+8. all explicit constraints from the brief are respected

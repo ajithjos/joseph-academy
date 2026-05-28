@@ -13,6 +13,8 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 - a fillable brief template for one curriculum slice
 - worked example briefs under `examples/`
 
+Briefs under `examples/` are planning inputs. The canonical authored curriculum built from those briefs lives under `content/library/`.
+
 Architecture decisions about planning objects and runtime surfaces live under `../architecture/`.
 
 ## Recommended Reading Order
@@ -35,8 +37,8 @@ Use the whole directory when you want someone to:
 
 When making a request, also attach or point to:
 
-- the existing `content/catalog/*.yaml` files in scope
-- the existing `content/materials/**/*.md` files in scope
+- `content/library/registry.yaml`
+- the in-scope pathway directory under `content/library/{subject}/{area}/{pathway}/`
 - a filled-in [Curriculum slice brief template](./curriculum-slice-brief-template.md), when available
 - clear scope constraints about which files may change and which must stay fixed
 
@@ -44,7 +46,7 @@ When making a request, also attach or point to:
 
 Good authoring output should give you:
 
-1. exact file changes for YAML and markdown
+1. exact file changes for `registry.yaml` and pathway-contained Markdown
 2. clear stage and skill boundaries
 3. reusable materials instead of one-off placeholders
 4. validation notes for ids, cross-references, and scope consistency
