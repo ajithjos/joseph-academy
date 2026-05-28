@@ -140,6 +140,44 @@ class CornerstoneApiClient {
     _decode(response);
   }
 
+  Future<ActivityInstance> startSessionMaterialActivity({
+    required String sessionId,
+    required String sessionMaterialId,
+  }) async {
+    final response = await _client.post(
+      Uri.parse(
+        '$baseUrl/api/v1/sessions/$sessionId/materials/$sessionMaterialId/start',
+      ),
+      headers: _viewerHeaders(),
+    );
+    return ActivityStartPayload.fromJson(_decode(response)).activity;
+  }
+
+  Future<CompleteActivityResponse> completeActivity({
+    required String activityInstanceId,
+    required List<String> answers,
+    required List<ActivityPrompt> prompts,
+    required int durationSeconds,
+    required String notes,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/activity-instances/$activityInstanceId/complete'),
+      headers: _viewerHeaders(contentTypeJson: true),
+      body: jsonEncode({
+        'responses': List.generate(
+          prompts.length,
+          (index) => {
+            'prompt_id': prompts[index].promptId,
+            'answer': answers[index],
+          },
+        ),
+        'duration_seconds': durationSeconds,
+        'notes': notes,
+      }),
+    );
+    return CompleteActivityResponse.fromJson(_decode(response));
+  }
+
   Map<String, String> _viewerHeaders({bool contentTypeJson = false}) {
     final headers = <String, String>{};
     if (contentTypeJson) {

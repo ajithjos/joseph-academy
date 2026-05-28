@@ -8,6 +8,24 @@ skill_ids:
   - add_within_10
   - subtract_within_10
 estimated_minutes: 5
+runtime:
+  engine_id: arithmetic_fact_fluency.v1
+  spec_version: 1
+  template_id: mixed_add_sub_to_10
+  parameters:
+    question_count: 10
+    operations:
+      - addition
+      - subtraction
+    prompt_forms:
+      - equation
+      - bond_missing
+  scoring:
+    pass_accuracy: 0.8
+    soft_time_limit_seconds: 90
+  persistence:
+    store_response_log: false
+    store_summary: true
 ---
 
 # Addition And Subtraction Facts To 10 Check

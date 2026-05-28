@@ -6,6 +6,8 @@ These docs describe the canonical Cornerstone model and the authoring workflow a
 
 - `architecture/learning-product-definition.md`: the stable object model for subject, area, pathway, stage, skill, material, playlist, team, learner, assignment, session, evidence, and progress
 - `architecture/planning-authoring-and-runtime.md`: how the cleaned pathway-contained content tree, runtime tracking, and source formats fit together
+- `architecture/runtime-program-contract.md`: the developer contract for runtime ids, runtime program registration, generate and score functions, and how to add new live programs
+- `architecture/how-live-materials-work.md`: the short developer guide for how live materials map from authored runtime blocks to backend generation, UI rendering, assignment flow, and learner use
 - `architecture/executable-drills-and-assignment-delivery.md`: the contract for live drills, result capture, and the parent browse-and-assign flow
 - `operator-playbook.md`: the end-to-end operating workflow for authoring, validating, and running the stack
 

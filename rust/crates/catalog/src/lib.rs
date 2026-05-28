@@ -5,6 +5,7 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{Context, anyhow, bail};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubjectCatalog {
@@ -147,9 +148,39 @@ pub struct MaterialDocument {
     pub recommended_age: u8,
     pub difficulty: String,
     pub estimated_minutes: u16,
+    pub runtime: Option<MaterialRuntime>,
     pub title: String,
     pub body: String,
     pub source_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialRuntime {
+    pub engine_id: String,
+    pub spec_version: u16,
+    pub template_id: String,
+    #[serde(default)]
+    pub parameters: JsonValue,
+    pub scoring: Option<MaterialRuntimeScoring>,
+    pub persistence: Option<MaterialRuntimePersistence>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialRuntimeScoring {
+    pub pass_accuracy: Option<f64>,
+    pub soft_time_limit_seconds: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialRuntimePersistence {
+    #[serde(default)]
+    pub store_response_log: bool,
+    #[serde(default = "default_store_summary")]
+    pub store_summary: bool,
+}
+
+fn default_store_summary() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,6 +299,7 @@ struct MaterialFrontmatter {
     estimated_minutes: u16,
     recommended_age: Option<u8>,
     difficulty: Option<String>,
+    runtime: Option<MaterialRuntime>,
 }
 
 #[derive(Debug, Default)]
@@ -392,6 +424,12 @@ impl LibraryBundle {
         self.playlists
             .iter()
             .find(|playlist| playlist.playlist_id == playlist_id)
+    }
+
+    pub fn material(&self, material_id: &str) -> Option<&MaterialDocument> {
+        self.materials
+            .iter()
+            .find(|material| material.id == material_id)
     }
 }
 
@@ -685,6 +723,7 @@ fn load_library_documents(
                 recommended_age,
                 difficulty,
                 estimated_minutes: material_meta.estimated_minutes,
+                runtime: material_meta.runtime,
                 title,
                 body: material_body,
                 source_path: material_relative_path,

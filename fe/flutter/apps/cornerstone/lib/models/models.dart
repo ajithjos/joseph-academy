@@ -554,26 +554,61 @@ class SessionMaterial {
   SessionMaterial({
     required this.sessionMaterialId,
     required this.title,
-    required this.skillId,
     required this.materialId,
+    required this.kind,
+    required this.estimatedMinutes,
+    required this.skillIds,
     required this.status,
+    this.runtime,
   });
 
   factory SessionMaterial.fromJson(Map<String, dynamic> json) {
     return SessionMaterial(
       sessionMaterialId: json['session_material_id'] as String,
       title: json['title'] as String,
-      skillId: json['skill_id'] as String,
       materialId: json['material_id'] as String,
+      kind: json['kind'] as String,
+      estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
+      skillIds: (json['skill_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
       status: json['status'] as String,
+      runtime: json['runtime'] == null
+          ? null
+          : SessionMaterialRuntimeSummary.fromJson(
+              json['runtime'] as Map<String, dynamic>,
+            ),
     );
   }
 
   final String sessionMaterialId;
   final String title;
-  final String skillId;
   final String materialId;
+  final String kind;
+  final int estimatedMinutes;
+  final List<String> skillIds;
   final String status;
+  final SessionMaterialRuntimeSummary? runtime;
+}
+
+class SessionMaterialRuntimeSummary {
+  SessionMaterialRuntimeSummary({
+    required this.engineId,
+    required this.templateId,
+    required this.executable,
+  });
+
+  factory SessionMaterialRuntimeSummary.fromJson(Map<String, dynamic> json) {
+    return SessionMaterialRuntimeSummary(
+      engineId: json['engine_id'] as String,
+      templateId: json['template_id'] as String,
+      executable: json['executable'] as bool? ?? true,
+    );
+  }
+
+  final String engineId;
+  final String templateId;
+  final bool executable;
 }
 
 class EvidenceSummary {
@@ -859,9 +894,11 @@ class PlaylistInfo {
     required this.stageIds,
     required this.skillIds,
     required this.durationDays,
+    required this.sessions,
   });
 
   factory PlaylistInfo.fromJson(Map<String, dynamic> json) {
+    final sessionPattern = json['session_pattern'] as Map<String, dynamic>?;
     return PlaylistInfo(
       playlistId: json['playlist_id'] as String,
       title: json['title'] as String,
@@ -876,6 +913,9 @@ class PlaylistInfo {
           .map((item) => item as String)
           .toList(),
       durationDays: (json['duration_days'] as num).toInt(),
+      sessions: ((sessionPattern?['sessions'] as List<dynamic>?) ?? const <dynamic>[])
+          .map((item) => PlaylistSessionInfo.fromJson(item as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -888,6 +928,34 @@ class PlaylistInfo {
   final List<String> stageIds;
   final List<String> skillIds;
   final int durationDays;
+  final List<PlaylistSessionInfo> sessions;
+}
+
+class PlaylistSessionInfo {
+  PlaylistSessionInfo({
+    required this.dayOffset,
+    required this.title,
+    required this.skillIds,
+    required this.materialIds,
+  });
+
+  factory PlaylistSessionInfo.fromJson(Map<String, dynamic> json) {
+    return PlaylistSessionInfo(
+      dayOffset: (json['day_offset'] as num).toInt(),
+      title: json['title'] as String,
+      skillIds: (json['skill_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+      materialIds: (json['material_ids'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+    );
+  }
+
+  final int dayOffset;
+  final String title;
+  final List<String> skillIds;
+  final List<String> materialIds;
 }
 
 class MaterialInfo {
@@ -902,6 +970,7 @@ class MaterialInfo {
     required this.recommendedAge,
     required this.difficulty,
     required this.estimatedMinutes,
+    this.runtime,
   });
 
   factory MaterialInfo.fromJson(Map<String, dynamic> json) {
@@ -920,6 +989,11 @@ class MaterialInfo {
       recommendedAge: (json['recommended_age'] as num).toInt(),
       difficulty: json['difficulty'] as String,
       estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
+      runtime: json['runtime'] == null
+          ? null
+          : MaterialRuntimeInfo.fromJson(
+              json['runtime'] as Map<String, dynamic>,
+            ),
     );
   }
 
@@ -933,4 +1007,237 @@ class MaterialInfo {
   final int recommendedAge;
   final String difficulty;
   final int estimatedMinutes;
+  final MaterialRuntimeInfo? runtime;
+}
+
+class MaterialRuntimeInfo {
+  MaterialRuntimeInfo({
+    required this.engineId,
+    required this.specVersion,
+    required this.templateId,
+    required this.parameters,
+    this.scoring,
+    this.persistence,
+  });
+
+  factory MaterialRuntimeInfo.fromJson(Map<String, dynamic> json) {
+    return MaterialRuntimeInfo(
+      engineId: json['engine_id'] as String,
+      specVersion: (json['spec_version'] as num).toInt(),
+      templateId: json['template_id'] as String,
+      parameters:
+          (json['parameters'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+      scoring: json['scoring'] == null
+          ? null
+          : MaterialRuntimeScoringInfo.fromJson(
+              json['scoring'] as Map<String, dynamic>,
+            ),
+      persistence: json['persistence'] == null
+          ? null
+          : MaterialRuntimePersistenceInfo.fromJson(
+              json['persistence'] as Map<String, dynamic>,
+            ),
+    );
+  }
+
+  final String engineId;
+  final int specVersion;
+  final String templateId;
+  final Map<String, dynamic> parameters;
+  final MaterialRuntimeScoringInfo? scoring;
+  final MaterialRuntimePersistenceInfo? persistence;
+}
+
+class MaterialRuntimeScoringInfo {
+  MaterialRuntimeScoringInfo({
+    this.passAccuracy,
+    this.softTimeLimitSeconds,
+  });
+
+  factory MaterialRuntimeScoringInfo.fromJson(Map<String, dynamic> json) {
+    return MaterialRuntimeScoringInfo(
+      passAccuracy: (json['pass_accuracy'] as num?)?.toDouble(),
+      softTimeLimitSeconds: (json['soft_time_limit_seconds'] as num?)?.toInt(),
+    );
+  }
+
+  final double? passAccuracy;
+  final int? softTimeLimitSeconds;
+}
+
+class MaterialRuntimePersistenceInfo {
+  MaterialRuntimePersistenceInfo({
+    required this.storeResponseLog,
+    required this.storeSummary,
+  });
+
+  factory MaterialRuntimePersistenceInfo.fromJson(Map<String, dynamic> json) {
+    return MaterialRuntimePersistenceInfo(
+      storeResponseLog: json['store_response_log'] as bool? ?? false,
+      storeSummary: json['store_summary'] as bool? ?? true,
+    );
+  }
+
+  final bool storeResponseLog;
+  final bool storeSummary;
+}
+
+class ActivityStartPayload {
+  ActivityStartPayload({required this.status, required this.activity});
+
+  factory ActivityStartPayload.fromJson(Map<String, dynamic> json) {
+    return ActivityStartPayload(
+      status: json['status'] as String,
+      activity: ActivityInstance.fromJson(json['activity'] as Map<String, dynamic>),
+    );
+  }
+
+  final String status;
+  final ActivityInstance activity;
+}
+
+class ActivityInstance {
+  ActivityInstance({
+    required this.activityInstanceId,
+    required this.sessionId,
+    required this.sessionMaterialId,
+    required this.materialId,
+    required this.materialTitle,
+    required this.engineId,
+    required this.templateId,
+    required this.instructions,
+    required this.estimatedMinutes,
+    required this.scoring,
+    required this.prompts,
+  });
+
+  factory ActivityInstance.fromJson(Map<String, dynamic> json) {
+    return ActivityInstance(
+      activityInstanceId: json['activity_instance_id'] as String,
+      sessionId: json['session_id'] as String,
+      sessionMaterialId: json['session_material_id'] as String,
+      materialId: json['material_id'] as String,
+      materialTitle: json['material_title'] as String,
+      engineId: json['engine_id'] as String,
+      templateId: json['template_id'] as String,
+      instructions: json['instructions'] as String,
+      estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
+      scoring: ActivityScoringSummary.fromJson(
+        json['scoring'] as Map<String, dynamic>,
+      ),
+      prompts: (json['prompts'] as List<dynamic>)
+          .map((item) => ActivityPrompt.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  final String activityInstanceId;
+  final String sessionId;
+  final String sessionMaterialId;
+  final String materialId;
+  final String materialTitle;
+  final String engineId;
+  final String templateId;
+  final String instructions;
+  final int estimatedMinutes;
+  final ActivityScoringSummary scoring;
+  final List<ActivityPrompt> prompts;
+}
+
+class ActivityScoringSummary {
+  ActivityScoringSummary({
+    this.passAccuracy,
+    this.softTimeLimitSeconds,
+  });
+
+  factory ActivityScoringSummary.fromJson(Map<String, dynamic> json) {
+    return ActivityScoringSummary(
+      passAccuracy: (json['pass_accuracy'] as num?)?.toDouble(),
+      softTimeLimitSeconds: (json['soft_time_limit_seconds'] as num?)?.toInt(),
+    );
+  }
+
+  final double? passAccuracy;
+  final int? softTimeLimitSeconds;
+}
+
+class ActivityPrompt {
+  ActivityPrompt({
+    required this.promptId,
+    required this.prompt,
+    required this.answerKind,
+  });
+
+  factory ActivityPrompt.fromJson(Map<String, dynamic> json) {
+    return ActivityPrompt(
+      promptId: json['prompt_id'] as String,
+      prompt: json['prompt'] as String,
+      answerKind: json['answer_kind'] as String,
+    );
+  }
+
+  final String promptId;
+  final String prompt;
+  final String answerKind;
+}
+
+class CompleteActivityResponse {
+  CompleteActivityResponse({
+    required this.status,
+    required this.evidence,
+    required this.updatedProgress,
+    required this.activitySummary,
+  });
+
+  factory CompleteActivityResponse.fromJson(Map<String, dynamic> json) {
+    return CompleteActivityResponse(
+      status: json['status'] as String,
+      evidence: EvidenceSummary.fromJson(json['evidence'] as Map<String, dynamic>),
+      updatedProgress: (json['updated_progress'] as List<dynamic>)
+          .map((item) => SkillProgressSummary.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      activitySummary: ActivitySummary.fromJson(
+        json['activity_summary'] as Map<String, dynamic>,
+      ),
+    );
+  }
+
+  final String status;
+  final EvidenceSummary evidence;
+  final List<SkillProgressSummary> updatedProgress;
+  final ActivitySummary activitySummary;
+}
+
+class ActivitySummary {
+  ActivitySummary({
+    required this.attemptedCount,
+    required this.correctCount,
+    required this.promptCount,
+    required this.accuracy,
+    required this.passed,
+    required this.completionReason,
+    required this.weakGroups,
+  });
+
+  factory ActivitySummary.fromJson(Map<String, dynamic> json) {
+    return ActivitySummary(
+      attemptedCount: (json['attempted_count'] as num).toInt(),
+      correctCount: (json['correct_count'] as num).toInt(),
+      promptCount: (json['prompt_count'] as num).toInt(),
+      accuracy: (json['accuracy'] as num).toDouble(),
+      passed: json['passed'] as bool,
+      completionReason: json['completion_reason'] as String,
+      weakGroups: (json['weak_groups'] as List<dynamic>)
+          .map((item) => item as String)
+          .toList(),
+    );
+  }
+
+  final int attemptedCount;
+  final int correctCount;
+  final int promptCount;
+  final double accuracy;
+  final bool passed;
+  final String completionReason;
+  final List<String> weakGroups;
 }

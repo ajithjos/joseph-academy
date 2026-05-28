@@ -4,7 +4,7 @@ use std::sync::Arc;
 use anyhow::{Context, anyhow, bail};
 use catalog::{LibraryBundle, LibraryDocument, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_content};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
-use serde_json::json;
+use serde_json::{Value as JsonValue, json};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, query, query_as, query_scalar};
 use tokio::fs;
@@ -13,14 +13,19 @@ use uuid::Uuid;
 
 use crate::config::AppConfig;
 use crate::domain::{
-    AssignmentRequest, AssignmentResponse, AssignmentRow, AssignmentSummary, BootstrapApplyResponse,
+    ActivityInstance, ActivityPrompt, ActivityScoringSummary, ActivityStartResponse,
+    ActivitySummary, AssignmentRequest, AssignmentResponse,
+    AssignmentRow, AssignmentSummary, BootstrapApplyResponse, CompleteActivityRequest,
+    CompleteActivityResponse,
     DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, HouseholdMemberSummary,
     LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary, LibraryDocumentPayload,
     LibraryDocumentSummary, LibraryReloadResponse, RecordSessionRequest, RecordSessionResponse,
     ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail, SessionMaterialRow,
-    SessionMaterialSummary, SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
-    StageProgress, TeamRow, TeamSummary, ViewerSessionResponse,
+    SessionMaterialRuntimeSummary, SessionMaterialSummary, SessionRow, SessionSummary,
+    SkillProgressRow, SkillProgressSummary, StageProgress, TeamRow, TeamSummary,
+    ViewerSessionResponse,
 };
+use crate::runtime::{self, GeneratedActivity, ScoredActivity};
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
@@ -423,7 +428,8 @@ pub async fn fetch_learner_detail(
     let assignment_filter = active_assignment
         .as_ref()
         .map(|assignment| assignment.assignment_id.clone());
-    let sessions = fetch_sessions(&state.pool, learner_id, assignment_filter.as_deref()).await?;
+    let library = state.library.read().await.clone();
+    let sessions = fetch_sessions(&state.pool, &library, learner_id, assignment_filter.as_deref()).await?;
     let progress = fetch_progress(&state.pool, learner_id).await?;
     let review_items = fetch_review_items(&state.pool, learner_id).await?;
 
@@ -477,29 +483,198 @@ pub async fn record_session(
     if request.max_score <= 0.0 {
         bail!("max_score must be greater than zero");
     }
-    let session = query_as::<_, SessionRow>(
-        "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
-         from session
-         where session_id = $1",
-    )
-    .bind(session_id)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| anyhow!("session '{session_id}' not found"))?;
+    let (session, materials) = load_session_and_material_rows(&state.pool, session_id).await?;
+    let notes = request.notes.trim().to_string();
+    let artifact_summary = if notes.is_empty() {
+        session.title.clone()
+    } else {
+        format!("{}: {}", session.title, notes)
+    };
+    let artifact_payload = json!({
+        "session_id": session.session_id,
+        "learner_id": session.learner_id,
+        "score": request.score,
+        "max_score": request.max_score,
+        "duration_minutes": request.duration_minutes,
+        "notes": notes,
+        "recording_mode": "manual",
+    });
 
-    let materials = query_as::<_, SessionMaterialRow>(
-        "select session_material_id, session_id, title, skill_id, material_id, status
-         from session_material
-         where session_id = $1
-         order by title, skill_id",
+    persist_session_result(
+        state,
+        &session,
+        &materials,
+        request.score,
+        request.max_score,
+        request.duration_minutes,
+        notes,
+        "session_notes",
+        artifact_summary,
+        artifact_payload,
     )
-    .bind(session_id)
-    .fetch_all(&state.pool)
+    .await
+}
+
+pub async fn start_session_material_activity(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+    session_id: &str,
+    session_material_id: &str,
+) -> anyhow::Result<ActivityStartResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    let (session, materials) = load_session_and_material_rows(&state.pool, session_id).await?;
+    ensure_viewer_can_access_learner(&viewer, &session.learner_id)?;
+    if session.status == "completed" {
+        bail!("session '{session_id}' is already completed");
+    }
+
+    let session_material = materials
+        .iter()
+        .find(|material| material.session_material_id == session_material_id)
+        .ok_or_else(|| anyhow!("session material '{session_material_id}' not found"))?;
+
+    let library = state.library.read().await.clone();
+    let material = library
+        .material(&session_material.material_id)
+        .ok_or_else(|| anyhow!("material '{}' not found in library", session_material.material_id))?;
+    let generated = runtime::generate_activity(material, runtime::activity_seed())
+        .context("failed to generate activity")?;
+
+    query("update session set status = 'active' where session_id = $1 and status = 'scheduled'")
+        .bind(&session.session_id)
+        .execute(&state.pool)
+        .await?;
+    query(
+        "update session_material set status = 'active' where session_id = $1 and material_id = $2 and status = 'scheduled'",
+    )
+    .bind(&session.session_id)
+    .bind(&session_material.material_id)
+    .execute(&state.pool)
     .await?;
+
+    Ok(ActivityStartResponse {
+        status: "ok".to_string(),
+        activity: ActivityInstance {
+            activity_instance_id: runtime::build_activity_instance_id(
+                &session_material.session_material_id,
+                generated.seed,
+            ),
+            session_id: session.session_id,
+            session_material_id: session_material.session_material_id.clone(),
+            material_id: material.id.clone(),
+            material_title: material.title.clone(),
+            runtime_id: generated.runtime_id.clone(),
+            engine_id: generated.engine_id,
+            template_id: generated.template_id,
+            instructions: generated.instructions,
+            estimated_minutes: material.estimated_minutes,
+            scoring: ActivityScoringSummary {
+                pass_accuracy: generated.pass_accuracy,
+                soft_time_limit_seconds: generated.soft_time_limit_seconds,
+            },
+            prompts: generated
+                .prompts
+                .into_iter()
+                .map(|prompt| ActivityPrompt {
+                    prompt_id: prompt.prompt_id,
+                    prompt: prompt.prompt,
+                    answer_kind: prompt.answer_kind,
+                })
+                .collect(),
+        },
+    })
+}
+
+pub async fn complete_activity_instance(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+    activity_instance_id: &str,
+    request: CompleteActivityRequest,
+) -> anyhow::Result<CompleteActivityResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    let (session_material_id, seed) = runtime::parse_activity_instance_id(activity_instance_id)?;
+    let session_material = load_session_material_row(&state.pool, &session_material_id).await?;
+    let session = load_session_row(&state.pool, &session_material.session_id).await?;
+    ensure_viewer_can_access_learner(&viewer, &session.learner_id)?;
+    if session.status == "completed" {
+        bail!("session '{}' is already completed", session.session_id);
+    }
+
+    let library = state.library.read().await.clone();
+    let material = library
+        .material(&session_material.material_id)
+        .ok_or_else(|| anyhow!("material '{}' not found in library", session_material.material_id))?;
+    let generated = runtime::generate_activity(material, seed)
+        .context("failed to regenerate activity for scoring")?;
+    let scored = runtime::score_activity(material, &generated, &request.responses)
+        .context("failed to score activity")?;
+    let (_, materials) = load_session_and_material_rows(&state.pool, &session.session_id).await?;
+
+    let notes = build_activity_notes(&material.title, &scored, &request.notes);
+    let artifact_summary = format!(
+        "{}: {}/{} correct",
+        material.title, scored.correct_count, scored.prompt_count
+    );
+    let artifact_payload = build_activity_artifact_payload(
+        &session,
+        &session_material,
+        material,
+        &generated,
+        &scored,
+        request.duration_seconds,
+    );
+    let persisted = persist_session_result(
+        state,
+        &session,
+        &materials,
+        scored.correct_count as f64,
+        scored.prompt_count as f64,
+        duration_minutes_from_seconds(request.duration_seconds),
+        notes,
+        "activity_summary",
+        artifact_summary,
+        artifact_payload,
+    )
+    .await?;
+
+    Ok(CompleteActivityResponse {
+        status: "ok".to_string(),
+        evidence: persisted.evidence,
+        updated_progress: persisted.updated_progress,
+        activity_summary: ActivitySummary {
+            attempted_count: scored.attempted_count,
+            correct_count: scored.correct_count,
+            prompt_count: scored.prompt_count,
+            accuracy: scored.accuracy,
+            passed: scored.passed,
+            completion_reason: scored.completion_reason,
+            weak_groups: scored.weak_groups,
+        },
+    })
+}
+
+async fn persist_session_result(
+    state: &Arc<AppState>,
+    session: &SessionRow,
+    materials: &[SessionMaterialRow],
+    score: f64,
+    max_score: f64,
+    duration_minutes: i32,
+    notes: String,
+    artifact_kind: &str,
+    artifact_summary: String,
+    artifact_payload: JsonValue,
+) -> anyhow::Result<RecordSessionResponse> {
+    if max_score <= 0.0 {
+        bail!("max_score must be greater than zero");
+    }
+    if session.status == "completed" {
+        bail!("session '{}' is already completed", session.session_id);
+    }
 
     let now = Utc::now();
     let evidence_id = Uuid::new_v4().to_string();
-    let ratio = (request.score / request.max_score).clamp(0.0, 1.0);
+    let ratio = (score / max_score).clamp(0.0, 1.0);
     let progress_status = status_from_ratio(ratio);
 
     query(
@@ -507,12 +682,12 @@ pub async fn record_session(
          values ($1, $2, $3, $4, $5, $6, $7, $8)",
     )
     .bind(&evidence_id)
-    .bind(session_id)
+    .bind(&session.session_id)
     .bind(&session.learner_id)
-    .bind(request.score)
-    .bind(request.max_score)
-    .bind(request.duration_minutes)
-    .bind(&request.notes)
+    .bind(score)
+    .bind(max_score)
+    .bind(duration_minutes)
+    .bind(&notes)
     .bind(now)
     .execute(&state.pool)
     .await?;
@@ -522,23 +697,9 @@ pub async fn record_session(
     if let Some(parent) = evidence_full_path.parent() {
         fs::create_dir_all(parent).await?;
     }
-    let skill_ids: BTreeSet<_> = materials
-        .iter()
-        .map(|material| material.skill_id.as_str())
-        .collect();
     fs::write(
         &evidence_full_path,
-        serde_json::to_vec_pretty(&json!({
-            "session_id": session.session_id,
-            "learner_id": session.learner_id,
-            "score": request.score,
-            "max_score": request.max_score,
-            "score_ratio": ratio,
-            "duration_minutes": request.duration_minutes,
-            "notes": request.notes,
-            "skill_ids": skill_ids,
-            "recorded_at": now,
-        }))?,
+        serde_json::to_vec_pretty(&artifact_payload)?,
     )
     .await?;
 
@@ -549,25 +710,29 @@ pub async fn record_session(
     .bind(Uuid::new_v4().to_string())
     .bind(&evidence_id)
     .bind(&session.learner_id)
-    .bind("session_notes")
+    .bind(artifact_kind)
     .bind(&evidence_relative_path)
-    .bind(format!("{}: {}", session.title, request.notes))
+    .bind(&artifact_summary)
     .execute(&state.pool)
     .await?;
 
     query("update session set status = $2, notes = $3, completed_at = $4 where session_id = $1")
-        .bind(session_id)
+        .bind(&session.session_id)
         .bind("completed")
-        .bind(&request.notes)
+        .bind(&notes)
         .bind(now)
         .execute(&state.pool)
         .await?;
 
     query("update session_material set status = 'completed' where session_id = $1")
-        .bind(session_id)
+        .bind(&session.session_id)
         .execute(&state.pool)
         .await?;
 
+    let skill_ids: BTreeSet<_> = materials
+        .iter()
+        .map(|material| material.skill_id.as_str())
+        .collect();
     let mut updated_progress = Vec::new();
     for skill_id in skill_ids {
         let progress_row = upsert_skill_progress(
@@ -589,10 +754,10 @@ pub async fn record_session(
         status: "ok".to_string(),
         evidence: EvidenceSummary {
             evidence_id,
-            score: request.score,
-            max_score: request.max_score,
-            duration_minutes: request.duration_minutes,
-            notes: request.notes,
+            score,
+            max_score,
+            duration_minutes,
+            notes,
             recorded_at: now,
         },
         updated_progress,
@@ -1045,6 +1210,7 @@ async fn fetch_next_session_for_assignment(pool: &PgPool, assignment_id: &str) -
 
 async fn fetch_sessions(
     pool: &PgPool,
+    library: &LibraryBundle,
     learner_id: &str,
     assignment_id: Option<&str>,
 ) -> anyhow::Result<Vec<SessionDetail>> {
@@ -1074,7 +1240,7 @@ async fn fetch_sessions(
 
     let mut sessions = Vec::new();
     for row in rows {
-        let materials = query_as::<_, SessionMaterialRow>(
+        let material_rows = query_as::<_, SessionMaterialRow>(
             "select session_material_id, session_id, title, skill_id, material_id, status
              from session_material
              where session_id = $1
@@ -1090,11 +1256,181 @@ async fn fetch_sessions(
             scheduled_date: row.scheduled_date,
             status: row.status,
             notes: row.notes,
-            materials: materials.into_iter().map(session_material_row_to_summary).collect(),
+            materials: build_session_material_summaries(library, material_rows),
             latest_evidence,
         });
     }
     Ok(sessions)
+}
+
+fn build_session_material_summaries(
+    library: &LibraryBundle,
+    rows: Vec<SessionMaterialRow>,
+) -> Vec<SessionMaterialSummary> {
+    let mut grouped: BTreeMap<String, Vec<SessionMaterialRow>> = BTreeMap::new();
+    let mut material_order = Vec::new();
+    for row in rows {
+        if !grouped.contains_key(&row.material_id) {
+            material_order.push(row.material_id.clone());
+        }
+        grouped.entry(row.material_id.clone()).or_default().push(row);
+    }
+
+    let mut summaries = Vec::new();
+    for material_id in material_order {
+        let Some(group) = grouped.remove(&material_id) else {
+            continue;
+        };
+        let first = &group[0];
+        let material = library.material(&material_id);
+        let skill_ids = group
+            .iter()
+            .map(|row| row.skill_id.clone())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        let status = if group.iter().all(|row| row.status == "completed") {
+            "completed".to_string()
+        } else if group.iter().any(|row| row.status == "active") {
+            "active".to_string()
+        } else {
+            first.status.clone()
+        };
+        summaries.push(SessionMaterialSummary {
+            session_material_id: first.session_material_id.clone(),
+            title: material
+                .map(|item| item.title.clone())
+                .unwrap_or_else(|| first.title.clone()),
+            material_id: material_id.clone(),
+            kind: material
+                .map(|item| item.kind.clone())
+                .unwrap_or_else(|| "material".to_string()),
+            estimated_minutes: material.map(|item| item.estimated_minutes).unwrap_or(0),
+            skill_ids,
+            status,
+            runtime: material.and_then(|item| {
+                item.runtime.as_ref().map(|runtime| SessionMaterialRuntimeSummary {
+                    runtime_id: runtime::build_runtime_id(&runtime.engine_id, &runtime.template_id),
+                    engine_id: runtime.engine_id.clone(),
+                    template_id: runtime.template_id.clone(),
+                    executable: true,
+                })
+            }),
+        });
+    }
+
+    summaries
+}
+
+async fn load_session_row(pool: &PgPool, session_id: &str) -> anyhow::Result<SessionRow> {
+    query_as::<_, SessionRow>(
+        "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
+         from session
+         where session_id = $1",
+    )
+    .bind(session_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| anyhow!("session '{session_id}' not found"))
+}
+
+async fn load_session_material_row(
+    pool: &PgPool,
+    session_material_id: &str,
+) -> anyhow::Result<SessionMaterialRow> {
+    query_as::<_, SessionMaterialRow>(
+        "select session_material_id, session_id, title, skill_id, material_id, status
+         from session_material
+         where session_material_id = $1",
+    )
+    .bind(session_material_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| anyhow!("session material '{session_material_id}' not found"))
+}
+
+async fn load_session_and_material_rows(
+    pool: &PgPool,
+    session_id: &str,
+) -> anyhow::Result<(SessionRow, Vec<SessionMaterialRow>)> {
+    let session = load_session_row(pool, session_id).await?;
+    let materials = query_as::<_, SessionMaterialRow>(
+        "select session_material_id, session_id, title, skill_id, material_id, status
+         from session_material
+         where session_id = $1
+         order by title, skill_id",
+    )
+    .bind(session_id)
+    .fetch_all(pool)
+    .await?;
+    Ok((session, materials))
+}
+
+fn build_activity_notes(material_title: &str, scored: &ScoredActivity, notes: &str) -> String {
+    let automatic = if scored.weak_groups.is_empty() {
+        format!(
+            "{}: {}/{} correct ({:.0}% accuracy)",
+            material_title,
+            scored.correct_count,
+            scored.prompt_count,
+            scored.accuracy * 100.0,
+        )
+    } else {
+        format!(
+            "{}: {}/{} correct ({:.0}% accuracy). Weak groups: {}",
+            material_title,
+            scored.correct_count,
+            scored.prompt_count,
+            scored.accuracy * 100.0,
+            scored.weak_groups.join(", "),
+        )
+    };
+    let trimmed = notes.trim();
+    if trimmed.is_empty() {
+        automatic
+    } else {
+        format!("{} | {}", trimmed, automatic)
+    }
+}
+
+fn build_activity_artifact_payload(
+    session: &SessionRow,
+    session_material: &SessionMaterialRow,
+    material: &catalog::MaterialDocument,
+    generated: &GeneratedActivity,
+    scored: &ScoredActivity,
+    duration_seconds: i32,
+) -> JsonValue {
+    let mut payload = json!({
+        "session_id": session.session_id,
+        "learner_id": session.learner_id,
+        "session_material_id": session_material.session_material_id,
+        "material_id": material.id,
+        "material_title": material.title,
+        "runtime_id": generated.runtime_id,
+        "engine_id": generated.engine_id,
+        "template_id": generated.template_id,
+        "attempted_count": scored.attempted_count,
+        "correct_count": scored.correct_count,
+        "prompt_count": scored.prompt_count,
+        "accuracy": scored.accuracy,
+        "passed": scored.passed,
+        "completion_reason": scored.completion_reason,
+        "weak_groups": scored.weak_groups,
+        "duration_seconds": duration_seconds.max(0),
+        "recording_mode": "activity",
+    });
+    if generated.store_response_log {
+        payload["response_log"] = JsonValue::Array(scored.response_log.clone());
+    }
+    payload
+}
+
+fn duration_minutes_from_seconds(duration_seconds: i32) -> i32 {
+    if duration_seconds <= 0 {
+        return 0;
+    }
+    (duration_seconds + 59) / 60
 }
 
 async fn fetch_progress(pool: &PgPool, learner_id: &str) -> anyhow::Result<Vec<SkillProgressSummary>> {
@@ -1321,16 +1657,6 @@ fn session_row_to_summary(row: SessionRow) -> SessionSummary {
         session_id: row.session_id,
         title: row.title,
         scheduled_date: row.scheduled_date,
-        status: row.status,
-    }
-}
-
-fn session_material_row_to_summary(row: SessionMaterialRow) -> SessionMaterialSummary {
-    SessionMaterialSummary {
-        session_material_id: row.session_material_id,
-        title: row.title,
-        skill_id: row.skill_id,
-        material_id: row.material_id,
         status: row.status,
     }
 }

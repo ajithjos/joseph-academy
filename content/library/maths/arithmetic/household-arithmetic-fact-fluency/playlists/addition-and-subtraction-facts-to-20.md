@@ -23,12 +23,14 @@ sessions:
     skill_ids:
       - add_within_20
       - subtract_within_20
-  - title: Repeat weak teen facts and missing-number prompts
+  - title: Run the live mixed-facts drill to 20
     material_ids:
-      - addition_and_subtraction_facts_to_20_practice
+      - addition_and_subtraction_facts_to_20_drill
     skill_ids:
       - number_bonds_within_20
       - missing_number_addition_and_subtraction_within_20
+      - add_within_20
+      - subtract_within_20
   - title: Quick check to 20
     material_ids:
       - addition_and_subtraction_facts_to_20_check

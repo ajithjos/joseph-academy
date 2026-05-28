@@ -8,6 +8,23 @@ skill_ids:
   - number_bonds_within_5
   - add_and_subtract_within_5
 estimated_minutes: 5
+runtime:
+  engine_id: arithmetic_fact_fluency.v1
+  spec_version: 1
+  template_id: readiness_within_5
+  parameters:
+    question_count: 10
+    prompt_forms:
+      - count_group
+      - bond_missing
+      - addition
+      - subtraction
+  scoring:
+    pass_accuracy: 0.8
+    soft_time_limit_seconds: 90
+  persistence:
+    store_response_log: false
+    store_summary: true
 ---
 
 # Readiness And Bonds Within 5 Check

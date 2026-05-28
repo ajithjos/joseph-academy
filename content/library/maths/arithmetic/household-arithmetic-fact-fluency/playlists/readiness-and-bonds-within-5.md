@@ -21,10 +21,11 @@ sessions:
       - readiness_and_bonds_within_5_practice
     skill_ids:
       - number_bonds_within_5
-  - title: Mix tiny addition and subtraction
+  - title: Run the live readiness drill
     material_ids:
-      - readiness_and_bonds_within_5_practice
+      - readiness_and_bonds_within_5_drill
     skill_ids:
+      - count_small_groups_within_5
       - add_and_subtract_within_5
       - number_bonds_within_5
   - title: Quick check and stop point

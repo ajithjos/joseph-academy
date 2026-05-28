@@ -179,9 +179,20 @@ pub struct SessionDetail {
 pub struct SessionMaterialSummary {
     pub session_material_id: String,
     pub title: String,
-    pub skill_id: String,
     pub material_id: String,
+    pub kind: String,
+    pub estimated_minutes: u16,
+    pub skill_ids: Vec<String>,
     pub status: String,
+    pub runtime: Option<SessionMaterialRuntimeSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SessionMaterialRuntimeSummary {
+    pub runtime_id: String,
+    pub engine_id: String,
+    pub template_id: String,
+    pub executable: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -247,6 +258,74 @@ pub struct RecordSessionResponse {
     pub status: String,
     pub evidence: EvidenceSummary,
     pub updated_progress: Vec<SkillProgressSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivityStartResponse {
+    pub status: String,
+    pub activity: ActivityInstance,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivityInstance {
+    pub activity_instance_id: String,
+    pub session_id: String,
+    pub session_material_id: String,
+    pub material_id: String,
+    pub material_title: String,
+    pub runtime_id: String,
+    pub engine_id: String,
+    pub template_id: String,
+    pub instructions: String,
+    pub estimated_minutes: u16,
+    pub scoring: ActivityScoringSummary,
+    pub prompts: Vec<ActivityPrompt>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivityScoringSummary {
+    pub pass_accuracy: Option<f64>,
+    pub soft_time_limit_seconds: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivityPrompt {
+    pub prompt_id: String,
+    pub prompt: String,
+    pub answer_kind: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CompleteActivityRequest {
+    pub responses: Vec<ActivityResponseInput>,
+    pub duration_seconds: i32,
+    #[serde(default)]
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ActivityResponseInput {
+    pub prompt_id: String,
+    pub answer: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CompleteActivityResponse {
+    pub status: String,
+    pub evidence: EvidenceSummary,
+    pub updated_progress: Vec<SkillProgressSummary>,
+    pub activity_summary: ActivitySummary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ActivitySummary {
+    pub attempted_count: usize,
+    pub correct_count: usize,
+    pub prompt_count: usize,
+    pub accuracy: f64,
+    pub passed: bool,
+    pub completion_reason: String,
+    pub weak_groups: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

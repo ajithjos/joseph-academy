@@ -13,15 +13,17 @@ use tower_http::trace::TraceLayer;
 use catalog::LibraryBundle;
 
 use crate::domain::{
-    AssignmentRequest, LibraryDocumentResponse, LibraryDocumentsResponse,
-    LibraryReloadResponse, OperationStatusResponse, RecordSessionRequest, ReviewRebuildRequest,
-    ViewerLoginRequest, ViewerSessionResponse,
+    ActivityStartResponse, AssignmentRequest, CompleteActivityRequest,
+    CompleteActivityResponse, LibraryDocumentResponse, LibraryDocumentsResponse,
+    LibraryReloadResponse, OperationStatusResponse, RecordSessionRequest,
+    ReviewRebuildRequest, ViewerLoginRequest, ViewerSessionResponse,
 };
 use crate::service::{
-    AppState, apply_bootstrap, create_assignment, fetch_dashboard, fetch_learner_detail,
-    fetch_library, fetch_library_document, fetch_viewer_session, list_learners,
-    list_library_documents, login_viewer_session, rebuild_review_items, record_session,
-    reload_library,
+    AppState, apply_bootstrap, complete_activity_instance, create_assignment,
+    fetch_dashboard, fetch_learner_detail, fetch_library, fetch_library_document,
+    fetch_viewer_session, list_learners, list_library_documents,
+    login_viewer_session, rebuild_review_items, record_session, reload_library,
+    start_session_material_activity,
 };
 
 const VIEWER_USERNAME_HEADER: &str = "x-cornerstone-viewer";
@@ -116,6 +118,14 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/v1/learners/{learner_id}", get(get_learner_detail))
         .route("/api/v1/assignments", post(post_assignment))
         .route("/api/v1/sessions/{session_id}/record", post(post_record_session))
+        .route(
+            "/api/v1/sessions/{session_id}/materials/{session_material_id}/start",
+            post(post_start_session_material_activity),
+        )
+        .route(
+            "/api/v1/activity-instances/{activity_instance_id}/complete",
+            post(post_complete_activity_instance),
+        )
         .route("/api/v1/review-items/rebuild", post(post_review_rebuild))
         .with_state(state)
         .layer(CorsLayer::permissive())
@@ -252,6 +262,36 @@ async fn post_record_session(
     let viewer_username = viewer_username_from_headers(&headers)?;
     Ok(Json(
         record_session(&state, &viewer_username, &session_id, request).await?,
+    ))
+}
+
+async fn post_start_session_material_activity(
+    Path((session_id, session_material_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ActivityStartResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(
+        start_session_material_activity(
+            &state,
+            &viewer_username,
+            &session_id,
+            &session_material_id,
+        )
+        .await?,
+    ))
+}
+
+async fn post_complete_activity_instance(
+    Path(activity_instance_id): Path<String>,
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CompleteActivityRequest>,
+) -> Result<Json<CompleteActivityResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(
+        complete_activity_instance(&state, &viewer_username, &activity_instance_id, request)
+            .await?,
     ))
 }
 

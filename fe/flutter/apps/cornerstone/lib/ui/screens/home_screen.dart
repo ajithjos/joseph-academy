@@ -508,6 +508,78 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     }
   }
 
+  Future<void> _startActivityForMaterial(
+    SessionDetail session,
+    SessionMaterial material,
+  ) async {
+    if (!(material.runtime?.executable ?? false)) return;
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+    try {
+      final activity = await _apiClient.startSessionMaterialActivity(
+        sessionId: session.sessionId,
+        sessionMaterialId: material.sessionMaterialId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+      });
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _ExecutableActivityDialog(
+          activity: activity,
+          onComplete: (answers, durationSeconds, notes) =>
+              _completeExecutableActivity(
+                activity,
+                answers,
+                durationSeconds,
+                notes,
+              ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _errorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<CompleteActivityResponse> _completeExecutableActivity(
+    ActivityInstance activity,
+    List<String> answers,
+    int durationSeconds,
+    String notes,
+  ) async {
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+    try {
+      final response = await _apiClient.completeActivity(
+        activityInstanceId: activity.activityInstanceId,
+        answers: answers,
+        prompts: activity.prompts,
+        durationSeconds: durationSeconds,
+        notes: notes,
+      );
+      await _loadAll();
+      return response;
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _errorMessage = error.toString();
+        });
+      }
+      rethrow;
+    }
+  }
+
   SessionDetail? get _currentActionSession {
     final detail = _learnerDetail;
     if (detail == null) return null;
@@ -1665,6 +1737,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                       notesController: _notesController,
                       onCreateAssignment: _createAssignment,
                       onRecordSession: _recordCurrentSession,
+                      onStartActivity: (material) => _startActivityForMaterial(
+                        _currentActionSession!,
+                        material,
+                      ),
                     ),
                   ],
                 ),
@@ -1876,9 +1952,21 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                               Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: 10),
                               Text(
-                                'Ready for today\'s practice',
+                                '${_humanizeLabel(material.kind)} · ${material.estimatedMinutes} min · ${material.skillIds.length} skills',
                                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                               ),
+                              const SizedBox(height: 12),
+                              if (material.runtime?.executable ?? false)
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _startActivityForMaterial(nextSession, material),
+                                  icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                                  label: const Text('Start live activity'),
+                                )
+                              else
+                                Text(
+                                  'Use the teaching note or worksheet for this step, then record the result from the household view.',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                ),
                             ],
                           ),
                         );
@@ -1970,11 +2058,21 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final theme = Theme.of(context);
     final documents = _libraryDocuments;
     final activeDocument = _selectedLibraryDocument;
+    LearnerDashboard? selectedLearner;
+    for (final learner in _visibleLearners) {
+      if (learner.learnerId == _selectedLearnerId) {
+        selectedLearner = learner;
+        break;
+      }
+    }
     final areaById = {
       for (final area in library.bundle.areas) area.areaId: area,
     };
     final playlistsById = {
       for (final playlist in library.bundle.playlists) playlist.playlistId: playlist,
+    };
+    final materialsById = {
+      for (final material in library.bundle.materials) material.id: material,
     };
     final routeBySourcePath = {
       for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
@@ -1997,6 +2095,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 Text(
                   'Open the route document first, then jump to the supporting playlists and materials as needed.',
                   style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 12),
+                _PillBadge(
+                  text: selectedLearner == null
+                      ? 'Select a learner in Household to assign from this screen'
+                      : 'Assignment target: ${selectedLearner.displayName}',
+                  color: selectedLearner == null
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : theme.colorScheme.secondaryContainer,
+                  textColor: selectedLearner == null
+                      ? theme.colorScheme.onSurfaceVariant
+                      : theme.colorScheme.onSecondaryContainer,
                 ),
                 const SizedBox(height: 16),
                 if (library.bundle.pathways.isEmpty)
@@ -2099,27 +2209,120 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                               ...orderedPlaylists.asMap().entries.map((entry) {
                                 final playlist = entry.value;
                                 final playlistRoute = documentsByKey['playlist:${playlist.playlistId}']?.routePath;
-                                return ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                    foregroundColor: theme.colorScheme.primary,
-                                    child: Text(
-                                      '${entry.key + 1}',
-                                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                                final playlistMaterials = playlist.sessions
+                                    .expand((session) => session.materialIds)
+                                    .toSet()
+                                    .length;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface.withValues(alpha: 0.55),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: theme.colorScheme.outlineVariant,
                                     ),
                                   ),
-                                  title: Text(playlist.title),
-                                  subtitle: Text(
-                                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                  trailing: TextButton(
-                                    onPressed: playlistRoute == null
-                                        ? null
-                                        : () => _selectLibraryDocument(playlistRoute),
-                                    child: const Text('Open'),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 18,
+                                            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                            foregroundColor: theme.colorScheme.primary,
+                                            child: Text(
+                                              '${entry.key + 1}',
+                                              style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(playlist.title, style: theme.textTheme.titleMedium),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Age ${playlist.recommendedAge} · ${playlist.durationDays} sessions · $playlistMaterials materials · ${playlist.skillIds.length} skills',
+                                                  style: theme.textTheme.bodySmall,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ...playlist.sessions.asMap().entries.map((sessionEntry) {
+                                        final session = sessionEntry.value;
+                                        final sessionMaterials = session.materialIds
+                                            .map((materialId) => materialsById[materialId])
+                                            .whereType<MaterialInfo>()
+                                            .toList(growable: false);
+                                        return Padding(
+                                          padding: const EdgeInsets.only(bottom: 10),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '${sessionEntry.key + 1}. ${session.title}',
+                                                  style: theme.textTheme.titleSmall,
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  children: sessionMaterials
+                                                      .map(
+                                                        (material) => _PillBadge(
+                                                          text: '${material.title} · ${_humanizeLabel(material.kind)}${material.runtime != null ? ' · Live' : ''}',
+                                                          color: material.runtime != null
+                                                              ? theme.colorScheme.tertiaryContainer
+                                                              : theme.colorScheme.primary.withValues(alpha: 0.12),
+                                                          textColor: material.runtime != null
+                                                              ? theme.colorScheme.onTertiaryContainer
+                                                              : theme.colorScheme.primary,
+                                                        ),
+                                                      )
+                                                      .toList(growable: false),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                      Wrap(
+                                        spacing: 10,
+                                        runSpacing: 10,
+                                        children: [
+                                          TextButton(
+                                            onPressed: playlistRoute == null
+                                                ? null
+                                                : () => _selectLibraryDocument(playlistRoute),
+                                            child: const Text('Open'),
+                                          ),
+                                          if (_viewerCanManage)
+                                            FilledButton.tonal(
+                                              onPressed: selectedLearner == null
+                                                  ? null
+                                                  : () => _createAssignment(playlist.playlistId),
+                                              child: Text(
+                                                selectedLearner == null
+                                                    ? 'Select learner to assign'
+                                                    : 'Assign to ${selectedLearner.displayName}',
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 );
                               }),
@@ -2150,7 +2353,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(item.title),
                     subtitle: Text(
-                      '${_humanizeLabel(item.kind)} · ${item.estimatedMinutes} min · age ${item.recommendedAge}',
+                      '${_humanizeLabel(item.kind)}${item.runtime != null ? ' · Live' : ''} · ${item.estimatedMinutes} min · age ${item.recommendedAge}',
                       style: theme.textTheme.bodySmall,
                     ),
                     trailing: TextButton(

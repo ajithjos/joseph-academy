@@ -24,10 +24,11 @@ sessions:
       - number_bonds_within_10
       - add_within_10
       - subtract_within_10
-  - title: Repeat weak facts in mixed order
+  - title: Run the live mixed-facts drill to 10
     material_ids:
-      - addition_and_subtraction_facts_to_10_practice
+      - addition_and_subtraction_facts_to_10_drill
     skill_ids:
+      - number_bonds_within_10
       - add_within_10
       - subtract_within_10
   - title: Quick check to 10

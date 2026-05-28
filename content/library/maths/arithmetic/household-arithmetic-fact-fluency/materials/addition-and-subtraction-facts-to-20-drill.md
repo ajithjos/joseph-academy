@@ -1,6 +1,6 @@
 ---
-id: addition_and_subtraction_facts_to_20_check
-type: quick_check
+id: addition_and_subtraction_facts_to_20_drill
+type: drill
 stage_ids:
   - addition_and_subtraction_facts_to_20
 skill_ids:
@@ -8,13 +8,13 @@ skill_ids:
   - add_within_20
   - subtract_within_20
   - missing_number_addition_and_subtraction_within_20
-estimated_minutes: 5
+estimated_minutes: 8
 runtime:
   engine_id: arithmetic_fact_fluency.v1
   spec_version: 1
   template_id: mixed_add_sub_to_20
   parameters:
-    question_count: 10
+    question_count: 16
     operations:
       - addition
       - subtraction
@@ -23,24 +23,15 @@ runtime:
       - bond_missing
       - missing_subtraction
   scoring:
-    pass_accuracy: 0.8
-    soft_time_limit_seconds: 120
+    pass_accuracy: 0.85
+    soft_time_limit_seconds: 180
   persistence:
     store_response_log: false
     store_summary: true
 ---
 
-# Addition And Subtraction Facts To 20 Check
+# Addition And Subtraction Facts To 20 Drill
 
-1. `12 + 7 =`
-2. `20 - 9 =`
-3. `__ + 5 = 20`
-4. `14 - 6 =`
-5. `9 + 9 =`
-6. `17 - 8 =`
-7. `13 + 6 =`
-8. `20 - __ = 3`
-9. `11 + 8 =`
-10. `16 - 7 =`
+Use this when facts to 10 are steady and the learner needs short live practice on teen numbers and missing-number prompts.
 
-Passing guide: 8 or more quick correct answers means the learner is ready for multiplication foundations.
+The drill should stay mixed. It should not become a block of only addition or only subtraction because the point is flexible recall under light pressure.
