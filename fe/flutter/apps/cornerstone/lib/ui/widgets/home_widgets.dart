@@ -1,5 +1,16 @@
 part of '../../main.dart';
 
+String _humanizeLabel(String value) {
+  final parts = value
+    .split(RegExp(r'[_\-\s]+'))
+    .where((part) => part.isNotEmpty)
+    .toList(growable: false);
+  if (parts.isEmpty) return value;
+  return parts
+    .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+    .join(' ');
+}
+
 class _LearnerOperationsPanel extends StatelessWidget {
   const _LearnerOperationsPanel({
     required this.detail,
@@ -26,6 +37,10 @@ class _LearnerOperationsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final progressStatusCounts = <String, int>{};
+    for (final state in detail.progress) {
+      progressStatusCounts.update(state.status, (count) => count + 1, ifAbsent: () => 1);
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,13 +142,24 @@ class _LearnerOperationsPanel extends StatelessWidget {
         ],
         _Band(
           title: 'Skill Progress',
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: detail.progress
-                .map((state) => _SkillProgressChip(state: state))
-                .toList(),
-          ),
+          child: detail.progress.isEmpty
+              ? Text(
+                  'No progress has been recorded yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                )
+              : Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: progressStatusCounts.entries
+                      .map(
+                        (entry) => _PillBadge(
+                          text: '${entry.value} ${_humanizeLabel(entry.key)}',
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          textColor: theme.colorScheme.primary,
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
         ),
         const SizedBox(height: 20),
         _Band(
@@ -151,8 +177,7 @@ class _LearnerOperationsPanel extends StatelessWidget {
                       .map(
                         (item) => ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(item.skillId),
-                          subtitle: Text(item.reason, style: Theme.of(context).textTheme.bodySmall),
+                          title: Text(item.reason),
                           trailing: _PillBadge(
                             text: item.dueDate,
                             color: Theme.of(context).colorScheme.errorContainer,
@@ -452,43 +477,6 @@ class _PillBadge extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(color: textColor, fontWeight: FontWeight.w700, letterSpacing: 0.2),
-      ),
-    );
-  }
-}
-
-class _SkillProgressChip extends StatelessWidget {
-  const _SkillProgressChip({required this.state});
-
-  final SkillProgressSummary state;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final pct = (state.scoreAverage * 100).round();
-    final isStrong = pct >= 80;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised] : [Colors.white, _BrandPalette.warmPaper],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isStrong ? theme.colorScheme.primary.withValues(alpha: 0.28) : theme.colorScheme.outlineVariant.withValues(alpha: 0.60)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            state.skillId,
-            style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: isStrong ? theme.colorScheme.primary : theme.colorScheme.onSurface),
-          ),
-          const SizedBox(height: 3),
-          Text('${state.status} · $pct% avg', style: theme.textTheme.bodySmall),
-        ],
       ),
     );
   }
@@ -818,55 +806,3 @@ class _AppearancePanel extends StatelessWidget {
   }
 }
 
-class _EndpointTile extends StatelessWidget {
-  const _EndpointTile({required this.title, required this.subtitle, required this.actionLabel, required this.onPressed});
-
-  final String title;
-  final String subtitle;
-  final String actionLabel;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: theme.brightness == Brightness.dark ? [_BrandPalette.slateRaised, _BrandPalette.slateCard] : [Colors.white, _BrandPalette.warmPaper],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.44)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-              alignment: Alignment.center,
-              child: Icon(Icons.link_rounded, size: 18, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.titleSmall),
-                  const SizedBox(height: 3),
-                  Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            FilledButton.tonal(onPressed: onPressed, child: Text(actionLabel)),
-          ],
-        ),
-      ),
-    );
-  }
-}

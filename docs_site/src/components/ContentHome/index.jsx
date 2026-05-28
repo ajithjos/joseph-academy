@@ -1,5 +1,3 @@
-import Link from '@docusaurus/Link';
-import useBaseUrl from '@docusaurus/useBaseUrl';
 import React, { useEffect, useState } from 'react';
 
 import styles from './index.module.css';
@@ -61,6 +59,22 @@ function completedSessions(detail) {
   return detail?.sessions?.filter((session) => session.status === 'completed') ?? [];
 }
 
+function humanizeLabel(value) {
+  return value
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function progressBuckets(detail) {
+  const counts = new Map();
+  (detail?.progress ?? []).forEach((state) => {
+    counts.set(state.status, (counts.get(state.status) ?? 0) + 1);
+  });
+  return Array.from(counts.entries());
+}
+
 function loadStoredUsername() {
   if (typeof window === 'undefined') {
     return '';
@@ -100,8 +114,6 @@ export default function ContentHome() {
   const [dataBusy, setDataBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const generatedCatalogUrl = useBaseUrl('/generated/catalog-overview');
-  const materialsUrl = useBaseUrl('/generated/materials');
   const viewer = session?.current_user ?? null;
   const visibleLearners =
     viewer?.role === 'learner' && viewer?.learner_id
@@ -112,6 +124,7 @@ export default function ContentHome() {
   const pending = pendingSessions(learnerDetail);
   const completed = completedSessions(learnerDetail);
   const nextSession = pending[0] ?? null;
+  const progressCounts = progressBuckets(learnerDetail);
 
   function applySession(nextSessionState, fallbackUsername = '') {
     setSession(nextSessionState);
@@ -322,16 +335,10 @@ export default function ContentHome() {
             {viewer
               ? viewer.role === 'learner'
                 ? 'See what is pending, what is completed, and which learning materials sit closest to the current assignment.'
-                : 'Browse generated curriculum content while keeping learner assignments, review load, and progress close at hand.'
+                : 'Keep the learning picture in view without all the technical noise.'
               : 'Choose a username to open the parent / teacher content hub or the student-facing progress view. This login is intentionally username-only for now.'}
           </p>
           <div className={styles.actions}>
-            <Link className={styles.secondaryButton} to={generatedCatalogUrl}>
-              Browse generated catalog
-            </Link>
-            <Link className={styles.secondaryButton} to={materialsUrl}>
-              Browse materials
-            </Link>
             {viewer ? (
               <button
                 className={styles.primaryButton}
@@ -346,147 +353,154 @@ export default function ContentHome() {
             ) : null}
           </div>
         </div>
-        <aside className={styles.heroPanel}>
+        <div className={styles.heroPanel}>
           <div className={styles.statGrid}>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {session?.available_users?.filter((user) => user.role !== 'learner')
-                  .length ?? 0}
-              </span>
-              <span className={styles.statLabel}>Parent / Teacher users</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {session?.available_users?.filter((user) => user.role === 'learner')
-                  .length ?? 0}
-              </span>
-              <span className={styles.statLabel}>Student users</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{visibleLearners.length}</span>
-              <span className={styles.statLabel}>
-                {viewer?.role === 'learner' ? 'Visible learners' : 'Tracked learners'}
-              </span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {viewer?.role === 'learner'
-                  ? completed.length
-                  : visibleLearners.reduce(
-                      (total, learner) => total + (learner.review_item_count ?? 0),
+            {!viewer ? (
+              <>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{session?.available_users?.length ?? 0}</span>
+                  <span className={styles.statLabel}>Profiles ready</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>No password</span>
+                  <span className={styles.statLabel}>Sign-in mode</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>Signed out</span>
+                  <span className={styles.statLabel}>Default state</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>Simple</span>
+                  <span className={styles.statLabel}>Just pick a username</span>
+                </article>
+              </>
+            ) : viewer.role === 'learner' ? (
+              <>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{pending.length}</span>
+                  <span className={styles.statLabel}>Pending sessions</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{completed.length}</span>
+                  <span className={styles.statLabel}>Completed sessions</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{progressCounts.length}</span>
+                  <span className={styles.statLabel}>Progress groups</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{nextSession?.materials?.length ?? 0}</span>
+                  <span className={styles.statLabel}>Materials next</span>
+                </article>
+              </>
+            ) : (
+              <>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>{visibleLearners.length}</span>
+                  <span className={styles.statLabel}>Learners</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>
+                    {visibleLearners.reduce(
+                      (sum, learner) => sum + (learner.review_item_count ?? 0),
                       0,
                     )}
-              </span>
-              <span className={styles.statLabel}>
-                {viewer?.role === 'learner'
-                  ? 'Completed sessions'
-                  : 'Review items'}
-              </span>
-            </div>
+                  </span>
+                  <span className={styles.statLabel}>Review items</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>
+                    {visibleLearners.filter((learner) => learner.active_assignment).length}
+                  </span>
+                  <span className={styles.statLabel}>Active assignments</span>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statValue}>
+                    {visibleLearners.filter((learner) => learner.today_session).length}
+                  </span>
+                  <span className={styles.statLabel}>Sessions today</span>
+                </article>
+              </>
+            )}
           </div>
-          {viewer ? (
-            <div className={styles.profileCard}>
-              <p className={styles.profileName}>{viewer.display_name}</p>
-              <p className={styles.profileMeta}>
-                {roleLabel(viewer)} · @{viewer.username}
+
+          <div className={styles.profileCard}>
+            <p className={styles.profileName}>
+              {viewer ? viewer.display_name : 'Username-based sign in'}
+            </p>
+            <p className={styles.profileMeta}>
+              {viewer
+                ? `${roleLabel(viewer)} · @${viewer.username}`
+                : 'Choose a profile below or type the username directly.'}
+            </p>
+            {viewer?.current_level ? (
+              <p className={styles.profileNote}>Current level: {viewer.current_level}</p>
+            ) : null}
+            {!viewer ? (
+              <p className={styles.profileNote}>
+                The content site stays simple: sign in, view progress, and log out.
               </p>
-              {viewer.current_level ? (
-                <p className={styles.profileNote}>
-                  Current level: {viewer.current_level}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className={styles.profileCard}>
-              <p className={styles.profileName}>Username-only sign-in</p>
-              <p className={styles.profileMeta}>
-                The parent / teacher account sees household-wide progress. Student accounts see their own pending and completed work.
-              </p>
-            </div>
-          )}
-        </aside>
+            ) : viewer.notes && viewer.notes.toLowerCase() !== 'owner' ? (
+              <p className={styles.profileNote}>{viewer.notes}</p>
+            ) : null}
+          </div>
+        </div>
       </section>
 
       {error ? <div className={styles.errorBanner}>{error}</div> : null}
 
       {!viewer ? (
-        <div className={styles.grid}>
-          <section className={`${styles.panel} ${styles.loginPanel}`}>
-            <h2 className={styles.sectionTitle}>Continue with username</h2>
-            <p className={styles.sectionText}>
-              Pick a household profile below or type the username directly.
-            </p>
-            <div className={styles.inputRow}>
-              <input
-                className={styles.input}
-                onChange={(event) => setUsername(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    void handleLogin();
-                  }
-                }}
-                placeholder="Username"
-                type="text"
-                value={username}
-              />
-              <button
-                className={styles.primaryButton}
-                disabled={authBusy}
-                onClick={() => {
+        <section className={`${styles.panel} ${styles.loginPanel}`}>
+          <h2 className={styles.sectionTitle}>Continue with username</h2>
+          <p className={styles.sectionText}>
+            Pick a household profile below or type the username directly.
+          </p>
+          <div className={styles.inputRow}>
+            <input
+              className={styles.input}
+              onChange={(event) => setUsername(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
                   void handleLogin();
+                }
+              }}
+              placeholder="Username"
+              type="text"
+              value={username}
+            />
+            <button
+              className={styles.primaryButton}
+              disabled={authBusy}
+              onClick={() => {
+                void handleLogin();
+              }}
+              type="button"
+            >
+              {authBusy ? 'Signing in…' : 'Enter content hub'}
+            </button>
+          </div>
+          <div className={styles.quickList}>
+            {(session?.available_users ?? []).map((user) => (
+              <button
+                className={styles.quickButton}
+                key={user.user_id}
+                onClick={() => {
+                  setUsername(user.username);
+                  void handleLogin(user.username);
                 }}
                 type="button"
               >
-                {authBusy ? 'Signing in…' : 'Enter content hub'}
-              </button>
-            </div>
-            <div className={styles.quickList}>
-              {(session?.available_users ?? []).map((user) => (
-                <button
-                  className={styles.quickButton}
-                  key={user.user_id}
-                  onClick={() => {
-                    setUsername(user.username);
-                    void handleLogin(user.username);
-                  }}
-                  type="button"
-                >
-                  <span>
-                    <strong>{user.display_name}</strong>
-                    <span className={styles.quickMeta}>
-                      {roleLabel(user)} · @{user.username}
-                    </span>
+                <span>
+                  <strong>{user.display_name}</strong>
+                  <span className={styles.quickMeta}>
+                    {roleLabel(user)} · @{user.username}
                   </span>
-                  <span className={styles.badge}>Use this profile</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.panel}>
-            <h2 className={styles.sectionTitle}>What each view does</h2>
-            <div className={styles.itemList}>
-              <article className={styles.itemCard}>
-                <h3>Parent / Teacher</h3>
-                <p>
-                  Track every learner, see active assignments, and spot review load before you jump back into the main app.
-                </p>
-              </article>
-              <article className={styles.itemCard}>
-                <h3>Student</h3>
-                <p>
-                  See what is pending, what is already completed, and which parts of the catalog connect to the current learning run.
-                </p>
-              </article>
-              <article className={styles.itemCard}>
-                <h3>Catalog browsing</h3>
-                <p>
-                  The generated docs stay open to everyone, so you can still browse curriculum content even before choosing a username.
-                </p>
-              </article>
-            </div>
-          </section>
-        </div>
+                </span>
+                <span className={styles.badge}>Use this profile</span>
+              </button>
+            ))}
+          </div>
+        </section>
       ) : viewer.role === 'learner' ? (
         <div className={styles.grid}>
           <section className={styles.panel}>
@@ -501,8 +515,7 @@ export default function ContentHome() {
                     <article className={styles.itemCard} key={material.session_material_id}>
                       <p className={styles.itemEyebrow}>Step {index + 1}</p>
                       <h3>{material.title}</h3>
-                      <p>{material.skill_id}</p>
-                      <p className={styles.itemMeta}>Material: {material.material_id}</p>
+                      <p className={styles.itemMeta}>Ready for today&apos;s practice</p>
                     </article>
                   ))}
                 </div>
@@ -554,11 +567,11 @@ export default function ContentHome() {
 
           <section className={styles.panel}>
             <h2 className={styles.sectionTitle}>Skill progress</h2>
-            {learnerDetail?.progress?.length ? (
+            {progressCounts.length ? (
               <div className={styles.pillList}>
-                {learnerDetail.progress.map((state) => (
-                  <span className={styles.pill} key={state.skill_id}>
-                    {state.skill_id}: {state.status}
+                {progressCounts.map(([status, count]) => (
+                  <span className={styles.pill} key={status}>
+                    {count} {humanizeLabel(status)}
                   </span>
                 ))}
               </div>
@@ -570,80 +583,48 @@ export default function ContentHome() {
       ) : (
         <div className={styles.grid}>
           <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <h2 className={styles.sectionTitle}>Household learners</h2>
-                <p className={styles.sectionText}>
-                  Scan progress, active assignments, and review pressure without leaving the content site.
-                </p>
-              </div>
-              <button
-                className={styles.secondaryButton}
-                disabled={dataBusy}
-                onClick={() => {
-                  void refreshAll();
-                }}
-                type="button"
-              >
-                {dataBusy ? 'Refreshing…' : 'Refresh'}
-              </button>
+            <div>
+              <h2 className={styles.sectionTitle}>Household learners</h2>
+              <p className={styles.sectionText}>
+                See each learner&apos;s current assignment, next step, and overall progress at a glance.
+              </p>
             </div>
-            <div className={styles.cardGrid}>
-              {visibleLearners.map((learner) => (
-                <article className={styles.learnerCard} key={learner.learner_id}>
-                  <div className={styles.learnerCardHeader}>
-                    <div>
-                      <h3>{learner.display_name}</h3>
-                      <p>{learner.current_level}</p>
+            {visibleLearners.length === 0 ? (
+              <p className={styles.emptyState}>No learners are available in this household yet.</p>
+            ) : (
+              <div className={styles.cardGrid}>
+                {visibleLearners.map((learner) => (
+                  <article className={styles.learnerCard} key={learner.learner_id}>
+                    <div className={styles.learnerCardHeader}>
+                      <div>
+                        <h3>{learner.display_name}</h3>
+                        <p>{learner.current_level}</p>
+                      </div>
+                      <span className={styles.badge}>
+                        Review: {learner.review_item_count}
+                      </span>
                     </div>
-                    <span className={styles.badge}>
-                      Review: {learner.review_item_count}
-                    </span>
-                  </div>
-                  <p className={styles.sectionText}>{progressSummary(learner)}</p>
-                  <ul className={styles.factList}>
-                    <li>
-                      Active assignment:{' '}
-                      {learner.active_assignment?.title ?? 'No active assignment'}
-                    </li>
-                    <li>
-                      Next session:{' '}
-                      {learner.today_session?.title ?? 'No session lined up'}
-                    </li>
-                    <li>
-                      Latest evidence:{' '}
-                      {learner.latest_evidence
-                        ? `${learner.latest_evidence.score}/${learner.latest_evidence.max_score}`
-                        : 'Nothing recorded yet'}
-                    </li>
-                  </ul>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.panel}>
-            <h2 className={styles.sectionTitle}>Content routes</h2>
-            <div className={styles.itemList}>
-              <article className={styles.itemCard}>
-                <h3>Generated catalog</h3>
-                <p>
-                  Browse the rendered catalog overview, subjects, stages, skills, playlists, and materials from the repo-owned curriculum files.
-                </p>
-                <Link className={styles.linkButton} to={generatedCatalogUrl}>
-                  Open generated catalog
-                </Link>
-              </article>
-              <article className={styles.itemCard}>
-                <h3>Materials browser</h3>
-                <p>
-                  Jump straight into the generated material pages when you want the authored teaching notes and source-facing content.
-                </p>
-                <Link className={styles.linkButton} to={materialsUrl}>
-                  Open materials
-                </Link>
-              </article>
-            </div>
+                    <p className={styles.sectionText}>{progressSummary(learner)}</p>
+                    <ul className={styles.factList}>
+                      <li>
+                        Active assignment:{' '}
+                        {learner.active_assignment?.title ?? 'No active assignment'}
+                      </li>
+                      <li>
+                        Next session:{' '}
+                        {learner.today_session?.title ?? 'No session lined up'}
+                      </li>
+                      <li>
+                        Latest evidence:{' '}
+                        {learner.latest_evidence
+                          ? `${learner.latest_evidence.score}/${learner.latest_evidence.max_score}`
+                          : 'Nothing recorded yet'}
+                      </li>
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       )}

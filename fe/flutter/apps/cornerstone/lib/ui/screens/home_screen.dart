@@ -3,8 +3,8 @@ part of '../../main.dart';
 enum _ShellDestination {
   owner('Owner', 'Manage learners, assignments, and household progress.', Icons.dashboard_rounded),
   learner('Learner', 'Follow today\'s active session and material sequence.', Icons.school_rounded),
-  catalog('Catalog', 'Browse subjects, stages, playlists, and materials.', Icons.auto_stories_rounded),
-  account('My Account', 'Adjust appearance and workspace links.', Icons.person_rounded);
+  catalog('Library', 'Browse playlists and learning materials.', Icons.auto_stories_rounded),
+  account('My Account', 'Profile and appearance.', Icons.person_rounded);
 
   const _ShellDestination(this.label, this.subtitle, this.icon);
   final String label;
@@ -22,6 +22,7 @@ class CornerstoneHomePage extends StatefulWidget {
 class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   static const String _viewerUsernamePreferenceKey =
       'cornerstone.viewer.username';
+  static const double _signedOutMaxWidth = 1200;
 
   final CornerstoneApiClient _apiClient = CornerstoneApiClient();
   final TextEditingController _usernameController = TextEditingController();
@@ -401,8 +402,6 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return null;
   }
 
-  String get _contentSiteLabel => Uri.base.resolve('/content/').toString();
-
   void _setDestination(_ShellDestination d) {
     if (!_availableDestinations.contains(d)) return;
     setState(() => _selectedDestination = d);
@@ -426,6 +425,30 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         : 'Student workspace';
   }
 
+  bool _hasMeaningfulViewerNotes(ViewerUser viewer) {
+    final notes = viewer.notes.trim();
+    return notes.isNotEmpty && notes.toLowerCase() != 'owner';
+  }
+
+  double _contentMaxWidthFor(_ShellDestination destination) {
+    return switch (destination) {
+      _ShellDestination.owner => 1320,
+      _ShellDestination.learner => 1160,
+      _ShellDestination.catalog => 1100,
+      _ShellDestination.account => 1040,
+    };
+  }
+
+  Widget _wrapMainContent(Widget child, {double? maxWidth}) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth ?? _contentMaxWidthFor(_selectedDestination)),
+        child: SizedBox(width: double.infinity, child: child),
+      ),
+    );
+  }
+
   String _identityInitials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return 'CO';
@@ -437,24 +460,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Future<void> _openContentSite({bool sameTab = false}) async {
-    final ok = await launchUrl(Uri.base.resolve('/content/'), webOnlyWindowName: sameTab ? '_self' : '_blank');
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await launchUrl(
+      Uri.base.resolve('/content/'),
+      webOnlyWindowName: sameTab ? '_self' : '_blank',
+    );
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unable to open the content site.')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Unable to open the content site.')),
+      );
     }
-  }
-
-  Widget _buildContentAction({required bool compact}) {
-    if (compact) {
-      return IconButton.filledTonal(tooltip: 'Open content site', onPressed: _openContentSite, icon: const Icon(Icons.open_in_new_rounded));
-    }
-    return OutlinedButton.icon(onPressed: _openContentSite, icon: const Icon(Icons.open_in_new_rounded, size: 17), label: const Text('Content Site'));
   }
 
   List<Widget> _buildProfileMenuChildren(BuildContext context) {
     return [
       MenuItemButton(leadingIcon: const Icon(Icons.person_rounded), onPressed: () => _setDestination(_ShellDestination.account), child: const Text('My Account')),
-      MenuItemButton(leadingIcon: const Icon(Icons.refresh_rounded), onPressed: _busy || _authBusy ? null : () => _loadAll(), child: const Text('Refresh data')),
-      MenuItemButton(leadingIcon: const Icon(Icons.menu_book_rounded), onPressed: _openContentSite, child: const Text('Open content site in new tab')),
+      MenuItemButton(leadingIcon: const Icon(Icons.menu_book_rounded), onPressed: () => _openContentSite(), child: const Text('Open content site')),
       MenuItemButton(leadingIcon: const Icon(Icons.logout_rounded), onPressed: _authBusy ? null : () => _logoutViewer(), child: const Text('Log out')),
       const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Divider(height: 18)),
       SizedBox(width: 284, child: _AppearancePanel(controller: widget.themeController)),
@@ -736,14 +757,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 14),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Center(child: _buildContentAction(compact: !_shellNavExpanded)),
-                      const SizedBox(height: 12),
-                      _buildProfileMenuAnchor(compact: !_shellNavExpanded),
-                    ],
-                  ),
+                  child: _buildProfileMenuAnchor(compact: !_shellNavExpanded),
                 ),
               ],
             ),
@@ -829,11 +843,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             ),
             ListTile(
               leading: const Icon(Icons.menu_book_rounded),
-              title: const Text('Open Content Site'),
+              title: const Text('Open content site'),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               onTap: () {
                 Navigator.of(context).pop();
-                _openContentSite();
+                _openContentSite(sameTab: true);
               },
             ),
             ListTile(
@@ -905,7 +919,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1240),
+              constraints: const BoxConstraints(maxWidth: _signedOutMaxWidth),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth > 1080;
@@ -1051,12 +1065,6 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                                     : const Icon(Icons.login_rounded, size: 18),
                                 label: const Text('Enter Workspace'),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            OutlinedButton.icon(
-                              onPressed: _authBusy ? null : _restoreViewerSession,
-                              icon: const Icon(Icons.refresh_rounded, size: 18),
-                              label: const Text('Refresh'),
                             ),
                           ],
                         ),
@@ -1211,12 +1219,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_errorMessage != null) return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
     if (dashboard == null || catalog == null) return const Center(child: Text('No data loaded'));
-    return switch (_selectedDestination) {
+    final content = switch (_selectedDestination) {
       _ShellDestination.owner => _buildOwnerView(context, dashboard, catalog),
       _ShellDestination.learner => _buildLearnerView(context),
       _ShellDestination.catalog => _buildCatalogView(context, catalog),
       _ShellDestination.account => _buildAccountView(context, dashboard),
     };
+    return _wrapMainContent(content);
   }
 
   Widget _buildAccountView(BuildContext context, DashboardPayload dashboard) {
@@ -1230,10 +1239,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           eyebrow: 'Account',
           title: username,
           description: viewer == null
-              ? (dashboard.team?.description ?? 'Manage appearance, workspace links, and the operational details behind your household workspace.')
+              ? (dashboard.team?.description ?? 'Manage your profile and theme in one place.')
               : viewer.canManageHousehold
-                  ? 'Switch theme, inspect workspace links, and leave the parent / teacher dashboard without extra ceremony.'
-                  : 'Keep your student workspace, shared links, and theme settings in one place.',
+                ? 'Manage your profile, theme, and household learning space in one place.'
+                : 'Keep your profile, theme, and learner space settings in one place.',
           trailing: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -1276,7 +1285,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 Text(
                   viewer.canManageHousehold
                       ? 'This account can manage every learner, assignments, and progress updates.'
-                      : 'This account stays focused on the student view, progress, and pending work.',
+                      : 'This account stays focused on the learner view, progress, and pending work.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -1311,7 +1320,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],
-                if (viewer.notes.isNotEmpty) ...[
+                if (_hasMeaningfulViewerNotes(viewer)) ...[
                   const SizedBox(height: 8),
                   Text(
                     viewer.notes,
@@ -1343,30 +1352,6 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               ),
               const SizedBox(height: 18),
               _AppearancePanel(controller: widget.themeController),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Workspace Links', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 16),
-              _EndpointTile(title: 'Frontend host', subtitle: Uri.base.origin, actionLabel: 'Refresh', onPressed: _busy ? null : () => _loadAll()),
-              _EndpointTile(title: 'Content site', subtitle: _contentSiteLabel, actionLabel: 'Open', onPressed: _openContentSite),
-              _EndpointTile(
-                title: 'API health',
-                subtitle: Uri.base.resolve('/health').toString(),
-                actionLabel: 'View',
-                onPressed: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final ok = await launchUrl(Uri.base.resolve('/health'), webOnlyWindowName: '_blank');
-                  if (!ok && mounted) {
-                    messenger.showSnackBar(const SnackBar(content: Text('Unable to open /health.')));
-                  }
-                },
-              ),
             ],
           ),
         ),
@@ -1405,13 +1390,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           ),
         ),
         actions: [
-          _buildContentAction(compact: isMobile),
           if (_busy || _authBusy)
             const Padding(
               padding: EdgeInsets.all(16),
               child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
             ),
-          IconButton(onPressed: _busy || _authBusy ? null : () => _loadAll(), icon: const Icon(Icons.refresh_rounded)),
           if (isMobile) _buildProfileMenuAnchor(compact: true),
           const SizedBox(width: 8),
         ],
@@ -1589,6 +1572,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final completedSessions = detail.sessions
         .where((session) => session.status == 'completed')
         .toList(growable: false);
+    final progressStatusCounts = <String, int>{};
+    for (final state in detail.progress) {
+      progressStatusCounts.update(state.status, (count) => count + 1, ifAbsent: () => 1);
+    }
     final nextSession = pendingSessions.isNotEmpty ? pendingSessions.first : null;
     final heroLabel = nextSession == null ? 'PROGRESS' : 'ACTIVE SESSION';
     final heroTitle = nextSession?.title ?? 'No active session right now';
@@ -1734,11 +1721,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                               Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                               const SizedBox(height: 10),
                               Text(
-                                material.skillId,
-                                style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+                                'Ready for today\'s practice',
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                               ),
-                              const SizedBox(height: 8),
-                              Text('Material: ${material.materialId}', style: theme.textTheme.bodySmall),
                             ],
                           ),
                         );
@@ -1800,13 +1785,25 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: detail.progress
-                    .map((state) => _SkillProgressChip(state: state))
-                    .toList(growable: false),
-              ),
+              if (progressStatusCounts.isEmpty)
+                Text(
+                  'No progress has been recorded yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                )
+              else
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: progressStatusCounts.entries
+                      .map(
+                        (entry) => _PillBadge(
+                          text: '${entry.value} ${_humanizeLabel(entry.key)}',
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          textColor: theme.colorScheme.primary,
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
             ],
           ),
         ),
@@ -1820,13 +1817,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
-          eyebrow: 'Catalog',
-          title: 'Catalog Snapshot',
-          description: 'See the current breadth of subjects, areas, skills, stages, playlists, and materials loaded into Cornerstone.',
+          eyebrow: 'Library',
+          title: 'Learning Library',
+          description: 'Browse the learning journeys and teaching materials available in Cornerstone.',
           chips: [
-            _StatChip(label: 'Areas', value: '${catalog.report.areaCount}', icon: Icons.grid_view_rounded),
-            _StatChip(label: 'Skills', value: '${catalog.report.skillCount}', icon: Icons.extension_rounded),
-            _StatChip(label: 'Stages', value: '${catalog.report.stageCount}', icon: Icons.flag_rounded),
+            _StatChip(label: 'Playlists', value: '${catalog.report.playlistCount}', icon: Icons.assignment_rounded),
             _StatChip(label: 'Materials', value: '${catalog.report.materialCount}', icon: Icons.menu_book_rounded),
           ],
         ),
@@ -1834,18 +1829,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text('Loaded at ${catalog.report.loadedAtUtc}', style: theme.textTheme.bodySmall)],
-          ),
-        ),
-        const SizedBox(height: 20),
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Playlists', style: theme.textTheme.headlineSmall),
+              Text('Learning journeys', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Ready-made learning runs ordered by age, level, stage, and duration.',
+                'Choose a sequence that fits the learner\'s age, level, and current focus.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
@@ -1854,13 +1842,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(playlist.title),
                   subtitle: Text(
-                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days',
+                    'Age ${playlist.recommendedAge} · ${playlist.recommendedLevel} · ${playlist.durationDays} days · ${playlist.skillIds.length} skills',
                     style: theme.textTheme.bodySmall,
-                  ),
-                  trailing: _PillBadge(
-                    text: '${playlist.skillIds.length} skills',
-                    color: theme.colorScheme.secondaryContainer,
-                    textColor: theme.colorScheme.onSecondaryContainer,
                   ),
                 ),
               ),
@@ -1875,7 +1858,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               Text('Materials', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Source material available to session sequences across the catalog.',
+                'Core teaching materials that support the learning journeys above.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
@@ -1883,8 +1866,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 (item) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(item.title),
-                  subtitle: Text('${item.subjectId} · ${item.kind}', style: theme.textTheme.bodySmall),
-                  trailing: Text(item.id, style: theme.textTheme.labelSmall),
+                  subtitle: Text(_humanizeLabel(item.kind), style: theme.textTheme.bodySmall),
                 ),
               ),
             ],

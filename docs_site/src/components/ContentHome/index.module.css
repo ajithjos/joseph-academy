@@ -1,7 +1,10 @@
 .shell {
   display: grid;
   gap: 1.5rem;
-  margin: 1rem 0 2.5rem;
+  width: min(100%, 1240px);
+  margin: 1rem auto 2.5rem;
+  padding: 0 clamp(0.3rem, 1.4vw, 0.85rem);
+  box-sizing: border-box;
 }
 
 .hero,
