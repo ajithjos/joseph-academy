@@ -11,6 +11,9 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 - authoring rules for tone, vocabulary, naming, reuse, and validation
 - the practical workflow for creating, revising, or reviewing curriculum
 - a fillable brief template for one curriculum slice
+- worked example briefs under `examples/`
+
+Architecture decisions about planning objects and runtime surfaces live under `../architecture/`.
 
 ## Recommended Reading Order
 
@@ -18,7 +21,8 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 2. [Authoring rules](./authoring-rules.md)
 3. [Authoring workflow](./authoring-workflow.md)
 4. [Curriculum slice brief template](./curriculum-slice-brief-template.md)
-5. [Household arithmetic fact fluency brief](./household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
+5. [Planning, authoring, and runtime](../architecture/planning-authoring-and-runtime.md) if you need the whole-system mental model
+6. [Household arithmetic fact fluency brief](./examples/household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
 
 ## How To Use This Directory
 

@@ -34,6 +34,8 @@ Think in this order when authoring:
 
 That is the smallest model that still supports planning, delivery, and learner progress.
 
+If you need a human-facing whole-route view above playlists, use an optional `pathway` that orders playlists. Do not let it replace the smaller curriculum objects.
+
 ### Subject
 
 A subject is the top-level domain such as maths or english.
@@ -79,6 +81,14 @@ A playlist is an ordered set of sessions that references real materials.
 
 Use playlists for repeatable delivery. Do not hide stage or skill structure inside them.
 
+### Optional Pathway
+
+A pathway is an optional planning object above playlists.
+
+Use it when a parent, coach, or curriculum author needs to see the whole route across multiple playlists.
+
+Do not use it to replace assignments, sessions, or skill tracking.
+
 ## Supporting Runtime Context
 
 Authors do not usually edit runtime objects directly, but they should know how the product uses authored curriculum.
@@ -98,6 +108,7 @@ Authors do not usually edit runtime objects directly, but they should know how t
 - A stage groups a meaningful set of skills.
 - A material supports one or more skills and one or more stages.
 - A playlist sequences materials into sessions for delivery.
+- A pathway can order multiple playlists into a larger route.
 - An assignment instantiates one playlist for one learner.
 - A session produces evidence.
 - Evidence updates progress.
@@ -135,4 +146,5 @@ The control plane loads those files and exposes the same names in its responses.
 ## Naming Rules
 
 - Use the final names everywhere: subject, area, stage, skill, material, playlist.
+- If you need a whole-route planning object, call it `pathway`.
 - Do not reintroduce aliases such as `capability`, `milestone`, `resource`, `program`, `checkpoint`, or `plan template`.

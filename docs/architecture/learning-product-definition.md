@@ -13,6 +13,10 @@ Cornerstone uses one stable domain model across catalog files, backend APIs, fro
 - Material: one reusable teaching or practice artifact.
 - Playlist: an ordered set of sessions that uses real materials.
 
+### Optional Planning
+
+- Pathway: an optional planning object above playlists that helps humans see a whole route, without replacing assignments or skill-level progress.
+
 ### Runtime
 
 - Team: the household or learning group.
@@ -30,6 +34,7 @@ Cornerstone uses one stable domain model across catalog files, backend APIs, fro
 - A stage groups a meaningful set of skills.
 - A material supports one or more skills and one or more stages.
 - A playlist sequences materials into sessions for a learner.
+- A pathway can order multiple playlists into one larger route.
 - An assignment instantiates one playlist for one learner.
 - A session produces evidence.
 - Evidence updates progress.
@@ -52,11 +57,13 @@ The control plane loads those files and exposes the same names in its JSON respo
 - Use stages for parent-facing review and planning, not for one-off session events.
 - Keep materials reusable. A playlist should reference materials; it should not contain curriculum data that belongs in skills or stages.
 - Treat playlists as reusable curriculum plans. Treat assignments as learner-specific runtime instances.
+- If a larger whole-plan view is needed, add it above playlists as a pathway instead of overloading assignments.
 - Keep subject and area visible in authoring and browsing surfaces. They are not optional metadata.
 
 ## What We Do Not Model
 
 - No mandatory `program` object.
+- No vague planning object that duplicates playlist or assignment responsibilities.
 - No `capability`, `milestone`, `resource`, or `plan template` aliases.
 - No separate progress object for every worksheet or page.
 
@@ -64,3 +71,4 @@ The control plane loads those files and exposes the same names in its JSON respo
 
 - Review queues or reminders can exist as derived runtime helpers.
 - They are downstream of progress, not part of the core curriculum model.
+- If a higher-level planning object is introduced, keep it optional and human-facing rather than making it the unit of progress tracking.

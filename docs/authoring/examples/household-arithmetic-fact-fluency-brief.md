@@ -1,5 +1,9 @@
 # Household Arithmetic Fact Fluency Brief
 
+This is a worked example of the [Curriculum slice brief template](../curriculum-slice-brief-template.md).
+
+It is an example brief, not the canonical product architecture. For the object model and source-format guidance, read [Planning, authoring, and runtime](../../architecture/planning-authoring-and-runtime.md).
+
 Use this as the first real curriculum slice for Cornerstone.
 
 The goal is not to cover all of maths. The goal is to get two young learners into confident daily arithmetic with a sequence that is easy for a parent to assign, teach, and review.
@@ -198,28 +202,3 @@ The goal is not to cover all of maths. The goal is to get two young learners int
   - should the seven-year-old and nine-year-old share one sequence with different entry points, or have separate playlists from day one?
   - which facts are already secure for each child?
   - do you want one shared parent-teaching note per stage or one per playlist?
-
-## Product Notes For This Slice
-
-- Do not re-architect the core curriculum model before starting content. The current model is already the right shape for a household MVP.
-- The current repo already supports:
-  - playlists as reusable plans
-  - assignments for a specific learner
-  - scheduled sessions inside an assignment
-  - evidence recording per session
-  - skill-level progress summaries
-- The current repo does not yet present the teaching flow clearly enough for first use. The main problem is clarity and granularity, not missing core objects.
-- The biggest product gap for this slice is a simple randomised practice and quick-check surface. That should be treated as a learner activity tied to one skill or one small fact set, not as a new top-level curriculum object.
-- For MVP naming, use:
-  - `assignment` for a short multi-session plan
-  - `session` for one day or one practice block
-  - `practice drill` for random computer questions
-  - `quick check` for a short scored check
-
-## Recommended First Build Order
-
-1. Add smaller arithmetic stages and skills before the current `times_tables_through_12` level.
-2. Author paper-first materials for `Addition And Subtraction Facts To 10` and `Multiplication Facts Foundations`.
-3. Create one short playlist per stage, not one large arithmetic playlist.
-4. In the Flutter owner flow, assign the right playlist to each child manually rather than relying on default age-based seeding.
-5. Add one simple computer drill for random fact practice after the paper-first content exists.
