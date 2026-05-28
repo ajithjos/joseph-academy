@@ -33,6 +33,78 @@ pub struct AppState {
     pub library_report: Arc<RwLock<LibraryValidationReport>>,
 }
 
+fn role_can_manage_household(role: &str) -> bool {
+    matches!(role, "owner" | "parent" | "teacher")
+}
+
+fn role_can_open_developer_docs(role: &str) -> bool {
+    role == "owner"
+}
+
+fn ensure_viewer_can_manage_household(viewer: &HouseholdMemberSummary) -> anyhow::Result<()> {
+    if viewer.can_manage_household {
+        return Ok(());
+    }
+    bail!("viewer '{}' cannot manage the household workspace", viewer.username)
+}
+
+fn ensure_viewer_can_read_library(viewer: &HouseholdMemberSummary) -> anyhow::Result<()> {
+    if viewer.can_read_library {
+        return Ok(());
+    }
+    bail!("viewer '{}' cannot read the planning library", viewer.username)
+}
+
+fn ensure_viewer_can_access_learner(
+    viewer: &HouseholdMemberSummary,
+    learner_id: &str,
+) -> anyhow::Result<()> {
+    if viewer.can_view_all_learners {
+        return Ok(());
+    }
+    if viewer.learner_id.as_deref() == Some(learner_id) {
+        return Ok(());
+    }
+    bail!(
+        "viewer '{}' cannot access learner '{}'",
+        viewer.username,
+        learner_id
+    )
+}
+
+async fn resolve_viewer_member(
+    state: &Arc<AppState>,
+    username: &str,
+) -> anyhow::Result<HouseholdMemberSummary> {
+    let normalized = username.trim();
+    if normalized.is_empty() {
+        bail!("viewer username is required")
+    }
+
+    let member = query_as::<_, HouseholdMemberRow>(
+        "select
+            ua.user_id,
+            ua.username,
+            ua.display_name,
+            tm.role,
+            ua.current_level,
+            coalesce(ua.notes, '') as notes,
+            lp.learner_id
+         from team_membership tm
+         join user_account ua on ua.user_id = tm.user_id
+         left join learner_profile lp on lp.user_id = ua.user_id
+         where lower(ua.username) = lower($1)
+         order by tm.team_id
+         limit 1",
+    )
+    .bind(normalized)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| anyhow!("viewer '{}' not found", normalized))?;
+
+    Ok(member_row_to_summary(member))
+}
+
 pub async fn initialize_state(config: AppConfig, run_startup_bootstrap: bool) -> anyhow::Result<Arc<AppState>> {
     fs::create_dir_all(&config.artifacts_root)
         .await
@@ -73,7 +145,13 @@ pub async fn migrate_database(database_url: &str) -> anyhow::Result<()> {
     MIGRATOR.run(&pool).await.context("failed to run database migrations")
 }
 
-pub async fn reload_library(state: &Arc<AppState>) -> anyhow::Result<LibraryReloadResponse> {
+pub async fn reload_library(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<LibraryReloadResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_manage_household(&viewer)?;
+
     let library_content = load_library_content(&state.config.content_root)?;
     {
         let mut library_guard = state.library.write().await;
@@ -166,26 +244,42 @@ pub async fn apply_bootstrap(state: &Arc<AppState>) -> anyhow::Result<BootstrapA
     })
 }
 
-pub async fn fetch_library(state: &Arc<AppState>) -> (LibraryBundle, LibraryReloadResponse) {
+pub async fn fetch_library(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<(LibraryBundle, LibraryReloadResponse)> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_read_library(&viewer)?;
+
     let bundle = state.library.read().await.clone();
     let report = library_report_response(&*state.library_report.read().await);
-    (bundle, report)
+    Ok((bundle, report))
 }
 
-pub async fn list_library_documents(state: &Arc<AppState>) -> Vec<LibraryDocumentSummary> {
-    state
+pub async fn list_library_documents(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<Vec<LibraryDocumentSummary>> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_read_library(&viewer)?;
+
+    Ok(state
         .library_documents
         .read()
         .await
         .iter()
         .map(library_document_summary)
-        .collect()
+        .collect())
 }
 
 pub async fn fetch_library_document(
     state: &Arc<AppState>,
+    viewer_username: &str,
     route_path: &str,
 ) -> anyhow::Result<LibraryDocumentPayload> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_read_library(&viewer)?;
+
     let normalized = route_path.trim().trim_matches('/');
     if normalized.is_empty() {
         bail!("route_path is required");
@@ -221,6 +315,7 @@ pub async fn fetch_viewer_session(
         team,
         current_user,
         available_users,
+        developer_docs_url: state.config.developer_docs_public_url.clone(),
     })
 }
 
@@ -241,7 +336,11 @@ pub async fn login_viewer_session(
     Ok(session)
 }
 
-pub async fn fetch_dashboard(state: &Arc<AppState>) -> anyhow::Result<DashboardResponse> {
+pub async fn fetch_dashboard(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<DashboardResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
     let team = fetch_team_summary(state).await?;
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
@@ -252,16 +351,35 @@ pub async fn fetch_dashboard(state: &Arc<AppState>) -> anyhow::Result<DashboardR
     .await?;
 
     let library = state.library.read().await.clone();
-    let learner_dashboards = build_dashboard_cards(state, &library, &learners).await?;
+    let visible_learners = if viewer.can_view_all_learners {
+        learners
+    } else if let Some(learner_id) = viewer.learner_id.as_deref() {
+        learners
+            .into_iter()
+            .filter(|learner| learner.learner_id == learner_id)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let learner_dashboards = build_dashboard_cards(state, &library, &visible_learners).await?;
+    let library_report = if viewer.can_read_library {
+        Some(library_report_response(&*state.library_report.read().await))
+    } else {
+        None
+    };
 
     Ok(DashboardResponse {
         team,
-        library: library_report_response(&*state.library_report.read().await),
+        library: library_report,
         learners: learner_dashboards,
     })
 }
 
-pub async fn list_learners(state: &Arc<AppState>) -> anyhow::Result<Vec<LearnerSummary>> {
+pub async fn list_learners(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<Vec<LearnerSummary>> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
@@ -272,6 +390,7 @@ pub async fn list_learners(state: &Arc<AppState>) -> anyhow::Result<Vec<LearnerS
 
     Ok(learners
         .into_iter()
+        .filter(|learner| viewer.can_view_all_learners || viewer.learner_id.as_deref() == Some(learner.learner_id.as_str()))
         .map(|learner| LearnerSummary {
             learner_id: learner.learner_id,
             display_name: learner.display_name,
@@ -282,7 +401,14 @@ pub async fn list_learners(state: &Arc<AppState>) -> anyhow::Result<Vec<LearnerS
         .collect())
 }
 
-pub async fn fetch_learner_detail(state: &Arc<AppState>, learner_id: &str) -> anyhow::Result<LearnerDetailResponse> {
+pub async fn fetch_learner_detail(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+    learner_id: &str,
+) -> anyhow::Result<LearnerDetailResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_access_learner(&viewer, learner_id)?;
+
     let learner = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
@@ -318,8 +444,12 @@ pub async fn fetch_learner_detail(state: &Arc<AppState>, learner_id: &str) -> an
 
 pub async fn create_assignment(
     state: &Arc<AppState>,
+    viewer_username: &str,
     request: AssignmentRequest,
 ) -> anyhow::Result<AssignmentResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_manage_household(&viewer)?;
+
     let library = state.library.read().await.clone();
     let assignment = create_assignment_internal(
         state,
@@ -337,9 +467,13 @@ pub async fn create_assignment(
 
 pub async fn record_session(
     state: &Arc<AppState>,
+    viewer_username: &str,
     session_id: &str,
     request: RecordSessionRequest,
 ) -> anyhow::Result<RecordSessionResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_manage_household(&viewer)?;
+
     if request.max_score <= 0.0 {
         bail!("max_score must be greater than zero");
     }
@@ -467,8 +601,12 @@ pub async fn record_session(
 
 pub async fn rebuild_review_items(
     state: &Arc<AppState>,
+    viewer_username: &str,
     learner_id: Option<String>,
 ) -> anyhow::Result<ReviewRebuildResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_manage_household(&viewer)?;
+
     let learner_ids = if let Some(learner_id) = learner_id {
         vec![learner_id]
     } else {
@@ -574,14 +712,20 @@ async fn list_household_members(state: &Arc<AppState>) -> anyhow::Result<Vec<Hou
 }
 
 fn member_row_to_summary(row: HouseholdMemberRow) -> HouseholdMemberSummary {
+    let role = row.role.clone();
+    let can_manage_household = role_can_manage_household(&role);
     HouseholdMemberSummary {
         user_id: row.user_id,
         username: row.username,
         display_name: row.display_name,
-        role: row.role,
+        role,
         current_level: row.current_level,
         notes: row.notes,
         learner_id: row.learner_id,
+        can_manage_household,
+        can_read_library: can_manage_household,
+        can_view_all_learners: can_manage_household,
+        can_open_developer_docs: role_can_open_developer_docs(&row.role),
     }
 }
 

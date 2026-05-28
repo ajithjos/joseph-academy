@@ -13,6 +13,7 @@ pub struct AppConfig {
     pub exports_root: PathBuf,
     pub auto_bootstrap: bool,
     pub frontend_public_url: String,
+    pub developer_docs_public_url: Option<String>,
 }
 
 impl AppConfig {
@@ -26,6 +27,7 @@ impl AppConfig {
             exports_root: required_path("CORNERSTONE_EXPORTS_ROOT")?,
             auto_bootstrap: required_bool("CORNERSTONE_AUTO_BOOTSTRAP")?,
             frontend_public_url: required_env("CORNERSTONE_FRONTEND_PUBLIC_URL")?,
+            developer_docs_public_url: optional_env("CORNERSTONE_DEVELOPER_DOCS_URL"),
         })
     }
 }
@@ -45,6 +47,17 @@ fn required_env(key: &str) -> anyhow::Result<String> {
         return Err(anyhow!("{key} cannot be empty"));
     }
     Ok(trimmed.to_string())
+}
+
+fn optional_env(key: &str) -> Option<String> {
+    env::var(key).ok().and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
 }
 
 fn required_path(key: &str) -> anyhow::Result<PathBuf> {

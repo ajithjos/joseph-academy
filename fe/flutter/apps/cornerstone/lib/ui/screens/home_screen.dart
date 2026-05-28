@@ -1,10 +1,10 @@
 part of '../../main.dart';
 
 enum _ShellDestination {
-  owner('Owner', 'Manage learners, assignments, and household progress.', Icons.dashboard_rounded),
-  learner('Learner', 'Follow today\'s active session and material sequence.', Icons.school_rounded),
-  library('Library', 'Browse pathways, playlists, and learning materials.', Icons.auto_stories_rounded),
-  account('My Account', 'Profile and appearance.', Icons.person_rounded);
+  owner('Household', 'Track learners, assignments, and daily progress.', Icons.dashboard_rounded),
+  learner('Today', 'Follow the active session and what comes next.', Icons.school_rounded),
+  library('Pathways', 'Review authored routes, playlists, and materials.', Icons.auto_stories_rounded),
+  account('Profile', 'Profile, theme, and personal settings.', Icons.person_rounded);
 
   const _ShellDestination(this.label, this.subtitle, this.icon);
   final String label;
@@ -67,16 +67,24 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   ViewerUser? get _currentViewer => _viewerSession?.currentUser;
   bool get _viewerCanManage => _currentViewer?.canManageHousehold ?? false;
+  bool get _viewerCanReadLibrary => _currentViewer?.canReadLibrary ?? false;
+  bool get _viewerCanOpenDeveloperDocs =>
+      _currentViewer?.canOpenDeveloperDocs ?? false;
+  String? get _developerDocsUrl => _viewerSession?.developerDocsUrl;
 
   List<_ShellDestination> get _availableDestinations {
     final viewer = _currentViewer;
     if (viewer == null) return const <_ShellDestination>[];
     if (viewer.canManageHousehold) {
-      return _ShellDestination.values;
+      return <_ShellDestination>[
+        _ShellDestination.owner,
+        _ShellDestination.learner,
+        if (viewer.canReadLibrary) _ShellDestination.library,
+        _ShellDestination.account,
+      ];
     }
     return const <_ShellDestination>[
       _ShellDestination.learner,
-      _ShellDestination.library,
       _ShellDestination.account,
     ];
   }
@@ -85,7 +93,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final dashboard = _dashboard;
     final viewer = _currentViewer;
     if (dashboard == null) return const <LearnerDashboard>[];
-    if (viewer == null || viewer.canManageHousehold || viewer.learnerId == null) {
+    if (viewer == null || viewer.canViewAllLearners || viewer.learnerId == null) {
       return dashboard.learners;
     }
     return dashboard.learners
@@ -165,6 +173,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         await _clearStoredViewerUsername();
       }
 
+      _apiClient.setViewerUsername(viewerSession.currentUser?.username);
+
       if (viewerSession.currentUser == null) {
         setState(() {
           _viewerSession = viewerSession;
@@ -187,6 +197,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       }
 
       await _persistViewerUsername(viewerSession.currentUser!.username);
+      _apiClient.setViewerUsername(viewerSession.currentUser!.username);
       setState(() {
         _viewerSession = viewerSession;
         _sessionLoading = false;
@@ -247,6 +258,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
       _setUsernameInput(currentUser.username);
       await _persistViewerUsername(currentUser.username);
+      _apiClient.setViewerUsername(currentUser.username);
       setState(() {
         _viewerSession = viewerSession;
         _authBusy = false;
@@ -304,21 +316,26 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     });
     try {
       final dashboard = await _apiClient.fetchDashboard();
-      final library = await _apiClient.fetchLibrary();
-      final libraryDocuments = await _apiClient.fetchLibraryDocuments();
       final nextLearnerId = _nextLearnerIdForViewer(
         dashboard,
         preserveSelection: preserveSelection,
       );
-      final nextLibraryRoutePath = _nextLibraryRoutePath(
-        library: library,
-        documents: libraryDocuments,
-        preserveSelection: preserveSelection,
-      );
+      LibraryPayload? library;
+      LibraryDocumentsPayload? libraryDocuments;
+      String? nextLibraryRoutePath;
       LearnerDetailPayload? learnerDetail;
       LibraryDocumentData? selectedLibraryDocument;
       if (nextLearnerId != null) {
         learnerDetail = await _apiClient.fetchLearnerDetail(nextLearnerId);
+      }
+      if (_viewerCanReadLibrary) {
+        library = await _apiClient.fetchLibrary();
+        libraryDocuments = await _apiClient.fetchLibraryDocuments();
+        nextLibraryRoutePath = _nextLibraryRoutePath(
+          library: library,
+          documents: libraryDocuments,
+          preserveSelection: preserveSelection,
+        );
       }
       if (nextLibraryRoutePath != null) {
         selectedLibraryDocument = await _apiClient.fetchLibraryDocument(
@@ -376,6 +393,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Future<void> _selectLibraryDocument(String routePath) async {
+    if (!_viewerCanReadLibrary) {
+      return;
+    }
     final normalizedRoutePath = routePath.trim().replaceAll(RegExp(r'^/+|/+$'), '');
     if (normalizedRoutePath.isEmpty) {
       return;
@@ -509,15 +529,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   String _viewerRoleLabel(ViewerUser? viewer) {
     if (viewer == null) return 'Signed out';
+    if (viewer.canOpenDeveloperDocs) return 'Owner';
     return viewer.canManageHousehold ? 'Parent / Teacher' : 'Student';
   }
 
   String _shellWorkspaceLabel() {
     final viewer = _currentViewer;
     if (viewer == null) return 'Signed out';
-    return viewer.canManageHousehold
-        ? 'Parent / teacher workspace'
-        : 'Student workspace';
+    return viewer.canManageHousehold ? 'Household workspace' : 'Learner workspace';
   }
 
   bool _hasMeaningfulViewerNotes(ViewerUser viewer) {
@@ -554,14 +573,51 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
+  Future<void> _openDeveloperDocs() async {
+    final rawUrl = _developerDocsUrl;
+    final docsUri = rawUrl == null ? null : Uri.tryParse(rawUrl);
+    if (docsUri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Developer docs are not configured for this environment.')),
+      );
+      return;
+    }
+    final launched = await launchUrl(docsUri);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to open developer docs at $rawUrl')),
+      );
+    }
+  }
+
   List<Widget> _buildProfileMenuChildren(BuildContext context) {
-    return [
+    final children = <Widget>[
       MenuItemButton(leadingIcon: const Icon(Icons.person_rounded), onPressed: () => _setDestination(_ShellDestination.account), child: const Text('My Account')),
-      MenuItemButton(leadingIcon: const Icon(Icons.auto_stories_rounded), onPressed: () => _setDestination(_ShellDestination.library), child: const Text('Open library')),
+    ];
+    if (_viewerCanReadLibrary && !_viewerCanOpenDeveloperDocs) {
+      children.add(
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.auto_stories_rounded),
+          onPressed: () => _setDestination(_ShellDestination.library),
+          child: const Text('Open pathway library'),
+        ),
+      );
+    }
+    if (_viewerCanOpenDeveloperDocs && (_developerDocsUrl?.isNotEmpty ?? false)) {
+      children.add(
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.developer_mode_rounded),
+          onPressed: () => _openDeveloperDocs(),
+          child: const Text('Open developer docs'),
+        ),
+      );
+    }
+    children.addAll([
       MenuItemButton(leadingIcon: const Icon(Icons.logout_rounded), onPressed: _authBusy ? null : () => _logoutViewer(), child: const Text('Log out')),
       const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Divider(height: 18)),
       SizedBox(width: 284, child: _AppearancePanel(controller: widget.themeController)),
-    ];
+    ]);
+    return children;
   }
 
   Widget _buildProfileMenuAnchor({required bool compact}) {
@@ -671,10 +727,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildShellHeader(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
-    final shellTitle = _viewerCanManage ? 'Control Center' : 'Learner Space';
+    final shellEyebrow = _viewerCanManage ? 'WORKSPACE' : 'TODAY';
+    final shellTitle = _viewerCanManage ? 'Household workspace' : 'My learning';
     final shellDescription = _viewerCanManage
-        ? 'Keep navigation and actions close at hand without extra branding noise.'
-        : 'Stay focused on today\'s work, your progress, and what comes next.';
+      ? _viewerCanReadLibrary
+        ? 'Move between household progress, learner operations, the pathway library, and profile tools.'
+        : 'Move between household progress, learner operations, and profile tools.'
+      : 'Stay with today\'s work, your progress, and your account settings.';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(_shellNavExpanded ? 16 : 10, 14, _shellNavExpanded ? 16 : 10, 8),
@@ -696,7 +755,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'NAVIGATION',
+                    shellEyebrow,
                     style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 8),
@@ -906,7 +965,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             ),
             const SizedBox(height: 18),
             Text(
-              'NAVIGATION',
+              'VIEWS',
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
             ),
             const SizedBox(height: 8),
@@ -923,6 +982,17 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 },
               ),
             ),
+            if (_viewerCanOpenDeveloperDocs && (_developerDocsUrl?.isNotEmpty ?? false))
+              ListTile(
+                leading: const Icon(Icons.developer_mode_rounded),
+                title: const Text('Developer Docs'),
+                subtitle: const Text('Open the standalone developer documentation site.'),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openDeveloperDocs();
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: const Text('Log out'),
@@ -1291,14 +1361,26 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final library = _library;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_errorMessage != null) return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
-    if (dashboard == null || library == null) return const Center(child: Text('No data loaded'));
-    final content = switch (_selectedDestination) {
-      _ShellDestination.owner => _buildOwnerView(context, dashboard, library),
+    if (dashboard == null) return const Center(child: Text('No data loaded'));
+    final activeDestination = _availableDestinations.contains(_selectedDestination)
+        ? _selectedDestination
+        : (_availableDestinations.isNotEmpty
+              ? _availableDestinations.first
+              : _ShellDestination.account);
+    final content = switch (activeDestination) {
+      _ShellDestination.owner => library == null
+          ? const Center(child: Text('Household planning data is unavailable.'))
+          : _buildOwnerView(context, dashboard, library),
       _ShellDestination.learner => _buildLearnerView(context),
-      _ShellDestination.library => _buildLibraryView(context, library),
+      _ShellDestination.library => library == null
+          ? const Center(child: Text('Library access is unavailable for this viewer.'))
+          : _buildLibraryView(context, library),
       _ShellDestination.account => _buildAccountView(context, dashboard),
     };
-    return _wrapMainContent(content);
+    return _wrapMainContent(
+      content,
+      maxWidth: _contentMaxWidthFor(activeDestination),
+    );
   }
 
   Widget _buildAccountView(BuildContext context, DashboardPayload dashboard) {

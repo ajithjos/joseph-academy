@@ -1,12 +1,14 @@
 class DashboardPayload {
-  DashboardPayload({required this.library, required this.learners, this.team});
+  DashboardPayload({required this.learners, this.team, this.library});
 
   factory DashboardPayload.fromJson(Map<String, dynamic> json) {
     return DashboardPayload(
       team: json['team'] == null
           ? null
           : TeamInfo.fromJson(json['team'] as Map<String, dynamic>),
-      library: LibraryReport.fromJson(json['library'] as Map<String, dynamic>),
+      library: json['library'] == null
+          ? null
+          : LibraryReport.fromJson(json['library'] as Map<String, dynamic>),
       learners: (json['learners'] as List<dynamic>)
           .map((item) => LearnerDashboard.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -14,7 +16,7 @@ class DashboardPayload {
   }
 
   final TeamInfo? team;
-  final LibraryReport library;
+  final LibraryReport? library;
   final List<LearnerDashboard> learners;
 }
 
@@ -24,6 +26,7 @@ class ViewerSessionPayload {
     required this.availableUsers,
     this.team,
     this.currentUser,
+    this.developerDocsUrl,
   });
 
   factory ViewerSessionPayload.fromJson(Map<String, dynamic> json) {
@@ -37,6 +40,7 @@ class ViewerSessionPayload {
           : ViewerUser.fromJson(
               json['current_user'] as Map<String, dynamic>,
             ),
+      developerDocsUrl: json['developer_docs_url'] as String?,
       availableUsers: (json['available_users'] as List<dynamic>)
           .map((item) => ViewerUser.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -46,6 +50,7 @@ class ViewerSessionPayload {
   final String status;
   final TeamInfo? team;
   final ViewerUser? currentUser;
+  final String? developerDocsUrl;
   final List<ViewerUser> availableUsers;
 }
 
@@ -271,27 +276,41 @@ class TeamInfo {
 }
 
 class ViewerUser {
+  factory ViewerUser.fromJson(Map<String, dynamic> json) {
+    final role = json['role'] as String;
+    final canManageHousehold =
+        json['can_manage_household'] as bool? ?? role != 'learner';
+    return ViewerUser(
+      userId: json['user_id'] as String,
+      username: json['username'] as String,
+      displayName: json['display_name'] as String,
+      role: role,
+      currentLevel: json['current_level'] as String?,
+      notes: json['notes'] as String? ?? '',
+      learnerId: json['learner_id'] as String?,
+      canManageHousehold: canManageHousehold,
+      canReadLibrary:
+          json['can_read_library'] as bool? ?? canManageHousehold,
+      canViewAllLearners:
+          json['can_view_all_learners'] as bool? ?? canManageHousehold,
+      canOpenDeveloperDocs:
+          json['can_open_developer_docs'] as bool? ?? role == 'owner',
+    );
+  }
+
   ViewerUser({
     required this.userId,
     required this.username,
     required this.displayName,
     required this.role,
     required this.notes,
+    required this.canManageHousehold,
+    required this.canReadLibrary,
+    required this.canViewAllLearners,
+    required this.canOpenDeveloperDocs,
     this.currentLevel,
     this.learnerId,
   });
-
-  factory ViewerUser.fromJson(Map<String, dynamic> json) {
-    return ViewerUser(
-      userId: json['user_id'] as String,
-      username: json['username'] as String,
-      displayName: json['display_name'] as String,
-      role: json['role'] as String,
-      currentLevel: json['current_level'] as String?,
-      notes: json['notes'] as String? ?? '',
-      learnerId: json['learner_id'] as String?,
-    );
-  }
 
   final String userId;
   final String username;
@@ -300,9 +319,13 @@ class ViewerUser {
   final String notes;
   final String? currentLevel;
   final String? learnerId;
+  final bool canManageHousehold;
+  final bool canReadLibrary;
+  final bool canViewAllLearners;
+  final bool canOpenDeveloperDocs;
 
   bool get isLearner => role == 'learner';
-  bool get canManageHousehold => !isLearner;
+  bool get isOwner => role == 'owner';
 }
 
 class LearnerDashboard {

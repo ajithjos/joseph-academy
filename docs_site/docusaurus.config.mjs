@@ -1,8 +1,5 @@
 const siteUrl = process.env.CORNERSTONE_DOCS_SITE_URL || "http://127.0.0.1:3001";
 const baseUrl = process.env.CORNERSTONE_DOCS_SITE_BASE_URL || "/";
-const frontendUrl = `${
-  process.env.CORNERSTONE_FRONTEND_SITE_URL || siteUrl
-}`.replace(/\/?$/, "/");
 
 function withBaseUrl(target) {
   const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -14,7 +11,7 @@ function withBaseUrl(target) {
 }
 
 const brandLockupHtml = `
-  <a class="navbar__brand-lockup" href="${frontendUrl}" aria-label="Back to Cornerstone site">
+  <a class="navbar__brand-lockup" href="${withBaseUrl("/")}" aria-label="Cornerstone developer docs home">
     <span class="navbar__brand-logo-frame">
       <img class="navbar__brand-logo" src="${withBaseUrl("/img/logo-symbol.png")}" alt="Cornerstone symbol" />
     </span>
@@ -26,7 +23,7 @@ const brandLockupHtml = `
 
 const config = {
   title: "Cornerstone Developer Docs",
-  tagline: "Developer, operator, and authoring references for the Cornerstone repo",
+  tagline: "Repository, operator, and authoring references only",
   url: siteUrl,
   baseUrl,
   organizationName: "cornerstone",
@@ -69,7 +66,7 @@ const config = {
         { to: "/developer/", label: "Overview", position: "left" },
         { to: "/developer/authoring/", label: "Authoring", position: "left" },
         { to: "/developer/deploy/", label: "Deploy", position: "left" },
-        { href: frontendUrl, label: "Back to Site", position: "right", className: "navbar__back-to-site" }
+        { to: "/developer/operator-playbook", label: "Operator", position: "left" }
       ]
     },
     footer: {

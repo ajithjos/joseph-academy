@@ -75,7 +75,7 @@ pub struct BootstrapApplyResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct DashboardResponse {
     pub team: Option<TeamSummary>,
-    pub library: LibraryReloadResponse,
+    pub library: Option<LibraryReloadResponse>,
     pub learners: Vec<LearnerDashboard>,
 }
 
@@ -85,6 +85,7 @@ pub struct ViewerSessionResponse {
     pub team: Option<TeamSummary>,
     pub current_user: Option<HouseholdMemberSummary>,
     pub available_users: Vec<HouseholdMemberSummary>,
+    pub developer_docs_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -103,6 +104,10 @@ pub struct HouseholdMemberSummary {
     pub current_level: Option<String>,
     pub notes: String,
     pub learner_id: Option<String>,
+    pub can_manage_household: bool,
+    pub can_read_library: bool,
+    pub can_view_all_learners: bool,
+    pub can_open_developer_docs: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

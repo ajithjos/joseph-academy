@@ -11,6 +11,13 @@ class CornerstoneApiClient {
 
   final http.Client _client;
   final String baseUrl;
+  String? _viewerUsername;
+
+  void setViewerUsername(String? username) {
+    final normalized = username?.trim();
+    _viewerUsername =
+        normalized == null || normalized.isEmpty ? null : normalized;
+  }
 
   static String _resolveBaseUrl() {
     const configuredBaseUrl = String.fromEnvironment(
@@ -30,7 +37,10 @@ class CornerstoneApiClient {
   }
 
   Future<DashboardPayload> fetchDashboard() async {
-    final response = await _client.get(Uri.parse('$baseUrl/api/v1/dashboard'));
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/dashboard'),
+      headers: _viewerHeaders(),
+    );
     return DashboardPayload.fromJson(_decode(response));
   }
 
@@ -60,13 +70,17 @@ class CornerstoneApiClient {
   }
 
   Future<LibraryPayload> fetchLibrary() async {
-    final response = await _client.get(Uri.parse('$baseUrl/api/v1/library'));
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/library'),
+      headers: _viewerHeaders(),
+    );
     return LibraryPayload.fromJson(_decode(response));
   }
 
   Future<LibraryDocumentsPayload> fetchLibraryDocuments() async {
     final response = await _client.get(
       Uri.parse('$baseUrl/api/v1/library/documents'),
+      headers: _viewerHeaders(),
     );
     return LibraryDocumentsPayload.fromJson(_decode(response));
   }
@@ -76,6 +90,7 @@ class CornerstoneApiClient {
       Uri.parse('$baseUrl/api/v1/library/document').replace(
         queryParameters: {'route_path': routePath},
       ),
+      headers: _viewerHeaders(),
     );
     return LibraryDocumentPayload.fromJson(_decode(response)).document;
   }
@@ -83,6 +98,7 @@ class CornerstoneApiClient {
   Future<LearnerDetailPayload> fetchLearnerDetail(String learnerId) async {
     final response = await _client.get(
       Uri.parse('$baseUrl/api/v1/learners/$learnerId'),
+      headers: _viewerHeaders(),
     );
     return LearnerDetailPayload.fromJson(_decode(response));
   }
@@ -94,7 +110,7 @@ class CornerstoneApiClient {
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/assignments'),
-      headers: const {'Content-Type': 'application/json'},
+      headers: _viewerHeaders(contentTypeJson: true),
       body: jsonEncode({
         'learner_id': learnerId,
         'playlist_id': playlistId,
@@ -113,7 +129,7 @@ class CornerstoneApiClient {
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/sessions/$sessionId/record'),
-      headers: const {'Content-Type': 'application/json'},
+      headers: _viewerHeaders(contentTypeJson: true),
       body: jsonEncode({
         'score': score,
         'max_score': maxScore,
@@ -122,6 +138,17 @@ class CornerstoneApiClient {
       }),
     );
     _decode(response);
+  }
+
+  Map<String, String> _viewerHeaders({bool contentTypeJson = false}) {
+    final headers = <String, String>{};
+    if (contentTypeJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (_viewerUsername != null) {
+      headers['x-cornerstone-viewer'] = _viewerUsername!;
+    }
+    return headers;
   }
 
   Map<String, dynamic> _decode(http.Response response) {

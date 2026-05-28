@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use anyhow::Error;
+use anyhow::{Error, anyhow};
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -23,6 +23,8 @@ use crate::service::{
     list_library_documents, login_viewer_session, rebuild_review_items, record_session,
     reload_library,
 };
+
+const VIEWER_USERNAME_HEADER: &str = "x-cornerstone-viewer";
 
 #[derive(Debug)]
 pub struct ApiError(pub Error);
@@ -77,6 +79,23 @@ impl From<Error> for ApiError {
     }
 }
 
+fn viewer_username_from_headers(headers: &HeaderMap) -> Result<String, ApiError> {
+    let raw_value = headers
+        .get(VIEWER_USERNAME_HEADER)
+        .ok_or_else(|| ApiError(anyhow!("{VIEWER_USERNAME_HEADER} header is required")))?;
+    let username = raw_value
+        .to_str()
+        .map_err(|_| ApiError(anyhow!("{VIEWER_USERNAME_HEADER} header must be valid UTF-8")))?
+        .trim()
+        .to_string();
+    if username.is_empty() {
+        return Err(ApiError(anyhow!(
+            "{VIEWER_USERNAME_HEADER} header cannot be empty"
+        )));
+    }
+    Ok(username)
+}
+
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", get(index))
@@ -123,31 +142,43 @@ async fn health() -> Json<OperationStatusResponse> {
     })
 }
 
-async fn get_library(State(state): State<Arc<AppState>>) -> Result<Json<LibraryPayload>, ApiError> {
-    let (bundle, report) = fetch_library(&state).await;
+async fn get_library(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<LibraryPayload>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    let (bundle, report) = fetch_library(&state, &viewer_username).await?;
     Ok(Json(LibraryPayload { report, bundle }))
 }
 
-async fn post_library_reload(State(state): State<Arc<AppState>>) -> Result<Json<LibraryReloadResponse>, ApiError> {
-    Ok(Json(reload_library(&state).await?))
+async fn post_library_reload(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<LibraryReloadResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(reload_library(&state, &viewer_username).await?))
 }
 
 async fn get_library_documents(
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<LibraryDocumentsResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
     Ok(Json(LibraryDocumentsResponse {
         status: "ok".to_string(),
-        documents: list_library_documents(&state).await,
+        documents: list_library_documents(&state, &viewer_username).await?,
     }))
 }
 
 async fn get_library_document(
     Query(query): Query<LibraryDocumentQuery>,
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<LibraryDocumentResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
     Ok(Json(LibraryDocumentResponse {
         status: "ok".to_string(),
-        document: fetch_library_document(&state, &query.route_path).await?,
+        document: fetch_library_document(&state, &viewer_username, &query.route_path).await?,
     }))
 }
 
@@ -178,41 +209,59 @@ async fn delete_viewer_session() -> Json<OperationStatusResponse> {
     })
 }
 
-async fn get_dashboard(State(state): State<Arc<AppState>>) -> Result<Json<crate::domain::DashboardResponse>, ApiError> {
-    Ok(Json(fetch_dashboard(&state).await?))
+async fn get_dashboard(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<crate::domain::DashboardResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(fetch_dashboard(&state, &viewer_username).await?))
 }
 
 async fn get_learners(
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<crate::domain::LearnerSummary>>, ApiError> {
-    Ok(Json(list_learners(&state).await?))
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(list_learners(&state, &viewer_username).await?))
 }
 
 async fn get_learner_detail(
     Path(learner_id): Path<String>,
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<crate::domain::LearnerDetailResponse>, ApiError> {
-    Ok(Json(fetch_learner_detail(&state, &learner_id).await?))
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(fetch_learner_detail(&state, &viewer_username, &learner_id).await?))
 }
 
 async fn post_assignment(
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
     Json(request): Json<AssignmentRequest>,
 ) -> Result<Json<crate::domain::AssignmentResponse>, ApiError> {
-    Ok(Json(create_assignment(&state, request).await?))
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(create_assignment(&state, &viewer_username, request).await?))
 }
 
 async fn post_record_session(
     Path(session_id): Path<String>,
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
     Json(request): Json<RecordSessionRequest>,
 ) -> Result<Json<crate::domain::RecordSessionResponse>, ApiError> {
-    Ok(Json(record_session(&state, &session_id, request).await?))
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(
+        record_session(&state, &viewer_username, &session_id, request).await?,
+    ))
 }
 
 async fn post_review_rebuild(
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
     Json(request): Json<ReviewRebuildRequest>,
 ) -> Result<Json<crate::domain::ReviewRebuildResponse>, ApiError> {
-    Ok(Json(rebuild_review_items(&state, request.learner_id).await?))
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(
+        rebuild_review_items(&state, &viewer_username, request.learner_id).await?,
+    ))
 }
