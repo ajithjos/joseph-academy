@@ -18,6 +18,37 @@ class DashboardPayload {
   final List<LearnerDashboard> learners;
 }
 
+class ViewerSessionPayload {
+  ViewerSessionPayload({
+    required this.status,
+    required this.availableUsers,
+    this.team,
+    this.currentUser,
+  });
+
+  factory ViewerSessionPayload.fromJson(Map<String, dynamic> json) {
+    return ViewerSessionPayload(
+      status: json['status'] as String,
+      team: json['team'] == null
+          ? null
+          : TeamInfo.fromJson(json['team'] as Map<String, dynamic>),
+      currentUser: json['current_user'] == null
+          ? null
+          : ViewerUser.fromJson(
+              json['current_user'] as Map<String, dynamic>,
+            ),
+      availableUsers: (json['available_users'] as List<dynamic>)
+          .map((item) => ViewerUser.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  final String status;
+  final TeamInfo? team;
+  final ViewerUser? currentUser;
+  final List<ViewerUser> availableUsers;
+}
+
 class CatalogPayload {
   CatalogPayload({required this.report, required this.bundle});
 
@@ -123,6 +154,41 @@ class TeamInfo {
   final String teamId;
   final String displayName;
   final String description;
+}
+
+class ViewerUser {
+  ViewerUser({
+    required this.userId,
+    required this.username,
+    required this.displayName,
+    required this.role,
+    required this.notes,
+    this.currentLevel,
+    this.learnerId,
+  });
+
+  factory ViewerUser.fromJson(Map<String, dynamic> json) {
+    return ViewerUser(
+      userId: json['user_id'] as String,
+      username: json['username'] as String,
+      displayName: json['display_name'] as String,
+      role: json['role'] as String,
+      currentLevel: json['current_level'] as String?,
+      notes: json['notes'] as String? ?? '',
+      learnerId: json['learner_id'] as String?,
+    );
+  }
+
+  final String userId;
+  final String username;
+  final String displayName;
+  final String role;
+  final String notes;
+  final String? currentLevel;
+  final String? learnerId;
+
+  bool get isLearner => role == 'learner';
+  bool get canManageHousehold => !isLearner;
 }
 
 class LearnerDashboard {

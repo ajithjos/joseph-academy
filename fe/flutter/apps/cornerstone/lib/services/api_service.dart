@@ -34,6 +34,31 @@ class CornerstoneApiClient {
     return DashboardPayload.fromJson(_decode(response));
   }
 
+  Future<ViewerSessionPayload> fetchViewerSession({String? username}) async {
+    final trimmedUsername = username?.trim();
+    final uri = Uri.parse('$baseUrl/api/v1/session').replace(
+      queryParameters: trimmedUsername == null || trimmedUsername.isEmpty
+          ? null
+          : {'username': trimmedUsername},
+    );
+    final response = await _client.get(uri);
+    return ViewerSessionPayload.fromJson(_decode(response));
+  }
+
+  Future<ViewerSessionPayload> login(String username) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/v1/session'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username}),
+    );
+    return ViewerSessionPayload.fromJson(_decode(response));
+  }
+
+  Future<void> logout() async {
+    final response = await _client.delete(Uri.parse('$baseUrl/api/v1/session'));
+    _decode(response);
+  }
+
   Future<CatalogPayload> fetchCatalog() async {
     final response = await _client.get(Uri.parse('$baseUrl/api/v1/catalog'));
     return CatalogPayload.fromJson(_decode(response));

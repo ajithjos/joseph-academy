@@ -102,6 +102,9 @@ deploy_dev_ensure_dirs() {
 }
 
 deploy_dev_prepare_static_artifacts() {
+	local flutter_build_dir="$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone/build/web"
+	local embedded_content_dir="$flutter_build_dir/content"
+
 	echo "[deploy/dev] Rendering catalog docs..."
 	(
 		cd "$DEPLOY_REPO_ROOT" || exit 1
@@ -119,6 +122,11 @@ deploy_dev_prepare_static_artifacts() {
 	(
 		cd "$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone" || exit 1
 		flutter pub get
-		flutter build web --release
+		flutter build web --release --pwa-strategy=none
 	)
+
+	echo "[deploy/dev] Embedding content site under the frontend build..."
+	rm -rf "$embedded_content_dir"
+	mkdir -p "$embedded_content_dir"
+	cp -R "$DEPLOY_REPO_ROOT/docs_site/build/production/." "$embedded_content_dir/"
 }

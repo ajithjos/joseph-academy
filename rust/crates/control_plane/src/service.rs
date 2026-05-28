@@ -14,11 +14,12 @@ use uuid::Uuid;
 use crate::config::AppConfig;
 use crate::domain::{
     AssignmentRequest, AssignmentResponse, AssignmentRow, AssignmentSummary, BootstrapApplyResponse,
-    CatalogReloadResponse, DashboardResponse, EvidenceRow, EvidenceSummary, LearnerDashboard,
-    LearnerDetailResponse, LearnerRow, LearnerSummary, RecordSessionRequest, RecordSessionResponse,
-    ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail, SessionMaterialRow,
-    SessionMaterialSummary, SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
-    StageProgress, TeamRow, TeamSummary,
+    CatalogReloadResponse, DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow,
+    HouseholdMemberSummary, LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary,
+    RecordSessionRequest, RecordSessionResponse, ReviewItemRow, ReviewItemSummary,
+    ReviewRebuildResponse, SessionDetail, SessionMaterialRow, SessionMaterialSummary, SessionRow,
+    SessionSummary, SkillProgressRow, SkillProgressSummary, StageProgress, TeamRow, TeamSummary,
+    ViewerSessionResponse,
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
@@ -165,10 +166,50 @@ pub async fn fetch_catalog(state: &Arc<AppState>) -> (CatalogBundle, CatalogRelo
     (bundle, report)
 }
 
+pub async fn fetch_viewer_session(
+    state: &Arc<AppState>,
+    username: Option<&str>,
+) -> anyhow::Result<ViewerSessionResponse> {
+    let team = fetch_team_summary(state).await?;
+    let available_users = list_household_members(state).await?;
+    let current_user = username.and_then(|value| {
+        let normalized = value.trim();
+        if normalized.is_empty() {
+            return None;
+        }
+        available_users
+            .iter()
+            .find(|member| member.username.eq_ignore_ascii_case(normalized))
+            .cloned()
+    });
+
+    Ok(ViewerSessionResponse {
+        status: "ok".to_string(),
+        team,
+        current_user,
+        available_users,
+    })
+}
+
+pub async fn login_viewer_session(
+    state: &Arc<AppState>,
+    username: &str,
+) -> anyhow::Result<ViewerSessionResponse> {
+    let normalized = username.trim();
+    if normalized.is_empty() {
+        bail!("username is required");
+    }
+
+    let session = fetch_viewer_session(state, Some(normalized)).await?;
+    if session.current_user.is_none() {
+        bail!("username '{}' not found", normalized);
+    }
+
+    Ok(session)
+}
+
 pub async fn fetch_dashboard(state: &Arc<AppState>) -> anyhow::Result<DashboardResponse> {
-    let team = query_as::<_, TeamRow>("select team_id, display_name, description from team order by team_id limit 1")
-        .fetch_optional(&state.pool)
-        .await?;
+    let team = fetch_team_summary(state).await?;
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
@@ -181,11 +222,7 @@ pub async fn fetch_dashboard(state: &Arc<AppState>) -> anyhow::Result<DashboardR
     let learner_dashboards = build_dashboard_cards(state, &catalog, &learners).await?;
 
     Ok(DashboardResponse {
-        team: team.map(|row| TeamSummary {
-            team_id: row.team_id,
-            display_name: row.display_name,
-            description: row.description,
-        }),
+        team,
         catalog: catalog_report_response(&*state.catalog_report.read().await),
         learners: learner_dashboards,
     })
@@ -437,6 +474,51 @@ fn catalog_report_response(report: &CatalogValidationReport) -> CatalogReloadRes
         playlist_count: report.playlist_count,
         material_count: report.material_count,
         loaded_at_utc: report.loaded_at_utc.clone(),
+    }
+}
+
+async fn fetch_team_summary(state: &Arc<AppState>) -> anyhow::Result<Option<TeamSummary>> {
+    let team = query_as::<_, TeamRow>("select team_id, display_name, description from team order by team_id limit 1")
+        .fetch_optional(&state.pool)
+        .await?;
+
+    Ok(team.map(|row| TeamSummary {
+        team_id: row.team_id,
+        display_name: row.display_name,
+        description: row.description,
+    }))
+}
+
+async fn list_household_members(state: &Arc<AppState>) -> anyhow::Result<Vec<HouseholdMemberSummary>> {
+    let members = query_as::<_, HouseholdMemberRow>(
+        "select
+            ua.user_id,
+            ua.username,
+            ua.display_name,
+            tm.role,
+            ua.current_level,
+            coalesce(ua.notes, '') as notes,
+            lp.learner_id
+         from team_membership tm
+         join user_account ua on ua.user_id = tm.user_id
+         left join learner_profile lp on lp.user_id = ua.user_id
+         order by case when tm.role = 'owner' then 0 else 1 end, ua.display_name",
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(members.into_iter().map(member_row_to_summary).collect())
+}
+
+fn member_row_to_summary(row: HouseholdMemberRow) -> HouseholdMemberSummary {
+    HouseholdMemberSummary {
+        user_id: row.user_id,
+        username: row.username,
+        display_name: row.display_name,
+        role: row.role,
+        current_level: row.current_level,
+        notes: row.notes,
+        learner_id: row.learner_id,
     }
 }
 

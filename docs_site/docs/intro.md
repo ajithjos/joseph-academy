@@ -1,19 +1,9 @@
 ---
-title: Cornerstone Catalog
+title: Cornerstone Content
 slug: /
+hide_table_of_contents: true
 ---
 
-# Cornerstone Catalog
+import ContentHome from '@site/src/components/ContentHome';
 
-This site is generated from the repo-owned curriculum files under `content/`.
-
-Use it to browse:
-
-- subjects
-- areas
-- stages
-- skills
-- playlists
-- materials
-
-Runtime learner state still lives in Postgres and the Rust control plane.
+<ContentHome />

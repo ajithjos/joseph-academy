@@ -40,10 +40,29 @@ pub struct DashboardResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ViewerSessionResponse {
+    pub status: String,
+    pub team: Option<TeamSummary>,
+    pub current_user: Option<HouseholdMemberSummary>,
+    pub available_users: Vec<HouseholdMemberSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct TeamSummary {
     pub team_id: String,
     pub display_name: String,
     pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HouseholdMemberSummary {
+    pub user_id: String,
+    pub username: String,
+    pub display_name: String,
+    pub role: String,
+    pub current_level: Option<String>,
+    pub notes: String,
+    pub learner_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -190,6 +209,11 @@ pub struct ReviewRebuildRequest {
     pub learner_id: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct ViewerLoginRequest {
+    pub username: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ReviewRebuildResponse {
     pub status: String,
@@ -203,6 +227,18 @@ pub struct TeamRow {
     pub team_id: String,
     pub display_name: String,
     pub description: String,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, FromRow)]
+pub struct HouseholdMemberRow {
+    pub user_id: String,
+    pub username: String,
+    pub display_name: String,
+    pub role: String,
+    pub current_level: Option<String>,
+    pub notes: String,
+    pub learner_id: Option<String>,
 }
 
 #[allow(dead_code)]

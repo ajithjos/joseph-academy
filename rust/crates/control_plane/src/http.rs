@@ -1,21 +1,23 @@
 use std::sync::Arc;
 
 use anyhow::Error;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::domain::{
-    AssignmentRequest, CatalogReloadResponse, OperationStatusResponse, RecordSessionRequest, ReviewRebuildRequest,
+    AssignmentRequest, CatalogReloadResponse, OperationStatusResponse, RecordSessionRequest,
+    ReviewRebuildRequest, ViewerLoginRequest, ViewerSessionResponse,
 };
 use crate::service::{
     AppState, apply_bootstrap, create_assignment, fetch_catalog, fetch_dashboard, fetch_learner_detail,
-    list_learners, rebuild_review_items, record_session, reload_catalog,
+    fetch_viewer_session, list_learners, login_viewer_session, rebuild_review_items,
+    record_session, reload_catalog,
 };
 
 #[derive(Debug)]
@@ -47,6 +49,11 @@ struct ServiceIndexResponse {
     content_dev_command: String,
 }
 
+#[derive(Debug, Default, Deserialize)]
+struct ViewerSessionQuery {
+    username: Option<String>,
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let payload = Json(ErrorPayload {
@@ -70,6 +77,12 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/v1/catalog", get(get_catalog))
         .route("/api/v1/catalog/reload", post(post_catalog_reload))
         .route("/api/v1/bootstrap/apply", post(post_bootstrap_apply))
+        .route(
+            "/api/v1/session",
+            get(get_viewer_session)
+                .post(post_viewer_session)
+                .delete(delete_viewer_session),
+        )
         .route("/api/v1/dashboard", get(get_dashboard))
         .route("/api/v1/learners", get(get_learners))
         .route("/api/v1/learners/{learner_id}", get(get_learner_detail))
@@ -116,6 +129,27 @@ async fn post_bootstrap_apply(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<crate::domain::BootstrapApplyResponse>, ApiError> {
     Ok(Json(apply_bootstrap(&state).await?))
+}
+
+async fn get_viewer_session(
+    Query(query): Query<ViewerSessionQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ViewerSessionResponse>, ApiError> {
+    Ok(Json(fetch_viewer_session(&state, query.username.as_deref()).await?))
+}
+
+async fn post_viewer_session(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<ViewerLoginRequest>,
+) -> Result<Json<ViewerSessionResponse>, ApiError> {
+    Ok(Json(login_viewer_session(&state, &request.username).await?))
+}
+
+async fn delete_viewer_session() -> Json<OperationStatusResponse> {
+    Json(OperationStatusResponse {
+        status: "ok".to_string(),
+        message: "logged out".to_string(),
+    })
 }
 
 async fn get_dashboard(State(state): State<Arc<AppState>>) -> Result<Json<crate::domain::DashboardResponse>, ApiError> {

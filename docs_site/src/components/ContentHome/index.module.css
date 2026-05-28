@@ -1,0 +1,302 @@
+.shell {
+  display: grid;
+  gap: 1.5rem;
+  margin: 1rem 0 2.5rem;
+}
+
+.hero,
+.panel,
+.loadingPanel,
+.heroPanel,
+.profileCard,
+.learnerCard,
+.itemCard,
+.statCard,
+.quickButton {
+  border: 1px solid rgba(213, 161, 30, 0.18);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 250, 238, 0.96));
+  box-shadow: 0 20px 36px rgba(22, 38, 59, 0.08);
+}
+
+.hero {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.95fr);
+  padding: 2rem;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 1rem;
+}
+
+.eyebrow,
+.itemEyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 3.75rem);
+  line-height: 0.98;
+}
+
+.lede,
+.sectionText,
+.profileMeta,
+.profileNote,
+.itemMeta,
+.factList,
+.emptyState {
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.primaryButton,
+.secondaryButton,
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 48px;
+  padding: 0.8rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(213, 161, 30, 0.2);
+  font-weight: 700;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: linear-gradient(180deg, rgba(231, 190, 93, 0.98), rgba(213, 161, 30, 0.98));
+  color: #16263b;
+}
+
+.secondaryButton,
+.linkButton {
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ifm-font-color-base);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.linkButton:disabled {
+  opacity: 0.66;
+  cursor: wait;
+}
+
+.heroPanel,
+.profileCard,
+.panel,
+.loadingPanel {
+  padding: 1.4rem;
+}
+
+.statGrid,
+.cardGrid,
+.grid,
+.quickList,
+.pillList,
+.itemList,
+.inputRow,
+.panelHeader {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.statGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.statCard {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem;
+}
+
+.statValue {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.statLabel {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.9rem;
+}
+
+.profileCard {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.profileName,
+.sectionTitle,
+.learnerCard h3,
+.itemCard h3 {
+  margin: 0;
+}
+
+.profileName {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.errorBanner {
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(213, 53, 53, 0.12);
+  border: 1px solid rgba(213, 53, 53, 0.22);
+  color: var(--ifm-color-danger-darkest);
+}
+
+.grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.loginPanel {
+  align-content: start;
+}
+
+.inputRow {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(22, 38, 59, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  color: inherit;
+}
+
+.quickList,
+.itemList,
+.cardGrid,
+.pillList {
+  margin-top: 1rem;
+}
+
+.quickButton {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quickMeta {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.badge,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  min-height: 32px;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(213, 161, 30, 0.12);
+  color: var(--ifm-color-primary-darkest);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.cardGrid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.learnerCard,
+.itemCard {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem;
+}
+
+.learnerCardHeader,
+.panelHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.factList {
+  padding-left: 1.1rem;
+}
+
+.pillList {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.loadingPanel {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+@media (max-width: 996px) {
+  .hero,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .learnerCardHeader,
+  .panelHeader,
+  .quickButton {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
+:global([data-theme='dark']) .hero,
+:global([data-theme='dark']) .panel,
+:global([data-theme='dark']) .loadingPanel,
+:global([data-theme='dark']) .heroPanel,
+:global([data-theme='dark']) .profileCard,
+:global([data-theme='dark']) .learnerCard,
+:global([data-theme='dark']) .itemCard,
+:global([data-theme='dark']) .statCard,
+:global([data-theme='dark']) .quickButton {
+  background: linear-gradient(180deg, rgba(26, 35, 49, 0.94), rgba(15, 22, 34, 0.98));
+  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.28);
+}
+
+:global([data-theme='dark']) .input {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme='dark']) .secondaryButton,
+:global([data-theme='dark']) .linkButton {
+  background: rgba(255, 255, 255, 0.06);
+}

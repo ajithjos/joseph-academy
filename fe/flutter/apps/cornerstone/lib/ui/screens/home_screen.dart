@@ -20,30 +20,39 @@ class CornerstoneHomePage extends StatefulWidget {
 }
 
 class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
+  static const String _viewerUsernamePreferenceKey =
+      'cornerstone.viewer.username';
+
   final CornerstoneApiClient _apiClient = CornerstoneApiClient();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _scoreController = TextEditingController(text: '8');
   final TextEditingController _maxScoreController = TextEditingController(text: '10');
   final TextEditingController _durationController = TextEditingController(text: '15');
   final TextEditingController _notesController = TextEditingController(text: 'Completed well with one or two slow facts.');
 
+  ViewerSessionPayload? _viewerSession;
   DashboardPayload? _dashboard;
   CatalogPayload? _catalog;
   LearnerDetailPayload? _learnerDetail;
   String? _selectedLearnerId;
   _ShellDestination _selectedDestination = _ShellDestination.owner;
   bool _shellNavExpanded = true;
+  bool _sessionLoading = true;
   bool _loading = true;
+  bool _authBusy = false;
   bool _busy = false;
+  String? _sessionErrorMessage;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadAll();
+    _restoreViewerSession();
   }
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _scoreController.dispose();
     _maxScoreController.dispose();
     _durationController.dispose();
@@ -51,7 +60,227 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     super.dispose();
   }
 
+  ViewerUser? get _currentViewer => _viewerSession?.currentUser;
+  bool get _viewerCanManage => _currentViewer?.canManageHousehold ?? false;
+
+  List<_ShellDestination> get _availableDestinations {
+    final viewer = _currentViewer;
+    if (viewer == null) return const <_ShellDestination>[];
+    if (viewer.canManageHousehold) {
+      return _ShellDestination.values;
+    }
+    return const <_ShellDestination>[
+      _ShellDestination.learner,
+      _ShellDestination.catalog,
+      _ShellDestination.account,
+    ];
+  }
+
+  List<LearnerDashboard> get _visibleLearners {
+    final dashboard = _dashboard;
+    final viewer = _currentViewer;
+    if (dashboard == null) return const <LearnerDashboard>[];
+    if (viewer == null || viewer.canManageHousehold || viewer.learnerId == null) {
+      return dashboard.learners;
+    }
+    return dashboard.learners
+        .where((learner) => learner.learnerId == viewer.learnerId)
+        .toList(growable: false);
+  }
+
+  _ShellDestination _defaultDestinationForViewer(ViewerUser viewer) {
+    return viewer.isLearner
+        ? _ShellDestination.learner
+        : _ShellDestination.owner;
+  }
+
+  void _setUsernameInput(String username) {
+    _usernameController.value = TextEditingValue(
+      text: username,
+      selection: TextSelection.collapsed(offset: username.length),
+    );
+  }
+
+  Future<String?> _loadStoredViewerUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString(_viewerUsernamePreferenceKey)?.trim();
+    if (username == null || username.isEmpty) {
+      return null;
+    }
+    return username;
+  }
+
+  Future<void> _persistViewerUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_viewerUsernamePreferenceKey, username.trim());
+  }
+
+  Future<void> _clearStoredViewerUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_viewerUsernamePreferenceKey);
+  }
+
+  String? _nextLearnerIdForViewer(
+    DashboardPayload dashboard, {
+    bool preserveSelection = true,
+  }) {
+    final viewer = _currentViewer;
+    if (viewer != null && viewer.isLearner && viewer.learnerId != null) {
+      final learnerId = viewer.learnerId!;
+      return dashboard.learners.any((learner) => learner.learnerId == learnerId)
+          ? learnerId
+          : null;
+    }
+    if (preserveSelection && _selectedLearnerId != null) {
+      final learnerId = _selectedLearnerId!;
+      if (dashboard.learners.any((learner) => learner.learnerId == learnerId)) {
+        return learnerId;
+      }
+    }
+    return dashboard.learners.isNotEmpty ? dashboard.learners.first.learnerId : null;
+  }
+
+  Future<void> _restoreViewerSession() async {
+    setState(() {
+      _sessionLoading = true;
+      _sessionErrorMessage = null;
+    });
+    try {
+      final storedUsername = await _loadStoredViewerUsername();
+      final viewerSession = await _apiClient.fetchViewerSession(
+        username: storedUsername,
+      );
+      if (!mounted) return;
+      final suggestedUsername = viewerSession.currentUser?.username ??
+          storedUsername ??
+          '';
+      _setUsernameInput(suggestedUsername);
+
+      if (viewerSession.currentUser == null && storedUsername != null) {
+        await _clearStoredViewerUsername();
+      }
+
+      if (viewerSession.currentUser == null) {
+        setState(() {
+          _viewerSession = viewerSession;
+          _sessionLoading = false;
+          _authBusy = false;
+          _dashboard = null;
+          _catalog = null;
+          _learnerDetail = null;
+          _selectedLearnerId = null;
+          _selectedDestination = _ShellDestination.owner;
+          _loading = false;
+          _busy = false;
+          _errorMessage = null;
+        });
+        return;
+      }
+
+      await _persistViewerUsername(viewerSession.currentUser!.username);
+      setState(() {
+        _viewerSession = viewerSession;
+        _sessionLoading = false;
+        _authBusy = false;
+        _sessionErrorMessage = null;
+        _dashboard = null;
+        _catalog = null;
+        _learnerDetail = null;
+        _selectedLearnerId = null;
+        _selectedDestination = _defaultDestinationForViewer(
+          viewerSession.currentUser!,
+        );
+        _loading = true;
+        _busy = false;
+        _errorMessage = null;
+      });
+      await _loadAll(preserveSelection: false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _sessionLoading = false;
+        _authBusy = false;
+        _loading = false;
+        _busy = false;
+        _sessionErrorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> _loginWithUsername([String? username]) async {
+    final requestedUsername = (username ?? _usernameController.text).trim();
+    if (requestedUsername.isEmpty) {
+      setState(() {
+        _sessionErrorMessage = 'Enter a username to continue.';
+      });
+      return;
+    }
+
+    setState(() {
+      _authBusy = true;
+      _sessionErrorMessage = null;
+    });
+    try {
+      final viewerSession = await _apiClient.login(requestedUsername);
+      if (!mounted) return;
+      final currentUser = viewerSession.currentUser;
+      if (currentUser == null) {
+        setState(() {
+          _authBusy = false;
+          _sessionErrorMessage = 'Unable to resolve that username.';
+        });
+        return;
+      }
+
+      _setUsernameInput(currentUser.username);
+      await _persistViewerUsername(currentUser.username);
+      setState(() {
+        _viewerSession = viewerSession;
+        _authBusy = false;
+        _dashboard = null;
+        _catalog = null;
+        _learnerDetail = null;
+        _selectedLearnerId = null;
+        _selectedDestination = _defaultDestinationForViewer(currentUser);
+        _loading = true;
+        _busy = false;
+        _errorMessage = null;
+      });
+      await _loadAll(preserveSelection: false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _authBusy = false;
+        _sessionErrorMessage = error.toString();
+      });
+    }
+  }
+
+  Future<void> _logoutViewer() async {
+    setState(() {
+      _authBusy = true;
+      _sessionErrorMessage = null;
+    });
+    try {
+      await _clearStoredViewerUsername();
+      if (!mounted) return;
+      await _restoreViewerSession();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _authBusy = false;
+        _sessionErrorMessage = error.toString();
+      });
+    }
+  }
+
   Future<void> _loadAll({bool preserveSelection = true}) async {
+    if (_currentViewer == null) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _errorMessage = null;
@@ -59,9 +288,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     try {
       final dashboard = await _apiClient.fetchDashboard();
       final catalog = await _apiClient.fetchCatalog();
-      final nextLearnerId = preserveSelection && _selectedLearnerId != null
-          ? _selectedLearnerId
-          : (dashboard.learners.isNotEmpty ? dashboard.learners.first.learnerId : null);
+      final nextLearnerId = _nextLearnerIdForViewer(
+        dashboard,
+        preserveSelection: preserveSelection,
+      );
       LearnerDetailPayload? learnerDetail;
       if (nextLearnerId != null) {
         learnerDetail = await _apiClient.fetchLearnerDetail(nextLearnerId);
@@ -86,6 +316,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Future<void> _selectLearner(String learnerId) async {
+    final viewer = _currentViewer;
+    if (viewer != null && viewer.isLearner && viewer.learnerId != learnerId) {
+      return;
+    }
     setState(() {
       _selectedLearnerId = learnerId;
       _busy = true;
@@ -108,6 +342,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Future<void> _createAssignment(String playlistId) async {
+    if (!_viewerCanManage) return;
     final learnerId = _selectedLearnerId;
     if (learnerId == null) return;
     setState(() {
@@ -132,6 +367,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   Future<void> _recordCurrentSession() async {
+    if (!_viewerCanManage) return;
     final session = _currentActionSession;
     if (session == null) return;
     setState(() {
@@ -162,13 +398,33 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     for (final session in detail.sessions) {
       if (session.status != 'completed') return session;
     }
-    return detail.sessions.isNotEmpty ? detail.sessions.first : null;
+    return null;
   }
 
   String get _contentSiteLabel => Uri.base.resolve('/content/').toString();
-  void _setDestination(_ShellDestination d) => setState(() => _selectedDestination = d);
+
+  void _setDestination(_ShellDestination d) {
+    if (!_availableDestinations.contains(d)) return;
+    setState(() => _selectedDestination = d);
+  }
+
   void _toggleShellNavigation() => setState(() => _shellNavExpanded = !_shellNavExpanded);
-  String _shellUsername() => _dashboard?.team?.displayName ?? 'Cornerstone Owner';
+
+  String _shellUsername() =>
+      _currentViewer?.displayName ?? _viewerSession?.team?.displayName ?? 'Cornerstone';
+
+  String _viewerRoleLabel(ViewerUser? viewer) {
+    if (viewer == null) return 'Signed out';
+    return viewer.canManageHousehold ? 'Parent / Teacher' : 'Student';
+  }
+
+  String _shellWorkspaceLabel() {
+    final viewer = _currentViewer;
+    if (viewer == null) return 'Signed out';
+    return viewer.canManageHousehold
+        ? 'Parent / teacher workspace'
+        : 'Student workspace';
+  }
 
   String _identityInitials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -197,8 +453,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   List<Widget> _buildProfileMenuChildren(BuildContext context) {
     return [
       MenuItemButton(leadingIcon: const Icon(Icons.person_rounded), onPressed: () => _setDestination(_ShellDestination.account), child: const Text('My Account')),
-      MenuItemButton(leadingIcon: const Icon(Icons.refresh_rounded), onPressed: _busy ? null : () => _loadAll(), child: const Text('Refresh data')),
+      MenuItemButton(leadingIcon: const Icon(Icons.refresh_rounded), onPressed: _busy || _authBusy ? null : () => _loadAll(), child: const Text('Refresh data')),
       MenuItemButton(leadingIcon: const Icon(Icons.menu_book_rounded), onPressed: _openContentSite, child: const Text('Open content site in new tab')),
+      MenuItemButton(leadingIcon: const Icon(Icons.logout_rounded), onPressed: _authBusy ? null : () => _logoutViewer(), child: const Text('Log out')),
       const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Divider(height: 18)),
       SizedBox(width: 284, child: _AppearancePanel(controller: widget.themeController)),
     ];
@@ -278,7 +535,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          Text('Household workspace', overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                          Text(_shellWorkspaceLabel(), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
                         ],
                       ),
                     ),
@@ -311,6 +568,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildShellHeader(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
+    final shellTitle = _viewerCanManage ? 'Control Center' : 'Learner Space';
+    final shellDescription = _viewerCanManage
+        ? 'Keep navigation and actions close at hand without extra branding noise.'
+        : 'Stay focused on today\'s work, your progress, and what comes next.';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(_shellNavExpanded ? 16 : 10, 14, _shellNavExpanded ? 16 : 10, 8),
@@ -339,13 +600,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Control Center', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                        child: Text(shellTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                       ),
                       _buildShellRailToggle(theme),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('Keep navigation and actions close at hand without extra branding noise.', style: theme.textTheme.bodySmall),
+                  Text(shellDescription, style: theme.textTheme.bodySmall),
                 ],
               )
             : Center(child: _buildShellRailToggle(theme)),
@@ -469,7 +730,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     padding: const EdgeInsets.fromLTRB(10, 2, 10, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _ShellDestination.values.map((destination) => _buildDesktopNavItem(context, destination)).toList(growable: false),
+                      children: _availableDestinations.map((destination) => _buildDesktopNavItem(context, destination)).toList(growable: false),
                     ),
                   ),
                 ),
@@ -540,7 +801,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         const SizedBox(height: 4),
                         Text(username, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
-                        Text('Choose a view and keep daily tasks in reach.', style: theme.textTheme.bodySmall),
+                        Text(_shellWorkspaceLabel(), style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -553,7 +814,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
             ),
             const SizedBox(height: 8),
-            ..._ShellDestination.values.map(
+            ..._availableDestinations.map(
               (d) => ListTile(
                 leading: Icon(d.icon),
                 title: Text(d.label),
@@ -575,10 +836,371 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 _openContentSite();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded),
+              title: const Text('Log out'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onTap: _authBusy
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      _logoutViewer();
+                    },
+            ),
             const SizedBox(height: 16),
             _AppearancePanel(controller: widget.themeController),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuickLoginTile(BuildContext context, ViewerUser user) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised]
+              : [Colors.white, _BrandPalette.warmPaper],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.16),
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
+          foregroundColor: theme.colorScheme.primary,
+          child: Text(
+            _identityInitials(user.displayName),
+            style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+        title: Text(user.displayName, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        subtitle: Text(
+          '${_viewerRoleLabel(user)} · @${user.username}',
+          style: theme.textTheme.bodySmall,
+        ),
+        trailing: Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.primary),
+        onTap: _authBusy ? null : () => _loginWithUsername(user.username),
+      ),
+    );
+  }
+
+  Widget _buildSignedOutScaffold(BuildContext context) {
+    final session = _viewerSession;
+    final availableUsers = session?.availableUsers ?? const <ViewerUser>[];
+    final ownerCount = availableUsers.where((user) => user.canManageHousehold).length;
+    final learnerCount = availableUsers.where((user) => user.isLearner).length;
+
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1240),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth > 1080;
+                  final hero = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _BrandLockup(),
+                      const SizedBox(height: 20),
+                      _PageHeroCard(
+                        eyebrow: 'Sign In',
+                        title: session?.team?.displayName ?? 'Cornerstone Household',
+                        description:
+                            'Choose a username to enter the parent / teacher workspace or the student view. There is no password yet, so keep the flow simple and fast.',
+                        chips: [
+                          _StatChip(
+                            label: 'Parent / Teacher',
+                            value: '$ownerCount',
+                            icon: Icons.manage_accounts_rounded,
+                          ),
+                          _StatChip(
+                            label: 'Students',
+                            value: '$learnerCount',
+                            icon: Icons.school_rounded,
+                          ),
+                          const _StatChip(
+                            label: 'Themes',
+                            value: 'Light + Dark',
+                            icon: Icons.contrast_rounded,
+                          ),
+                        ],
+                        trailing: Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withValues(alpha: 0.34),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'USERNAME ONLY',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.0,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Use a parent / teacher account to manage every learner. Use a student account to see what is completed and what is pending.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+
+                  final loginCard = _SurfaceCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Continue with username', style: Theme.of(context).textTheme.headlineSmall),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pick a household profile below or type the username directly.',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                        if (_sessionErrorMessage != null) ...[
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .errorContainer,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _sessionErrorMessage!,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onErrorContainer,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _usernameController,
+                          textInputAction: TextInputAction.go,
+                          onSubmitted: _authBusy ? null : (_) => _loginWithUsername(),
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon: Icon(Icons.alternate_email_rounded),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _authBusy ? null : () => _loginWithUsername(),
+                                icon: _authBusy
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.login_rounded, size: 18),
+                                label: const Text('Enter Workspace'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            OutlinedButton.icon(
+                              onPressed: _authBusy ? null : _restoreViewerSession,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('Refresh'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+                        Text('Quick sign-in', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        if (availableUsers.isEmpty)
+                          Text(
+                            'No usernames are available yet. Run bootstrap and try again.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          )
+                        else
+                          Column(
+                            children: availableUsers
+                                .map(
+                                  (user) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _buildQuickLoginTile(context, user),
+                                  ),
+                                )
+                                .toList(growable: false),
+                          ),
+                        const SizedBox(height: 10),
+                        _AppearancePanel(controller: widget.themeController),
+                      ],
+                    ),
+                  );
+
+                  if (wide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 6, child: hero),
+                        const SizedBox(width: 20),
+                        Expanded(flex: 5, child: loginCard),
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      hero,
+                      const SizedBox(height: 20),
+                      loginCard,
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLearnerMetricCard(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.54),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: theme.colorScheme.primary),
+          const SizedBox(height: 14),
+          Text(value, style: theme.textTheme.headlineMedium),
+          const SizedBox(height: 4),
+          Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionListCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required String emptyMessage,
+    required List<SessionDetail> sessions,
+    required bool completed,
+  }) {
+    final theme = Theme.of(context);
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 18),
+          if (sessions.isEmpty)
+            Text(
+              emptyMessage,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            ...sessions.map(
+              (session) {
+                final evidence = session.latestEvidence;
+                final trailingLabel = completed && evidence != null
+                    ? '${evidence.score.toStringAsFixed(0)}/${evidence.maxScore.toStringAsFixed(0)}'
+                    : session.scheduledDate;
+                final subtitle = completed
+                    ? (session.notes.isEmpty ? 'Completed' : session.notes)
+                    : (session.notes.isEmpty
+                          ? 'Still pending'
+                          : session.notes);
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(session.title),
+                  subtitle: Text(subtitle, style: theme.textTheme.bodySmall),
+                  trailing: _PillBadge(
+                    text: trailingLabel,
+                    color: completed
+                        ? theme.colorScheme.secondaryContainer
+                        : theme.colorScheme.primary.withValues(alpha: 0.12),
+                    textColor: completed
+                        ? theme.colorScheme.onSecondaryContainer
+                        : theme.colorScheme.primary,
+                  ),
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -600,13 +1222,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildAccountView(BuildContext context, DashboardPayload dashboard) {
     final theme = Theme.of(context);
     final username = _shellUsername();
+    final viewer = _currentViewer;
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
           eyebrow: 'Account',
           title: username,
-          description: dashboard.team?.description ?? 'Manage appearance, workspace links, and the operational details behind your household workspace.',
+          description: viewer == null
+              ? (dashboard.team?.description ?? 'Manage appearance, workspace links, and the operational details behind your household workspace.')
+              : viewer.canManageHousehold
+                  ? 'Switch theme, inspect workspace links, and leave the parent / teacher dashboard without extra ceremony.'
+                  : 'Keep your student workspace, shared links, and theme settings in one place.',
           trailing: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -631,14 +1258,79 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text('Household workspace', style: theme.textTheme.titleSmall),
+                Text(_viewerRoleLabel(viewer), style: theme.textTheme.titleSmall),
                 const SizedBox(height: 4),
-                Text('Owner controls', style: theme.textTheme.bodySmall),
+                Text(viewer == null ? 'Signed out' : '@${viewer.username}', style: theme.textTheme.bodySmall),
               ],
             ),
           ),
         ),
         const SizedBox(height: 20),
+        if (viewer != null) ...[
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Session', style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                Text(
+                  viewer.canManageHousehold
+                      ? 'This account can manage every learner, assignments, and progress updates.'
+                      : 'This account stays focused on the student view, progress, and pending work.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
+                    foregroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      _identityInitials(viewer.displayName),
+                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  title: Text(viewer.displayName),
+                  subtitle: Text('@${viewer.username}', style: theme.textTheme.bodySmall),
+                  trailing: _PillBadge(
+                    text: _viewerRoleLabel(viewer),
+                    color: viewer.canManageHousehold
+                        ? theme.colorScheme.secondaryContainer
+                        : theme.colorScheme.primary.withValues(alpha: 0.12),
+                    textColor: viewer.canManageHousehold
+                        ? theme.colorScheme.onSecondaryContainer
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (viewer.currentLevel != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Current level: ${viewer.currentLevel}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+                if (viewer.notes.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    viewer.notes,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _authBusy ? null : _logoutViewer,
+                  icon: const Icon(Icons.logout_rounded, size: 18),
+                  label: const Text('Log out'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         _SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,6 +1376,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_sessionLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_currentViewer == null) {
+      return _buildSignedOutScaffold(context);
+    }
+
     final isMobile = MediaQuery.sizeOf(context).width < 960;
     final theme = Theme.of(context);
     return Scaffold(
@@ -707,12 +1406,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         ),
         actions: [
           _buildContentAction(compact: isMobile),
-          if (_busy)
+          if (_busy || _authBusy)
             const Padding(
               padding: EdgeInsets.all(16),
               child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
             ),
-          IconButton(onPressed: _busy ? null : () => _loadAll(), icon: const Icon(Icons.refresh_rounded)),
+          IconButton(onPressed: _busy || _authBusy ? null : () => _loadAll(), icon: const Icon(Icons.refresh_rounded)),
           if (isMobile) _buildProfileMenuAnchor(compact: true),
           const SizedBox(width: 8),
         ],
@@ -744,17 +1443,21 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildOwnerView(BuildContext context, DashboardPayload dashboard, CatalogPayload catalog) {
     final detail = _learnerDetail;
     final theme = Theme.of(context);
+    final viewer = _currentViewer;
+    final learners = _visibleLearners;
+    final activeSessionCount = learners.where((learner) => learner.todaySession != null).length;
+    final totalReviewItems = learners.fold<int>(0, (sum, learner) => sum + learner.reviewItemCount);
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth > 1120;
         final hero = _PageHeroCard(
-          eyebrow: 'Operations',
-          title: dashboard.team?.displayName ?? 'Learning Team',
-          description: dashboard.team?.description ?? 'Track learner progress, create assignments, and keep the curriculum close without losing your place.',
+          eyebrow: 'Parent / Teacher',
+          title: viewer == null ? (dashboard.team?.displayName ?? 'Learning Team') : '${viewer.displayName} dashboard',
+          description: 'Manage assignments, review needs, and learner progress across the whole household from one workspace.',
           chips: [
-            _StatChip(label: 'Skills', value: '${dashboard.catalog.skillCount}', icon: Icons.extension_rounded),
-            _StatChip(label: 'Playlists', value: '${dashboard.catalog.playlistCount}', icon: Icons.assignment_rounded),
-            _StatChip(label: 'Materials', value: '${dashboard.catalog.materialCount}', icon: Icons.menu_book_rounded),
+            _StatChip(label: 'Learners', value: '${learners.length}', icon: Icons.groups_rounded),
+            _StatChip(label: 'Active Today', value: '$activeSessionCount', icon: Icons.today_rounded),
+            _StatChip(label: 'Review Queue', value: '$totalReviewItems', icon: Icons.pending_actions_rounded),
           ],
         );
         final leftPanel = _SurfaceCard(
@@ -770,12 +1473,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               const SizedBox(height: 20),
               _GoldAccentDivider(),
               const SizedBox(height: 18),
-              ...dashboard.learners.map(
-                (learner) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _LearnerCard(learner: learner, selected: learner.learnerId == _selectedLearnerId, onTap: () => _selectLearner(learner.learnerId)),
+              if (learners.isEmpty)
+                Text(
+                  'No learners are visible in this workspace yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                )
+              else
+                ...learners.map(
+                  (learner) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _LearnerCard(learner: learner, selected: learner.learnerId == _selectedLearnerId, onTap: () => _selectLearner(learner.learnerId)),
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -850,10 +1559,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildLearnerView(BuildContext context) {
     final detail = _learnerDetail;
-    final session = _currentActionSession;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    if (detail == null || session == null) {
+    final viewer = _currentViewer;
+    if (detail == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(48),
@@ -862,12 +1571,31 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             children: [
               Icon(Icons.school_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
               const SizedBox(height: 20),
-              Text('Select a learner with an active session.', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                viewer != null && viewer.isLearner
+                    ? 'This username is not linked to a learner profile yet.'
+                    : 'Select a learner to open the student view.',
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
             ],
           ),
         ),
       );
     }
+
+    final pendingSessions = detail.sessions
+        .where((session) => session.status != 'completed')
+        .toList(growable: false);
+    final completedSessions = detail.sessions
+        .where((session) => session.status == 'completed')
+        .toList(growable: false);
+    final nextSession = pendingSessions.isNotEmpty ? pendingSessions.first : null;
+    final heroLabel = nextSession == null ? 'PROGRESS' : 'ACTIVE SESSION';
+    final heroTitle = nextSession?.title ?? 'No active session right now';
+    final heroDescription = viewer != null && viewer.canManageHousehold
+        ? 'Use this learner-facing view to understand what is still pending, what is already completed, and what the learner sees next.'
+        : 'See what is next, what you have already completed, and what still needs attention.';
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
@@ -905,90 +1633,178 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                       border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.30)),
                     ),
                     child: Text(
-                      'ACTIVE SESSION',
+                      heroLabel,
                       style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
                     ),
                   ),
                   const Spacer(),
-                  Text(session.scheduledDate, style: theme.textTheme.bodySmall),
+                  Text(nextSession?.scheduledDate ?? 'Up to date', style: theme.textTheme.bodySmall),
                 ],
               ),
               const SizedBox(height: 18),
               Text(detail.learner.displayName, style: theme.textTheme.displaySmall?.copyWith(color: theme.colorScheme.primary)),
               const SizedBox(height: 8),
-              Text(session.title, style: theme.textTheme.headlineMedium),
+              Text(heroTitle, style: theme.textTheme.headlineMedium),
               const SizedBox(height: 10),
               Text(
-                'Guide the learner through the sequence below, then capture the outcome from the owner workspace.',
+                heroDescription,
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 22),
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _buildLearnerMetricCard(
+                    context,
+                    label: 'Pending sessions',
+                    value: '${pendingSessions.length}',
+                    icon: Icons.pending_actions_rounded,
+                  ),
+                  _buildLearnerMetricCard(
+                    context,
+                    label: 'Completed sessions',
+                    value: '${completedSessions.length}',
+                    icon: Icons.task_alt_rounded,
+                  ),
+                  _buildLearnerMetricCard(
+                    context,
+                    label: 'Review items',
+                    value: '${detail.reviewItems.length}',
+                    icon: Icons.assignment_late_rounded,
+                  ),
+                ],
               ),
             ],
           ),
+        ),
+        if (nextSession != null) ...[
+          const SizedBox(height: 20),
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Material sequence', style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 6),
+                Text(
+                  '${nextSession.materials.length} materials lined up for the next session.',
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: nextSession.materials
+                      .asMap()
+                      .entries
+                      .map((entry) {
+                        final index = entry.key;
+                        final material = entry.value;
+                        return Container(
+                          width: 280,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isDark ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised] : [Colors.white, _BrandPalette.warmPaper],
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
+                                blurRadius: 14,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999)),
+                                child: Text(
+                                  'STEP ${index + 1}',
+                                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 10),
+                              Text(
+                                material.skillId,
+                                style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 8),
+                              Text('Material: ${material.materialId}', style: theme.textTheme.bodySmall),
+                            ],
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth > 1120;
+            final pendingCard = _buildSessionListCard(
+              context,
+              title: 'What is pending',
+              description: 'Sessions that still need attention in the current assignment.',
+              emptyMessage: 'No pending sessions right now.',
+              sessions: pendingSessions,
+              completed: false,
+            );
+            final completedCard = _buildSessionListCard(
+              context,
+              title: 'Completed work',
+              description: 'Work that has already been recorded for this learner.',
+              emptyMessage: 'No completed sessions have been recorded yet.',
+              sessions: completedSessions,
+              completed: true,
+            );
+            if (wide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: pendingCard),
+                  const SizedBox(width: 20),
+                  Expanded(child: completedCard),
+                ],
+              );
+            }
+            return Column(
+              children: [
+                pendingCard,
+                const SizedBox(height: 20),
+                completedCard,
+              ],
+            );
+          },
         ),
         const SizedBox(height: 20),
         _SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Material sequence', style: theme.textTheme.headlineSmall),
+              Text('Skill progress', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                '${session.materials.length} materials lined up for today\'s session.',
+                'Current status across the skills attached to this learner.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
               Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: session.materials
-                    .asMap()
-                    .entries
-                    .map((entry) {
-                      final index = entry.key;
-                      final material = entry.value;
-                      return Container(
-                        width: 280,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: isDark ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised] : [Colors.white, _BrandPalette.warmPaper],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
-                              blurRadius: 14,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999)),
-                              child: Text(
-                                'STEP ${index + 1}',
-                                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 0.8),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 10),
-                            Text(
-                              material.skillId,
-                              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Material: ${material.materialId}', style: theme.textTheme.bodySmall),
-                          ],
-                        ),
-                      );
-                    })
+                spacing: 10,
+                runSpacing: 10,
+                children: detail.progress
+                    .map((state) => _SkillProgressChip(state: state))
                     .toList(growable: false),
               ),
             ],
