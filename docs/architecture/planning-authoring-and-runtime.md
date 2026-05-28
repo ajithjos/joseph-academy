@@ -172,6 +172,8 @@ This keeps the pathway reusable across different learners without duplicating th
 
 Drills and quick checks are material kinds used inside sessions. They are not separate top-level planning objects.
 
+When a drill needs live execution, keep that runtime contract on the material itself rather than introducing a new planning object. See [Executable Drills And Assignment Delivery](./executable-drills-and-assignment-delivery.md).
+
 Recommended material kinds:
 
 - teaching_note
