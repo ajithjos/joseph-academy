@@ -18,6 +18,7 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 2. [Authoring rules](./authoring-rules.md)
 3. [Authoring workflow](./authoring-workflow.md)
 4. [Curriculum slice brief template](./curriculum-slice-brief-template.md)
+5. [Household arithmetic fact fluency brief](./household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
 
 ## How To Use This Directory
 
