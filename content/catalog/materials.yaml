@@ -50,17 +50,55 @@ materials:
     difficulty: parent_note
     estimated_minutes: 10
   - material_id: cnt_maths_tables_to_12_sheet_01
-    path: materials/maths/arithmetic/written-methods/tables-through-12.md
+    path: materials/maths/arithmetic/fact-fluency/tables-through-12.md
     type: worksheet
     subject_id: maths
     area_id: arithmetic
     skill_ids:
       - times_tables_through_12
     stage_ids:
-      - written_multiplication_and_division
-    recommended_age: 11
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
     difficulty: core
     estimated_minutes: 15
+  - material_id: cnt_maths_division_facts_sheet_01
+    path: materials/maths/arithmetic/fact-fluency/division-facts-from-known-tables.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - division_facts_from_known_tables
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: core
+    estimated_minutes: 15
+  - material_id: cnt_maths_fact_family_equations_sheet_01
+    path: materials/maths/arithmetic/fact-fluency/fact-family-missing-number-equations.md
+    type: worksheet
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - fact_family_missing_number_equations
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: stretch
+    estimated_minutes: 15
+  - material_id: cnt_maths_fact_fluency_teaching_note_01
+    path: materials/maths/arithmetic/fact-fluency/parent-teaching-note.md
+    type: teaching_note
+    subject_id: maths
+    area_id: arithmetic
+    skill_ids:
+      - times_tables_through_12
+      - division_facts_from_known_tables
+      - fact_family_missing_number_equations
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    recommended_age: 10
+    difficulty: parent_note
+    estimated_minutes: 10
   - material_id: cnt_maths_written_multiplication_sheet_01
     path: materials/maths/arithmetic/written-methods/two-digit-by-two-digit-multiplication.md
     type: worksheet
@@ -91,7 +129,6 @@ materials:
     subject_id: maths
     area_id: arithmetic
     skill_ids:
-      - times_tables_through_12
       - multiply_two_digit_by_two_digit
       - short_division_with_remainders
     stage_ids:

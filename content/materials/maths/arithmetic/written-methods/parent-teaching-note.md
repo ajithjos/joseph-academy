@@ -4,7 +4,6 @@ type: teaching_note
 subject_id: maths
 area_id: arithmetic
 skill_ids:
-  - times_tables_through_12
   - multiply_two_digit_by_two_digit
   - short_division_with_remainders
 stage_ids:

@@ -6,8 +6,8 @@ area_id: arithmetic
 skill_ids:
   - times_tables_through_12
 stage_ids:
-  - written_multiplication_and_division
-recommended_age: 11
+  - multiplication_and_division_fact_fluency
+recommended_age: 10
 difficulty: core
 estimated_minutes: 15
 ---

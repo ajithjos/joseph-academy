@@ -50,6 +50,57 @@ playlists:
             - subtract_two_digit_numbers_with_bridging
           material_ids:
             - cnt_maths_arithmetic_fluency_teaching_note_01
+  - playlist_id: multiplication_and_division_fact_fluency_starter
+    title: Multiplication and division fact fluency starter
+    subject_id: maths
+    area_id: arithmetic
+    recommended_age: 10
+    recommended_level: Year 5
+    stage_ids:
+      - multiplication_and_division_fact_fluency
+    skill_ids:
+      - times_tables_through_12
+      - division_facts_from_known_tables
+      - fact_family_missing_number_equations
+    duration_days: 5
+    session_pattern:
+      sessions:
+        - day_offset: 0
+          title: Tables through 12 practice
+          skill_ids:
+            - times_tables_through_12
+          material_ids:
+            - cnt_maths_tables_to_12_sheet_01
+        - day_offset: 1
+          title: Inverse division facts
+          skill_ids:
+            - division_facts_from_known_tables
+          material_ids:
+            - cnt_maths_division_facts_sheet_01
+        - day_offset: 2
+          title: Fact-family equations
+          skill_ids:
+            - fact_family_missing_number_equations
+          material_ids:
+            - cnt_maths_fact_family_equations_sheet_01
+        - day_offset: 3
+          title: Mixed fact review
+          skill_ids:
+            - times_tables_through_12
+            - division_facts_from_known_tables
+            - fact_family_missing_number_equations
+          material_ids:
+            - cnt_maths_tables_to_12_sheet_01
+            - cnt_maths_division_facts_sheet_01
+            - cnt_maths_fact_family_equations_sheet_01
+        - day_offset: 4
+          title: Parent teaching note
+          skill_ids:
+            - times_tables_through_12
+            - division_facts_from_known_tables
+            - fact_family_missing_number_equations
+          material_ids:
+            - cnt_maths_fact_fluency_teaching_note_01
   - playlist_id: written_multiplication_and_division_starter
     title: Written multiplication and division starter
     subject_id: maths
@@ -59,44 +110,34 @@ playlists:
     stage_ids:
       - written_multiplication_and_division
     skill_ids:
-      - times_tables_through_12
       - multiply_two_digit_by_two_digit
       - short_division_with_remainders
-    duration_days: 5
+    duration_days: 4
     session_pattern:
       sessions:
         - day_offset: 0
-          title: Tables through 12 warm-up
-          skill_ids:
-            - times_tables_through_12
-          material_ids:
-            - cnt_maths_tables_to_12_sheet_01
-        - day_offset: 1
           title: Column multiplication
           skill_ids:
             - multiply_two_digit_by_two_digit
           material_ids:
             - cnt_maths_written_multiplication_sheet_01
-        - day_offset: 2
+        - day_offset: 1
           title: Short division with remainders
           skill_ids:
             - short_division_with_remainders
           material_ids:
             - cnt_maths_short_division_sheet_01
-        - day_offset: 3
+        - day_offset: 2
           title: Mixed written-method review
           skill_ids:
-            - times_tables_through_12
             - multiply_two_digit_by_two_digit
             - short_division_with_remainders
           material_ids:
-            - cnt_maths_tables_to_12_sheet_01
             - cnt_maths_written_multiplication_sheet_01
             - cnt_maths_short_division_sheet_01
-        - day_offset: 4
+        - day_offset: 3
           title: Parent teaching note
           skill_ids:
-            - times_tables_through_12
             - multiply_two_digit_by_two_digit
             - short_division_with_remainders
           material_ids:
