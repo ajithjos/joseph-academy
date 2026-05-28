@@ -6,6 +6,8 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LIBRARY_ROOT = REPO_ROOT / "content" / "library"
+LEGACY_CATALOG_ROOT = REPO_ROOT / "content" / "catalog"
+LEGACY_MATERIALS_ROOT = REPO_ROOT / "content" / "materials"
 PATHWAY_ROOT = (
     LIBRARY_ROOT
     / "maths"
@@ -32,6 +34,11 @@ def collect_markdown(directory: Path) -> dict[str, dict]:
         item = load_markdown_frontmatter(path)
         items[item["id"]] = item
     return items
+
+
+def test_legacy_content_trees_are_absent() -> None:
+    assert not LEGACY_CATALOG_ROOT.exists()
+    assert not LEGACY_MATERIALS_ROOT.exists()
 
 
 def test_household_arithmetic_pathway_tree_is_coherent() -> None:

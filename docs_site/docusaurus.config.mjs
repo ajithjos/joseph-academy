@@ -26,7 +26,7 @@ const brandLockupHtml = `
 
 const config = {
   title: "Cornerstone Content",
-  tagline: "Browse file-owned subjects, stages, playlists, and materials",
+  tagline: "Browse repo-owned pathways, playlists, and teaching materials",
   url: siteUrl,
   baseUrl,
   organizationName: "cornerstone",
@@ -66,7 +66,12 @@ const config = {
       items: [
         { type: "html", value: brandLockupHtml, position: "left" },
         { to: "/", label: "Content", position: "left" },
-        { to: "/generated/catalog-overview", label: "Generated", position: "left" },
+        { to: "/generated/library-overview", label: "Overview", position: "left" },
+        {
+          to: "/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway",
+          label: "Pathways",
+          position: "left",
+        },
         { href: frontendUrl, label: "Back to Site", position: "right", className: "navbar__back-to-site" }
       ]
     },
@@ -76,7 +81,11 @@ const config = {
         {
           title: "Sources",
           items: [
-            { label: "Catalog Overview", to: "/generated/catalog-overview" }
+            { label: "Library Overview", to: "/generated/library-overview" },
+            {
+              label: "Household Arithmetic Pathway",
+              to: "/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway",
+            }
           ]
         }
       ],

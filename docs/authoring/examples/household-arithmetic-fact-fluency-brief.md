@@ -171,18 +171,13 @@ The goal is not to cover all of maths. The goal is to get two young learners int
 - existing ids or files to preserve:
   - keep `maths` and `arithmetic`
   - keep the core model of stage, skill, material, playlist, assignment, session, evidence, and progress
-  - keep existing older arithmetic content until the smaller-slice replacement is ready
-- existing materials that should be reused or revised:
-  - current fact fluency materials are useful as later-stage references, but they are too coarse for the first household rollout
 - files that may change:
-  - `content/catalog/skills.yaml`
-  - `content/catalog/stages.yaml`
-  - `content/catalog/materials.yaml`
-  - `content/catalog/playlists.yaml`
-  - new markdown materials under `content/materials/maths/arithmetic/**`
+  - `content/library/registry.yaml`
+  - `content/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway.md`
+  - stage, skill, playlist, and material files under `content/library/maths/arithmetic/household-arithmetic-fact-fluency/`
 - files that must not change for the first content pass:
-  - Rust control-plane schema and core domain model
-  - Flutter app structure beyond small usability fixes
+  - learner runtime concepts such as assignment, session, evidence, and progress
+  - Flutter app structure beyond small usability fixes unless a clearer pathway surface is being added deliberately
 
 ## Constraints And Open Questions
 

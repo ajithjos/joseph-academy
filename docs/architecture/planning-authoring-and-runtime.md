@@ -220,4 +220,4 @@ The cleaned authoring shape now lives under `content/library/`.
 
 The household arithmetic pathway is the first end-to-end slice in that tree.
 
-The Rust loader and older `content/catalog/` plus `content/materials/` inputs remain as legacy compatibility surfaces until the runtime migration is done. They are no longer the model that new docs and new content should be designed around.
+The Rust loader and the docs-site renderer now read directly from `content/library/`.

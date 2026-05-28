@@ -659,10 +659,54 @@ async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::R
 }
 
 fn choose_default_playlist(catalog: &CatalogBundle, age: i32) -> Option<&Playlist> {
+    let normalized_age = age.clamp(0, u8::MAX as i32) as u8;
+
+    let pathway_candidate = catalog
+        .pathways
+        .iter()
+        .min_by_key(|pathway| pathway_age_distance(pathway, normalized_age));
+    if let Some(pathway) = pathway_candidate {
+        if let Some(playlist_id) = choose_pathway_entry_point(pathway, normalized_age) {
+            if let Some(playlist) = catalog.playlist(playlist_id) {
+                return Some(playlist);
+            }
+        }
+    }
+
     catalog
         .playlists
         .iter()
         .min_by_key(|playlist| (playlist.recommended_age as i32 - age).abs())
+}
+
+fn pathway_age_distance(pathway: &catalog::Pathway, age: u8) -> u8 {
+    if age < pathway.recommended_age_min {
+        pathway.recommended_age_min - age
+    } else if age > pathway.recommended_age_max {
+        age - pathway.recommended_age_max
+    } else {
+        0
+    }
+}
+
+fn choose_pathway_entry_point<'a>(pathway: &'a catalog::Pathway, age: u8) -> Option<&'a str> {
+    let mut thresholds = pathway
+        .entry_points
+        .iter()
+        .filter_map(|(key, playlist_id)| {
+            key.strip_prefix("age_")
+                .and_then(|value| value.parse::<u8>().ok())
+                .map(|threshold| (threshold, playlist_id.as_str()))
+        })
+        .collect::<Vec<_>>();
+    thresholds.sort_by_key(|(threshold, _)| *threshold);
+
+    thresholds
+        .iter()
+        .rev()
+        .find(|(threshold, _)| age >= *threshold)
+        .map(|(_, playlist_id)| *playlist_id)
+        .or_else(|| thresholds.first().map(|(_, playlist_id)| *playlist_id))
 }
 
 async fn create_assignment_internal(

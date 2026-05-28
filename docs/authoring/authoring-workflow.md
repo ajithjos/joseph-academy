@@ -57,20 +57,18 @@ The author should produce only the files required for the slice:
 - `content/library/{subject}/{area}/{pathway}/pathway.md`
 - stage, skill, playlist, and material files under that pathway directory
 
-If a legacy compatibility surface is still in scope, say so explicitly and keep that as a separate migration step.
-
 ## Repo Validation Commands
 
 Use these from the repo root when you need to validate repository changes:
 
 ```bash
 uv run --with pytest python -m pytest tests/test_pathway_library.py
-make rust-catalog-validate
+make rust-library-validate
 make content-validate
-uv run python scripts/render_catalog_docs.py developer
+uv run python scripts/render_library_docs.py developer
 cargo test -p catalog --manifest-path rust/Cargo.toml
 cargo check -p control_plane --manifest-path rust/Cargo.toml
 cd fe/flutter/apps/cornerstone && flutter analyze
 ```
 
-Use the pathway-library test as the fast structural check for cleaned slices. Use the legacy validation commands only when legacy compatibility files are touched.
+Use the pathway-library test as the fast structural check for cleaned slices. Use `make rust-library-validate` and `make content-validate` for the broader runtime and docs-site validation pass.

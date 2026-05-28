@@ -6,7 +6,7 @@ The production shape is intentionally VM-friendly and close to the dev compose f
 
 1. Check out the repository on the VM.
 2. Build the static artifacts on the host:
-   - `uv run python scripts/render_catalog_docs.py production`
+   - `uv run python scripts/render_library_docs.py production`
    - `cd docs_site && npm install && npm run build:production`
    - `cd fe/flutter/apps/cornerstone && flutter pub get && flutter build web --release --dart-define=CORNERSTONE_API_BASE_URL=http://YOUR_VM_IP:8788`
 3. Copy `deploy/production/templates/.env.template` to `.env` and set the host paths and passwords.
@@ -17,4 +17,4 @@ The production shape is intentionally VM-friendly and close to the dev compose f
 - Postgres
 - Rust control plane
 - static Flutter web build served by nginx
-- static Docusaurus docs build served by nginx
+- static Docusaurus library build served by nginx

@@ -105,10 +105,10 @@ deploy_dev_prepare_static_artifacts() {
 	local flutter_build_dir="$DEPLOY_REPO_ROOT/fe/flutter/apps/cornerstone/build/web"
 	local embedded_content_dir="$flutter_build_dir/content"
 
-	echo "[deploy/dev] Rendering catalog docs..."
+	echo "[deploy/dev] Rendering library docs..."
 	(
 		cd "$DEPLOY_REPO_ROOT" || exit 1
-		uv run python scripts/render_catalog_docs.py
+		uv run python scripts/render_library_docs.py
 	)
 
 	echo "[deploy/dev] Building Docusaurus site..."

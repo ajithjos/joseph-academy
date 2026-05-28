@@ -67,4 +67,4 @@ The pathway directory is the canonical authored source for cleaned curriculum sl
 
 - Review queues or reminders can exist as derived runtime helpers.
 - They are downstream of progress, not part of the core curriculum model.
-- Legacy `content/catalog/` and `content/materials/` inputs remain compatibility surfaces until the Rust loader is migrated to the cleaned tree.
+- The runtime loader reads directly from `content/library/`.

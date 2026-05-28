@@ -6,7 +6,6 @@ These rules apply whether the work is being done by a human author, subject expe
 
 - Treat `content/library/registry.yaml` and pathway-contained files under `content/library/{subject}/{area}/{pathway}/` as the source of truth for cleaned curriculum slices.
 - Reuse existing objects when that is clearly better than creating duplicates.
-- Legacy `content/catalog/` and `content/materials/` remain compatibility inputs until runtime migration. Do not design new slices around that older split.
 
 ## Required Vocabulary
 
@@ -76,7 +75,7 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 ## Validation Commands
 
 - Run `uv run --with pytest python -m pytest tests/test_pathway_library.py` while iterating on the cleaned pathway tree.
-- Run `make rust-catalog-validate` and `make content-validate` if you also touched the legacy compatibility inputs.
+- Run `make rust-library-validate` and `make content-validate` when you want the runtime-facing validation pass for the library tree.
 - Validate the full in-scope pathway after any slice change.
 
 ## Review Checklist

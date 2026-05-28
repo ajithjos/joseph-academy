@@ -6,7 +6,7 @@ This repository now contains an MVP stack with:
 
 - a Rust control-plane API backed by Postgres
 - a Flutter web frontend for owner and learner workflows
-- a Docusaurus catalog site generated from repo-owned curriculum files
+- a Docusaurus library site generated from the repo-owned pathway tree
 - Docker-based dev and VM-oriented deployment templates
 
 Identity bootstrap lives under `deploy/config/runtime_defaults/identity_bootstrap.yaml`.
@@ -35,9 +35,9 @@ site on `http://127.0.0.1:3001`.
 
 ## Repo Shape
 
-- `content/`: file-owned curriculum catalogs and content items
+- `content/`: the repo-owned pathway library under `content/library/`
 - `rust/`: Rust control-plane workspace
 - `fe/flutter/apps/cornerstone/`: Flutter web runtime UI
-- `docs_site/`: Docusaurus catalog site
+- `docs_site/`: Docusaurus library site
 - `deploy/`: dev and production deployment workflows
 - `docs/`: product and operator documentation

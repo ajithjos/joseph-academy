@@ -1,4 +1,4 @@
-.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-catalog-validate content-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-catalog-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
+.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-library-validate content-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-library-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
 
 PYTHON_RUN ?= uv run
 FLUTTER_APP_DIR ?= $(CURDIR)/fe/flutter/apps/cornerstone
@@ -9,8 +9,8 @@ CONTENT_ROOT ?= $(CURDIR)/content
 
 help:
 	@echo "Primary targets: daily-local, control-plane-compose-up, rust-run"
-	@echo "Validation targets: fmt-check, lint, test, rust-catalog-validate, content-validate, frontend-sanity, docs-site-build"
-	@echo "Control-plane targets: control-plane-db-up, control-plane-db-migrate, control-plane-bootstrap-apply, control-plane-catalog-reload, control-plane-compose-up, control-plane-compose-down, control-plane-compose-reset"
+	@echo "Validation targets: fmt-check, lint, test, rust-library-validate, content-validate, frontend-sanity, docs-site-build"
+	@echo "Control-plane targets: control-plane-db-up, control-plane-db-migrate, control-plane-bootstrap-apply, control-plane-library-reload, control-plane-compose-up, control-plane-compose-down, control-plane-compose-reset"
 
 install-dev:
 	uv sync --all-extras
@@ -52,11 +52,11 @@ rust-migrate:
 rust-bootstrap-apply:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
-rust-catalog-validate:
+rust-library-validate:
 	CORNERSTONE_CONTENT_ROOT="$(CONTENT_ROOT)" cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
 
-content-validate: rust-catalog-validate
-	$(PYTHON_RUN) --with pytest python -m pytest tests/test_render_catalog_docs.py
+content-validate: rust-library-validate
+	$(PYTHON_RUN) --with pytest python -m pytest tests/test_render_library_docs.py
 
 frontend-pub-get:
 	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter pub get'
@@ -76,7 +76,7 @@ docs-site-install:
 	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install'
 
 docs-site-prepare:
-	$(PYTHON_RUN) python scripts/render_catalog_docs.py developer
+	$(PYTHON_RUN) python scripts/render_library_docs.py developer
 
 docs-site-build:
 	@bash -lc 'cd "$(DOCS_SITE_DIR)" && npm install && npm run build:production'
@@ -93,7 +93,7 @@ control-plane-db-migrate:
 control-plane-bootstrap-apply:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- bootstrap-apply
 
-control-plane-catalog-reload:
+control-plane-library-reload:
 	cargo run --manifest-path rust/apps/control_plane/Cargo.toml -- catalog-validate
 
 control-plane-compose-up:

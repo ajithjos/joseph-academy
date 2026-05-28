@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "prepare": "npm run prepare:production",
-    "prepare:production": "uv run python ../scripts/render_catalog_docs.py production",
-    "prepare:developer": "uv run python ../scripts/render_catalog_docs.py developer",
+    "prepare:production": "uv run python ../scripts/render_library_docs.py production",
+    "prepare:developer": "uv run python ../scripts/render_library_docs.py developer",
     "start": "npm run start:developer",
     "start:developer": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3001 CORNERSTONE_CONTENT_SITE_BASE_URL=/ npm run prepare:developer && docusaurus start --host 0.0.0.0 --port 3001",
     "start:production": "CORNERSTONE_CONTENT_SITE_URL=http://127.0.0.1:3002 CORNERSTONE_CONTENT_SITE_BASE_URL=/content/ npm run prepare:production && docusaurus start --host 0.0.0.0 --port 3002",

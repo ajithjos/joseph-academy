@@ -20,4 +20,4 @@ content/library/
 Use the brief in `docs/authoring/examples/` as the planning input.
 Use the pathway directory here as the authored curriculum output.
 
-Legacy `content/catalog/` and `content/materials/` remain in the repo as compatibility surfaces until the runtime loader is migrated.
+The Rust loader and the docs-site renderer read this tree directly.

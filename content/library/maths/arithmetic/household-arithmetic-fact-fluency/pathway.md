@@ -1,5 +1,6 @@
 ---
 id: household_arithmetic_fact_fluency
+slug: pathway
 title: Household Arithmetic Fact Fluency
 subject_id: maths
 area_id: arithmetic
