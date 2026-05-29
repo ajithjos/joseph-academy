@@ -19,9 +19,30 @@ estimated_minutes: 12
 
 Adult guide: use this beside the learner lesson note, not instead of it.
 
-Teach multiplication as grouped relationships, not as a chant alone.
+## Delivery principle
+
+Teach multiplication as a relationship between equal groups, not as a chant alone.
+
+## Core moves
 
 1. Use equal groups or small arrays first.
 2. Connect each multiplication fact to a division fact when the learner is ready.
 3. Mix known facts with one or two new ones; do not flood the page with every hard fact at once.
 4. Save full random drills for after the learner has already seen the underlying pattern clearly.
+
+## Useful adult language
+
+- `How many groups are there?`
+- `How many are in each group?`
+- `Which easier fact can help you build this one?`
+- `If this multiplication is true, which division fact matches it?`
+
+## Mistakes worth noticing
+
+- the learner can recite a table in order but cannot answer when the prompts are shuffled
+- the learner confuses the groups with the group size
+- the learner treats division as unrelated instead of as the same structure seen backwards
+
+## Coaching rule
+
+Keep the practice set small when a new table or anchor is introduced. Accuracy with explanation is better than fast guessing.

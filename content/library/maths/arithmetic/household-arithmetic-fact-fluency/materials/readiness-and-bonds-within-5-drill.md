@@ -32,3 +32,5 @@ runtime:
 Use this after the learner has already handled real objects, fingers, or buttons.
 
 The live drill should stay short and calm. It should mix tiny counting, make-5 items, and simple add-or-take-away facts without turning into a long pressured test.
+
+Run one short round, then stop and talk about any misses. If the learner starts guessing or freezing, return to real objects instead of repeating the drill again and again.

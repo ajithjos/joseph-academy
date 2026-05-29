@@ -32,6 +32,8 @@ runtime:
 
 # Addition And Subtraction Facts To 20 Check
 
+Keep this mixed and brisk. Do not rescue the learner during the answers.
+
 1. `12 + 7 =`
 2. `20 - 9 =`
 3. `__ + 5 = 20`
@@ -43,4 +45,4 @@ runtime:
 9. `11 + 8 =`
 10. `16 - 7 =`
 
-Passing guide: 8 or more quick correct answers means the learner is ready for multiplication foundations.
+Passing guide: 8 or more quick correct answers means the learner is ready for multiplication foundations. If the learner is accurate but very slow, repeat one more mixed drill before moving on.

@@ -17,3 +17,10 @@ pathways:
     status: active
     brief_source: docs/authoring/examples/household-arithmetic-fact-fluency-brief.md
     path: maths/arithmetic/household-arithmetic-fact-fluency/pathway.md
+  - pathway_id: household_arithmetic_written_methods
+    subject_id: maths
+    area_id: arithmetic
+    title: Household Arithmetic Written Methods
+    status: active
+    brief_source: docs/authoring/examples/household-arithmetic-written-methods-brief.md
+    path: maths/arithmetic/household-arithmetic-written-methods/pathway.md

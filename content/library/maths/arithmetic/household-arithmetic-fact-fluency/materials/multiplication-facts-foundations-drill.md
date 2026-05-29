@@ -11,17 +11,13 @@ estimated_minutes: 8
 
 # Multiplication Facts Foundations Drill
 
-Answer quickly in mixed order.
+Use this for one short mixed round after the learner has already worked with equal groups and the easy patterns.
 
-1. `2 x 6 =`
-2. `5 x 4 =`
-3. `10 x 3 =`
-4. `12 / 2 =`
-5. `20 / 5 =`
-6. `10 x 7 =`
-7. `2 x 8 =`
-8. `30 / 10 =`
-9. `5 x 6 =`
-10. `18 / 2 =`
-11. `25 / 5 =`
-12. `2 x 9 =`
+The live drill should keep multiplication and division together so the learner hears them as one family of relationships.
+
+Review misses by pattern:
+
+- doubles that are not yet secure
+- `5` facts that still need counting
+- `10` facts that should feel immediate
+- division prompts that do not yet sound connected to the multiplication fact

@@ -7,7 +7,7 @@ area_id: arithmetic
 status: active
 brief_source: docs/authoring/examples/household-arithmetic-fact-fluency-brief.md
 recommended_age_min: 7
-recommended_age_max: 9
+recommended_age_max: 10
 stage_ids:
   - readiness_and_bonds_within_5
   - addition_and_subtraction_facts_to_10
@@ -30,15 +30,20 @@ entry_points:
 
 # Household Arithmetic Fact Fluency
 
-This is the household route for getting a child from shaky or uneven number facts to steady arithmetic fluency.
+This is the household route for getting a learner from shaky or uneven number facts to steady arithmetic fluency.
 
-It is intentionally narrow. It does not try to cover all of maths. It focuses on the small set of arithmetic facts that make later written work much easier: number bonds, addition and subtraction facts, and early multiplication and inverse division relationships.
+It is built for two common starting points:
 
-The route is designed for short, repeated sessions at home. It assumes a parent or coach is choosing where the learner starts, running the daily work, and deciding when to move on.
+- a seven-year-old who is still learning what number bonds, fact families, and multiplication facts actually mean
+- an older learner, including a ten-year-old, who can often complete written work but still burns too much attention on basic fact recall
+
+The route is intentionally focused. It teaches the facts that later arithmetic depends on: bonds, addition and subtraction facts, multiplication facts, and inverse division links. It does not try to cover every topic in maths inside one pathway.
+
+The delivery model is simple: short calm sessions at home, clear explanation first, practice next, and live drills only after the learner understands the idea.
 
 ## Why This Pathway Exists
 
-This pathway exists for learners who can often count, copy, or finish a worksheet, but still do not recall core arithmetic facts quickly enough for later work to feel comfortable.
+This pathway exists for learners who can often count, copy, or finish a worksheet, but still do not recall core arithmetic facts quickly enough for later arithmetic to feel comfortable.
 
 In practice that usually looks like:
 
@@ -46,6 +51,7 @@ In practice that usually looks like:
 - freezing when facts are mixed instead of grouped
 - knowing a pattern while chanting a table, but not when a question is asked out of order
 - missing the inverse relationship between addition and subtraction or multiplication and division
+- being able to attempt written arithmetic but making the work much harder than it needs to be because the facts underneath are not secure
 
 The job of this pathway is to make those facts secure enough that written arithmetic stops feeling heavier than it needs to.
 
@@ -57,6 +63,7 @@ At the end of this route, the learner should be able to:
 - answer early multiplication facts confidently and then extend that confidence through `10 x 10`
 - use inverse relationships sensibly, especially for subtraction and division
 - move between oral recall, paper practice, and short checks without confusion about the task
+- explain the idea behind a fact instead of only reciting an answer
 
 For a parent or coach, the visible signs are simpler:
 
@@ -72,7 +79,13 @@ The route assumes short household sessions, not classroom blocks.
 - cadence: 4 to 5 sessions per week
 - normal rhythm: one teaching or guided session, two or three short practice sessions, and one mixed review or check
 
-The delivery rule is simple: accuracy first, then speed. If a learner is frustrated or guessing wildly, stop early and come back the next day.
+The delivery rule is simple: meaning first, then accuracy, then speed. If a learner is frustrated or guessing wildly, stop early and come back the next day.
+
+## What This Pathway Does Not Try To Do Alone
+
+This pathway does not try to teach the full written arithmetic curriculum by itself.
+
+It prepares the ground for that work by making the facts secure. For place value, written addition and subtraction, and later multiplication and division methods, pair this route with [Household Arithmetic Written Methods](../household-arithmetic-written-methods/pathway.md).
 
 ## The Route
 
@@ -97,6 +110,7 @@ What changes here:
 - bonds to 10 become anchors
 - mixed facts to 10 stop feeling random
 - subtraction starts to feel connected to addition rather than like a separate topic
+- the learner begins to talk about parts and wholes instead of only counting objects
 
 ### 3. [Addition And Subtraction Facts To 20](./playlists/addition-and-subtraction-facts-to-20.md)
 
@@ -107,6 +121,7 @@ What changes here:
 - teen-number combinations become less slow and fragile
 - missing-number prompts become normal, not confusing
 - the learner begins to use inverse reasoning more naturally
+- the learner starts bridging through 10 instead of treating every teen fact as a fresh counting problem
 
 ### 4. [Multiplication Facts Foundations](./playlists/multiplication-facts-foundations.md)
 
@@ -117,6 +132,7 @@ What changes here:
 - `2`, `5`, and `10` facts become reliable first
 - equal groups and simple arrays support the facts instead of chant alone
 - related division facts begin to make sense as the same relationship seen backwards
+- the learner sees multiplication as a structured relationship, not only as a list to memorise
 
 ### 5. [Multiplication Facts Through 5](./playlists/multiplication-facts-through-5.md)
 
@@ -137,6 +153,7 @@ What changes here:
 - the harder `6`, `7`, `8`, and `9` facts are folded into mixed work
 - inverse division prompts become part of normal recall
 - the learner is ready for later arithmetic without fact recall dominating the work
+- weak facts are repaired with strategy anchors instead of pure guess-and-repeat
 
 ## Entry Guidance By Approximate Age
 
@@ -160,6 +177,8 @@ Begin with a quick baseline check from [Multiplication Facts Foundations](./play
 
 If `2`, `5`, and `10` facts are already secure, move forward. If they are not, start there. If facts through 20 are still weak, route back to [Addition And Subtraction Facts To 20](./playlists/addition-and-subtraction-facts-to-20.md).
 
+For a ten-year-old, the goal is not to pretend the facts are secure. The goal is to repair the weak layer quickly so later written arithmetic becomes easier instead of slower.
+
 ## How To Decide Whether To Move On
 
 Move forward when the learner is mostly accurate in mixed work and does not break down as soon as prompts are shuffled.
@@ -176,6 +195,7 @@ This pathway is secure when the learner can:
 - answer most mixed multiplication facts through `10 x 10` accurately
 - use inverse subtraction and division relationships without those prompts feeling unfamiliar
 - complete short checks without heavy dependence on counting one by one
+- move into written methods with facts supporting the work instead of blocking it
 
 ## Maintainer Notes
 

@@ -33,3 +33,5 @@ runtime:
 Use this once the learner can already say most pairs to 10 and needs mixed live recall.
 
 The app should generate a short mixed run of addition, subtraction, and make-10 items so the learner has to recognise the fact family instead of staying inside one narrow pattern.
+
+Use the summary to spot weak pairs. If the learner misses `6 and 4` in three different forms, reteach that one family before running another live round.

@@ -11,6 +11,8 @@ estimated_minutes: 5
 
 # Multiplication Facts Foundations Check
 
+Keep this mixed. Do not let the learner chant a full table before answering.
+
 1. `2 x 7 =`
 2. `5 x 8 =`
 3. `10 x 6 =`
@@ -22,4 +24,4 @@ estimated_minutes: 5
 9. `16 / 2 =`
 10. `2 x 4 =`
 
-Passing guide: 8 or more quick correct answers means the learner is ready for mixed facts through `5 x 5`.
+Passing guide: 8 or more quick correct answers means the learner is ready for mixed facts through `5 x 5`. If division answers are much weaker than multiplication answers, repeat the same families in inverse form before moving on.

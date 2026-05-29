@@ -29,7 +29,7 @@ runtime:
 
 # Readiness And Bonds Within 5 Check
 
-Ask the learner to answer quickly.
+Keep this brisk and calm. Do not coach during the check. You are checking whether the tiny relationships are starting to feel familiar.
 
 1. `2 and __ make 5`
 2. `5 - 1 =`
@@ -42,4 +42,4 @@ Ask the learner to answer quickly.
 9. `5 - 4 =`
 10. `How many are missing from 5 if you already have 3?`
 
-Passing guide: 8 or more quick correct answers means the learner is ready to move on.
+Passing guide: 8 or more quick correct answers means the learner is ready to move on. If the learner hesitates on most prompts, repeat the lesson and one more short practice instead of pushing speed.

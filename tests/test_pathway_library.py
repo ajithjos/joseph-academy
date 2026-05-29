@@ -8,12 +8,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LIBRARY_ROOT = REPO_ROOT / "content" / "library"
 LEGACY_CATALOG_ROOT = REPO_ROOT / "content" / "catalog"
 LEGACY_MATERIALS_ROOT = REPO_ROOT / "content" / "materials"
-PATHWAY_ROOT = (
-    LIBRARY_ROOT
-    / "maths"
-    / "arithmetic"
-    / "household-arithmetic-fact-fluency"
-)
 SUPPORTED_MATERIAL_KINDS = {
     "lesson_note",
     "teaching_note",
@@ -45,50 +39,41 @@ def collect_markdown(directory: Path) -> dict[str, dict]:
     return items
 
 
-def test_legacy_content_trees_are_absent() -> None:
-    assert not LEGACY_CATALOG_ROOT.exists()
-    assert not LEGACY_MATERIALS_ROOT.exists()
-
-
-def test_household_arithmetic_pathway_tree_is_coherent() -> None:
-    registry = load_yaml(LIBRARY_ROOT / "registry.yaml")
-    pathway_entries = registry["pathways"]
-    pathway_entry = next(
-        item
-        for item in pathway_entries
-        if item["pathway_id"] == "household_arithmetic_fact_fluency"
-    )
-
+def validate_pathway_tree(pathway_entry: dict) -> None:
     pathway_path = LIBRARY_ROOT / pathway_entry["path"]
+    pathway_root = pathway_path.parent
     assert pathway_path.exists()
 
     pathway = load_markdown_frontmatter(pathway_path)
-    stages = collect_markdown(PATHWAY_ROOT / "stages")
-    skills = collect_markdown(PATHWAY_ROOT / "skills")
-    playlists = collect_markdown(PATHWAY_ROOT / "playlists")
-    materials = collect_markdown(PATHWAY_ROOT / "materials")
+    stages = collect_markdown(pathway_root / "stages")
+    skills = collect_markdown(pathway_root / "skills")
+    playlists = collect_markdown(pathway_root / "playlists")
+    materials = collect_markdown(pathway_root / "materials")
 
     assert pathway["id"] == pathway_entry["pathway_id"]
     assert pathway["subject_id"] == pathway_entry["subject_id"]
     assert pathway["area_id"] == pathway_entry["area_id"]
     assert set(pathway["stage_ids"]) == set(stages)
     assert set(pathway["playlist_ids"]) == set(playlists)
+    assert pathway["entry_points"]
 
-    for age_key in ("age_5", "age_7", "age_10"):
-        assert pathway["entry_points"][age_key] in playlists
+    for age_key, playlist_id in pathway["entry_points"].items():
+        assert age_key.startswith("age_")
+        assert playlist_id in playlists
 
-    used_stage_ids = set()
-    used_skill_ids = set()
-    used_material_ids = set()
+    for age_key in ("age_7", "age_10"):
+        assert age_key in pathway["entry_points"]
 
+    stage_ids_from_skills = set()
+    skill_ids_in_materials = set()
+    material_ids_seen = set()
     for skill in skills.values():
         assert skill["stage_ids"]
         for stage_id in skill["stage_ids"]:
             assert stage_id in stages
-            used_stage_ids.add(stage_id)
-        used_skill_ids.add(skill["id"])
+            stage_ids_from_skills.add(stage_id)
 
-    material_skill_ids = set()
+    stage_ids_from_materials = set()
     for material in materials.values():
         material_kind = material["type"]
         assert material_kind in SUPPORTED_MATERIAL_KINDS
@@ -96,11 +81,11 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
         assert material["skill_ids"]
         for stage_id in material["stage_ids"]:
             assert stage_id in stages
-            used_stage_ids.add(stage_id)
+            stage_ids_from_materials.add(stage_id)
         for skill_id in material["skill_ids"]:
             assert skill_id in skills
-            material_skill_ids.add(skill_id)
-        used_material_ids.add(material["id"])
+            skill_ids_in_materials.add(skill_id)
+        material_ids_seen.add(material["id"])
 
     playlist_stage_ids = set()
     playlist_skill_ids = set()
@@ -113,16 +98,19 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
         has_practice = False
         has_quick_check = False
         lesson_note_seen = False
+
         for stage_id in playlist["stage_ids"]:
             assert stage_id in stages
             playlist_stage_ids.add(stage_id)
         for skill_id in playlist["skill_ids"]:
             assert skill_id in skills
             playlist_skill_ids.add(skill_id)
+
         for session in playlist["sessions"]:
             assert session["material_ids"]
             assert session["skill_ids"]
             session_material_kinds = []
+
             for material_id in session["material_ids"]:
                 assert material_id in materials
                 playlist_material_ids.add(material_id)
@@ -155,9 +143,18 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
         assert has_practice, f"playlist {playlist['id']} is missing practice material"
         assert has_quick_check, f"playlist {playlist['id']} is missing a quick check"
 
-    assert set(stages) == used_stage_ids | playlist_stage_ids
-    assert set(skills) == used_skill_ids == material_skill_ids | {
-        "count_small_groups_within_5"
-    }
-    assert set(materials) == used_material_ids == playlist_material_ids
+    assert set(stages) <= stage_ids_from_skills | stage_ids_from_materials | playlist_stage_ids
+    assert set(skills) <= skill_ids_in_materials | playlist_skill_ids
+    assert set(materials) == material_ids_seen == playlist_material_ids
     assert set(playlists) == set(pathway["playlist_ids"])
+
+
+def test_legacy_content_trees_are_absent() -> None:
+    assert not LEGACY_CATALOG_ROOT.exists()
+    assert not LEGACY_MATERIALS_ROOT.exists()
+
+
+def test_authored_pathway_trees_are_coherent() -> None:
+    registry = load_yaml(LIBRARY_ROOT / "registry.yaml")
+    for pathway_entry in registry["pathways"]:
+        validate_pathway_tree(pathway_entry)

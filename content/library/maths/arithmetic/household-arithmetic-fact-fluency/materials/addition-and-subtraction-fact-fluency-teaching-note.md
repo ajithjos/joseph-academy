@@ -19,9 +19,30 @@ estimated_minutes: 12
 
 Adult guide: keep this beside the learner lesson note so the learner sees the fact family while you guide the prompts.
 
-Use known anchors and inverse facts.
+## Delivery principle
+
+Teach the relationship first. Speed comes later.
+
+## Core moves
 
 1. Teach pairs first, not isolated facts.
 2. Say the addition and subtraction relationship together, such as `7 + 3 = 10`, `10 - 3 = 7`, and `10 - 7 = 3`.
 3. Move from grouped prompts to shuffled prompts in the same session.
 4. When a learner stalls, return to the nearest secure bond instead of pushing speed.
+
+## Useful adult language
+
+- `What whole are we working inside?`
+- `What are the two parts?`
+- `Which subtraction belongs to that addition fact?`
+- `Can you bridge through 10 instead of counting each step?`
+
+## Mistakes worth noticing
+
+- the learner knows a bond when it is spoken, but not when it appears in missing-number form
+- the learner can answer addition but treats subtraction as unrelated
+- the learner reaches for finger counting on every teen-number fact
+
+## Coaching rule
+
+If the learner makes three or four slow errors in a row, stop the page and reteach one anchor fact family. Do not turn the whole session into a long correction cycle.

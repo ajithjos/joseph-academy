@@ -11,6 +11,8 @@ estimated_minutes: 5
 
 # Multiplication Facts Through 5 Check
 
+Keep the order mixed. The learner should answer the fact, not recite a table and hope the answer appears.
+
 1. `3 x 5 =`
 2. `4 x 4 =`
 3. `5 x 2 =`
@@ -22,4 +24,4 @@ estimated_minutes: 5
 9. `3 x 4 =`
 10. `5 x 1 =`
 
-Passing guide: 8 or more quick correct answers means the learner is ready for mixed facts through `10 x 10`.
+Passing guide: 8 or more quick correct answers means the learner is ready for mixed facts through `10 x 10`. If only `3` or `4` facts are weak, keep the route moving but repeat those anchors daily.

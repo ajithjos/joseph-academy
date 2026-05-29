@@ -35,3 +35,5 @@ runtime:
 Use this when facts to 10 are steady and the learner needs short live practice on teen numbers and missing-number items.
 
 The drill should stay mixed. It should not become a block of only addition or only subtraction because the point is flexible recall under light pressure.
+
+Run the drill after a clear teaching session, not as a substitute for one. Review the misses straight away and group them by pattern: bonds to `20`, bridge-through-`10` facts, or missing-number prompts.

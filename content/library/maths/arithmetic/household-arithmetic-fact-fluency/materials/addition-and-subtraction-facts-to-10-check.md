@@ -30,6 +30,8 @@ runtime:
 
 # Addition And Subtraction Facts To 10 Check
 
+Keep the check short. Do not coach during the answers.
+
 1. `8 + 2 =`
 2. `10 - 6 =`
 3. `4 + 5 =`
@@ -41,4 +43,4 @@ runtime:
 9. `8 - 5 =`
 10. `3 + 6 =`
 
-Passing guide: 8 or more quick correct answers means the learner is ready for facts through 20.
+Passing guide: 8 or more quick correct answers means the learner is ready for facts through 20. If the misses cluster around one or two bonds, repair those first rather than repeating the whole playlist from the start.
