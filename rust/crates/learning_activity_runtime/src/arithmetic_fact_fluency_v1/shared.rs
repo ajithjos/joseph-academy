@@ -4,8 +4,7 @@ use anyhow::bail;
 use catalog::MaterialRuntime;
 use serde_json::json;
 
-use crate::domain::ActivityResponseInput;
-use crate::runtime::{GeneratedActivity, GeneratedActivityItem, ScoredActivity};
+use crate::{ActivityResponseInput, GeneratedActivity, GeneratedActivityItem, ScoredActivity};
 
 pub(super) const RESPONSE_KIND_INTEGER: &str = "integer";
 

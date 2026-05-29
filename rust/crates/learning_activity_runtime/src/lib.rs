@@ -5,7 +5,11 @@ use catalog::{MaterialDocument, MaterialRuntime};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use crate::domain::ActivityResponseInput;
+#[derive(Debug, Clone)]
+pub struct ActivityResponseInput {
+    pub item_id: String,
+    pub value: String,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeneratedActivityItem {

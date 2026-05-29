@@ -3,6 +3,7 @@ members = [
     "apps/control_plane",
     "crates/catalog",
     "crates/control_plane",
+    "crates/learning_activity_runtime",
 ]
 resolver = "2"
 

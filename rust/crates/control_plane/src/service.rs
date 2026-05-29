@@ -4,6 +4,7 @@ use std::sync::Arc;
 use anyhow::{Context, anyhow, bail};
 use catalog::{LibraryBundle, LibraryDocument, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_content};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
+use learning_activity_runtime::{self as runtime, GeneratedActivity, ScoredActivity};
 use serde_json::{Value as JsonValue, json};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, query, query_as, query_scalar};
@@ -25,7 +26,6 @@ use crate::domain::{
     SkillProgressRow, SkillProgressSummary, StageProgress, TeamRow, TeamSummary,
     ViewerSessionResponse,
 };
-use crate::runtime::{self, GeneratedActivity, ScoredActivity};
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
@@ -606,7 +606,15 @@ pub async fn complete_activity_instance(
         .ok_or_else(|| anyhow!("material '{}' not found in library", session_material.material_id))?;
     let generated = runtime::generate_activity(material, seed)
         .context("failed to regenerate activity for scoring")?;
-    let scored = runtime::score_activity(material, &generated, &request.responses)
+    let runtime_responses = request
+        .responses
+        .iter()
+        .map(|response| runtime::ActivityResponseInput {
+            item_id: response.item_id.clone(),
+            value: response.value.clone(),
+        })
+        .collect::<Vec<_>>();
+    let scored = runtime::score_activity(material, &generated, &runtime_responses)
         .context("failed to score activity")?;
     let (_, materials) = load_session_and_material_rows(&state.pool, &session.session_id).await?;
 

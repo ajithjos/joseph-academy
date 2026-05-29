@@ -1,6 +1,6 @@
 use catalog::MaterialRuntime;
 
-use crate::runtime::GeneratedActivity;
+use crate::GeneratedActivity;
 
 use super::shared::{
     ActivityRng, build_generated_activity, generate_unique_items, integer_item, item_forms,
