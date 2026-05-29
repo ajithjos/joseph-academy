@@ -13,9 +13,12 @@ recommended_age_max: 9
 sessions:
   - title: Teach anchors to 20 and missing-number thinking
     material_ids:
+      - addition_and_subtraction_facts_to_20_lesson_note
       - addition_and_subtraction_fact_fluency_teaching_note
     skill_ids:
       - number_bonds_within_20
+      - add_within_20
+      - subtract_within_20
       - missing_number_addition_and_subtraction_within_20
   - title: Practise mixed facts to 20
     material_ids:

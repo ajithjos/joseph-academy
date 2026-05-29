@@ -17,6 +17,8 @@ estimated_minutes: 12
 
 # Multiplication Fact Fluency Teaching Note
 
+Adult guide: use this beside the learner lesson note, not instead of it.
+
 Teach multiplication as grouped relationships, not as a chant alone.
 
 1. Use equal groups or small arrays first.

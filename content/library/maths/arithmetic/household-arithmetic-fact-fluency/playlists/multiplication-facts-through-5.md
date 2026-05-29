@@ -11,9 +11,11 @@ recommended_age_max: 10
 sessions:
   - title: Teach 3s and 4s using known anchors
     material_ids:
+      - multiplication_facts_through_5_lesson_note
       - multiplication_fact_fluency_teaching_note
     skill_ids:
       - multiply_by_3_and_4
+      - mixed_multiplication_facts_through_5x5
   - title: Practise mixed facts through 5 x 5
     material_ids:
       - multiplication_facts_through_5_practice

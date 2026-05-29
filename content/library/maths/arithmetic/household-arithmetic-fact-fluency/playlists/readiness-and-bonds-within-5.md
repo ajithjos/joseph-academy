@@ -12,10 +12,12 @@ recommended_age_max: 6
 sessions:
   - title: See small groups and name the parts
     material_ids:
+      - readiness_and_bonds_within_5_lesson_note
       - readiness_and_bonds_within_5_teaching_note
     skill_ids:
       - count_small_groups_within_5
       - number_bonds_within_5
+      - add_and_subtract_within_5
   - title: Practise pairs that make 5
     material_ids:
       - readiness_and_bonds_within_5_practice

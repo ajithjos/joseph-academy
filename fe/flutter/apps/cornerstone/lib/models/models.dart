@@ -180,6 +180,8 @@ class LibraryWorkspacePlaylist {
     required this.skillCount,
     required this.materialCount,
     required this.liveMaterialCount,
+    required this.deliveryShape,
+    required this.assignmentTargets,
     required this.sessions,
     this.routePath,
   });
@@ -196,6 +198,16 @@ class LibraryWorkspacePlaylist {
       skillCount: (json['skill_count'] as num).toInt(),
       materialCount: (json['material_count'] as num).toInt(),
       liveMaterialCount: (json['live_material_count'] as num).toInt(),
+      deliveryShape: PlaylistDeliveryShape.fromJson(
+        json['delivery_shape'] as Map<String, dynamic>,
+      ),
+      assignmentTargets: (json['assignment_targets'] as List<dynamic>)
+          .map(
+            (item) => PlaylistAssignmentTarget.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       routePath: json['route_path'] as String?,
       sessions: (json['sessions'] as List<dynamic>)
           .map(
@@ -217,8 +229,77 @@ class LibraryWorkspacePlaylist {
   final int skillCount;
   final int materialCount;
   final int liveMaterialCount;
+  final PlaylistDeliveryShape deliveryShape;
+  final List<PlaylistAssignmentTarget> assignmentTargets;
   final String? routePath;
   final List<LibraryWorkspaceSession> sessions;
+}
+
+class PlaylistDeliveryShape {
+  PlaylistDeliveryShape({
+    required this.estimatedTotalMinutes,
+    required this.lessonNoteCount,
+    required this.teachingNoteCount,
+    required this.worksheetCount,
+    required this.drillCount,
+    required this.quickCheckCount,
+    required this.requiresAdultSupport,
+  });
+
+  factory PlaylistDeliveryShape.fromJson(Map<String, dynamic> json) {
+    return PlaylistDeliveryShape(
+      estimatedTotalMinutes: (json['estimated_total_minutes'] as num).toInt(),
+      lessonNoteCount: (json['lesson_note_count'] as num).toInt(),
+      teachingNoteCount: (json['teaching_note_count'] as num).toInt(),
+      worksheetCount: (json['worksheet_count'] as num).toInt(),
+      drillCount: (json['drill_count'] as num).toInt(),
+      quickCheckCount: (json['quick_check_count'] as num).toInt(),
+      requiresAdultSupport: json['requires_adult_support'] as bool? ?? false,
+    );
+  }
+
+  final int estimatedTotalMinutes;
+  final int lessonNoteCount;
+  final int teachingNoteCount;
+  final int worksheetCount;
+  final int drillCount;
+  final int quickCheckCount;
+  final bool requiresAdultSupport;
+}
+
+class PlaylistAssignmentTarget {
+  PlaylistAssignmentTarget({
+    required this.learnerId,
+    required this.displayName,
+    required this.currentAge,
+    required this.currentLevel,
+    required this.recommended,
+    required this.statusLabel,
+    required this.assignedHere,
+    this.activeAssignmentTitle,
+  });
+
+  factory PlaylistAssignmentTarget.fromJson(Map<String, dynamic> json) {
+    return PlaylistAssignmentTarget(
+      learnerId: json['learner_id'] as String,
+      displayName: json['display_name'] as String,
+      currentAge: (json['current_age'] as num).toInt(),
+      currentLevel: json['current_level'] as String,
+      recommended: json['recommended'] as bool? ?? false,
+      statusLabel: json['status_label'] as String,
+      assignedHere: json['assigned_here'] as bool? ?? false,
+      activeAssignmentTitle: json['active_assignment_title'] as String?,
+    );
+  }
+
+  final String learnerId;
+  final String displayName;
+  final int currentAge;
+  final String currentLevel;
+  final bool recommended;
+  final String statusLabel;
+  final bool assignedHere;
+  final String? activeAssignmentTitle;
 }
 
 class LibraryWorkspaceSession {
@@ -227,9 +308,12 @@ class LibraryWorkspaceSession {
     required this.dayOffset,
     required this.title,
     required this.skillIds,
+    required this.dominantKind,
+    required this.requiresAdultSupport,
     required this.materialCount,
     required this.estimatedMinutes,
     required this.liveMaterialCount,
+    required this.materialsByKind,
     required this.materials,
   });
 
@@ -241,9 +325,18 @@ class LibraryWorkspaceSession {
       skillIds: (json['skill_ids'] as List<dynamic>)
           .map((item) => item as String)
           .toList(),
+      dominantKind: json['dominant_kind'] as String,
+      requiresAdultSupport: json['requires_adult_support'] as bool? ?? false,
       materialCount: (json['material_count'] as num).toInt(),
       estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
       liveMaterialCount: (json['live_material_count'] as num).toInt(),
+      materialsByKind: (json['materials_by_kind'] as List<dynamic>)
+          .map(
+            (item) => WorkspaceMaterialKindGroup.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       materials: (json['materials'] as List<dynamic>)
           .map(
             (item) => LibraryWorkspaceMaterial.fromJson(
@@ -258,9 +351,12 @@ class LibraryWorkspaceSession {
   final int dayOffset;
   final String title;
   final List<String> skillIds;
+  final String dominantKind;
+  final bool requiresAdultSupport;
   final int materialCount;
   final int estimatedMinutes;
   final int liveMaterialCount;
+  final List<WorkspaceMaterialKindGroup> materialsByKind;
   final List<LibraryWorkspaceMaterial> materials;
 }
 
@@ -269,6 +365,7 @@ class LibraryWorkspaceMaterial {
     required this.materialId,
     required this.title,
     required this.kind,
+    required this.audience,
     required this.estimatedMinutes,
     required this.skillIds,
     required this.executable,
@@ -280,6 +377,7 @@ class LibraryWorkspaceMaterial {
       materialId: json['material_id'] as String,
       title: json['title'] as String,
       kind: json['kind'] as String,
+      audience: json['audience'] as String,
       estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
       skillIds: (json['skill_ids'] as List<dynamic>)
           .map((item) => item as String)
@@ -292,10 +390,43 @@ class LibraryWorkspaceMaterial {
   final String materialId;
   final String title;
   final String kind;
+  final String audience;
   final int estimatedMinutes;
   final List<String> skillIds;
   final bool executable;
   final String? routePath;
+
+  bool get isAdultFacing => audience == 'adult';
+  bool get isLearnerFacing => audience == 'learner';
+}
+
+class WorkspaceMaterialKindGroup {
+  WorkspaceMaterialKindGroup({
+    required this.kind,
+    required this.audience,
+    required this.materialCount,
+    required this.materials,
+  });
+
+  factory WorkspaceMaterialKindGroup.fromJson(Map<String, dynamic> json) {
+    return WorkspaceMaterialKindGroup(
+      kind: json['kind'] as String,
+      audience: json['audience'] as String,
+      materialCount: (json['material_count'] as num).toInt(),
+      materials: (json['materials'] as List<dynamic>)
+          .map(
+            (item) => LibraryWorkspaceMaterial.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  final String kind;
+  final String audience;
+  final int materialCount;
+  final List<LibraryWorkspaceMaterial> materials;
 }
 
 class LibraryDocumentsPayload {
@@ -827,7 +958,10 @@ class SessionDetail extends SessionSummary {
     required super.status,
     required super.dayOffset,
     super.sequenceNumber,
+    required this.dominantKind,
+    required this.requiresAdultSupport,
     required this.notes,
+    required this.materialsByKind,
     required this.materials,
     this.latestEvidence,
   });
@@ -838,9 +972,18 @@ class SessionDetail extends SessionSummary {
       title: json['title'] as String,
       scheduledDate: json['scheduled_date'] as String,
       status: json['status'] as String,
-        dayOffset: (json['day_offset'] as num).toInt(),
-        sequenceNumber: (json['sequence_number'] as num?)?.toInt(),
+      dayOffset: (json['day_offset'] as num).toInt(),
+      sequenceNumber: (json['sequence_number'] as num?)?.toInt(),
+      dominantKind: json['dominant_kind'] as String,
+      requiresAdultSupport: json['requires_adult_support'] as bool? ?? false,
       notes: json['notes'] as String,
+      materialsByKind: (json['materials_by_kind'] as List<dynamic>)
+          .map(
+            (item) => SessionMaterialKindGroup.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       materials: (json['materials'] as List<dynamic>)
           .map((item) => SessionMaterial.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -852,7 +995,10 @@ class SessionDetail extends SessionSummary {
     );
   }
 
+  final String dominantKind;
+  final bool requiresAdultSupport;
   final String notes;
+  final List<SessionMaterialKindGroup> materialsByKind;
   final List<SessionMaterial> materials;
   final EvidenceSummary? latestEvidence;
 }
@@ -863,10 +1009,12 @@ class SessionMaterial {
     required this.title,
     required this.materialId,
     required this.kind,
+    required this.audience,
     required this.estimatedMinutes,
     required this.skillIds,
     required this.status,
     this.documentRoutePath,
+    this.documentBody,
     this.runtime,
   });
 
@@ -876,12 +1024,14 @@ class SessionMaterial {
       title: json['title'] as String,
       materialId: json['material_id'] as String,
       kind: json['kind'] as String,
+      audience: json['audience'] as String,
       estimatedMinutes: (json['estimated_minutes'] as num).toInt(),
       skillIds: (json['skill_ids'] as List<dynamic>)
           .map((item) => item as String)
           .toList(),
       status: json['status'] as String,
-        documentRoutePath: json['document_route_path'] as String?,
+      documentRoutePath: json['document_route_path'] as String?,
+        documentBody: json['document_body'] as String?,
       runtime: json['runtime'] == null
           ? null
           : SessionMaterialRuntimeSummary.fromJson(
@@ -894,11 +1044,42 @@ class SessionMaterial {
   final String title;
   final String materialId;
   final String kind;
+  final String audience;
   final int estimatedMinutes;
   final List<String> skillIds;
   final String status;
   final String? documentRoutePath;
+  final String? documentBody;
   final SessionMaterialRuntimeSummary? runtime;
+
+  bool get isAdultFacing => audience == 'adult';
+  bool get isLearnerFacing => audience == 'learner';
+  bool get isExecutable => runtime?.executable ?? false;
+}
+
+class SessionMaterialKindGroup {
+  SessionMaterialKindGroup({
+    required this.kind,
+    required this.audience,
+    required this.materialCount,
+    required this.materials,
+  });
+
+  factory SessionMaterialKindGroup.fromJson(Map<String, dynamic> json) {
+    return SessionMaterialKindGroup(
+      kind: json['kind'] as String,
+      audience: json['audience'] as String,
+      materialCount: (json['material_count'] as num).toInt(),
+      materials: (json['materials'] as List<dynamic>)
+          .map((item) => SessionMaterial.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  final String kind;
+  final String audience;
+  final int materialCount;
+  final List<SessionMaterial> materials;
 }
 
 class SessionMaterialRuntimeSummary {

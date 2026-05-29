@@ -14,6 +14,15 @@ PATHWAY_ROOT = (
     / "arithmetic"
     / "household-arithmetic-fact-fluency"
 )
+SUPPORTED_MATERIAL_KINDS = {
+    "lesson_note",
+    "teaching_note",
+    "worksheet",
+    "drill",
+    "quick_check",
+}
+LEARNER_FACING_KINDS = {"lesson_note", "worksheet", "drill", "quick_check"}
+PRACTICE_KINDS = {"worksheet", "drill"}
 
 
 def load_yaml(path: Path) -> dict:
@@ -81,6 +90,8 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
 
     material_skill_ids = set()
     for material in materials.values():
+        material_kind = material["type"]
+        assert material_kind in SUPPORTED_MATERIAL_KINDS
         assert material["stage_ids"]
         assert material["skill_ids"]
         for stage_id in material["stage_ids"]:
@@ -98,6 +109,10 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
         assert playlist["stage_ids"]
         assert playlist["skill_ids"]
         assert playlist["sessions"]
+        has_lesson_note = False
+        has_practice = False
+        has_quick_check = False
+        lesson_note_seen = False
         for stage_id in playlist["stage_ids"]:
             assert stage_id in stages
             playlist_stage_ids.add(stage_id)
@@ -107,12 +122,38 @@ def test_household_arithmetic_pathway_tree_is_coherent() -> None:
         for session in playlist["sessions"]:
             assert session["material_ids"]
             assert session["skill_ids"]
+            session_material_kinds = []
             for material_id in session["material_ids"]:
                 assert material_id in materials
                 playlist_material_ids.add(material_id)
+                session_material_kinds.append(materials[material_id]["type"])
             for skill_id in session["skill_ids"]:
                 assert skill_id in skills
                 assert skill_id in playlist["skill_ids"]
+
+            if "lesson_note" in session_material_kinds:
+                has_lesson_note = True
+                lesson_note_seen = True
+            if any(kind in PRACTICE_KINDS for kind in session_material_kinds):
+                has_practice = True
+                assert lesson_note_seen, (
+                    f"playlist {playlist['id']} schedules practice before any lesson note"
+                )
+            if "quick_check" in session_material_kinds:
+                has_quick_check = True
+                assert lesson_note_seen, (
+                    f"playlist {playlist['id']} schedules a quick check before any lesson note"
+                )
+            if "teaching_note" in session_material_kinds:
+                assert any(
+                    kind in LEARNER_FACING_KINDS for kind in session_material_kinds
+                ), (
+                    f"playlist {playlist['id']} includes a teaching-note-only session"
+                )
+
+        assert has_lesson_note, f"playlist {playlist['id']} is missing a lesson note"
+        assert has_practice, f"playlist {playlist['id']} is missing practice material"
+        assert has_quick_check, f"playlist {playlist['id']} is missing a quick check"
 
     assert set(stages) == used_stage_ids | playlist_stage_ids
     assert set(skills) == used_skill_ids == material_skill_ids | {

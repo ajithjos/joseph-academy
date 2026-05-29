@@ -1,5 +1,329 @@
 part of '../../main.dart';
 
+Color _materialKindBackgroundColor(ThemeData theme, String kind) {
+  switch (kind) {
+    case 'lesson_note':
+      return theme.colorScheme.secondaryContainer;
+    case 'teaching_note':
+      return theme.colorScheme.tertiaryContainer;
+    case 'worksheet':
+      return theme.colorScheme.primary.withValues(alpha: 0.12);
+    case 'drill':
+      return theme.colorScheme.tertiaryContainer;
+    case 'quick_check':
+      return theme.colorScheme.secondaryContainer.withValues(alpha: 0.7);
+    default:
+      return theme.colorScheme.surfaceContainerHighest;
+  }
+}
+
+Color _materialKindForegroundColor(ThemeData theme, String kind) {
+  switch (kind) {
+    case 'lesson_note':
+      return theme.colorScheme.onSecondaryContainer;
+    case 'teaching_note':
+      return theme.colorScheme.onTertiaryContainer;
+    case 'worksheet':
+      return theme.colorScheme.primary;
+    case 'drill':
+      return theme.colorScheme.onTertiaryContainer;
+    case 'quick_check':
+      return theme.colorScheme.onSecondaryContainer;
+    default:
+      return theme.colorScheme.onSurfaceVariant;
+  }
+}
+
+IconData _materialKindIcon(String kind) {
+  switch (kind) {
+    case 'lesson_note':
+      return Icons.menu_book_rounded;
+    case 'teaching_note':
+      return Icons.record_voice_over_rounded;
+    case 'worksheet':
+      return Icons.edit_note_rounded;
+    case 'drill':
+      return Icons.play_circle_fill_rounded;
+    case 'quick_check':
+      return Icons.fact_check_rounded;
+    default:
+      return Icons.description_rounded;
+  }
+}
+
+String _materialActionLabel(String kind) {
+  switch (kind) {
+    case 'lesson_note':
+      return 'Open lesson note';
+    case 'teaching_note':
+      return 'Open teaching note';
+    case 'worksheet':
+      return 'Open worksheet';
+    case 'drill':
+      return 'Start drill';
+    case 'quick_check':
+      return 'Start quick check';
+    default:
+      return 'Open material';
+  }
+}
+
+MarkdownStyleSheet _workspaceMarkdownStyle(ThemeData theme) {
+  return MarkdownStyleSheet.fromTheme(theme).copyWith(
+    p: theme.textTheme.bodyMedium?.copyWith(height: 1.65),
+    h1: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+    h2: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    h3: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+    code: theme.textTheme.bodyMedium?.copyWith(
+      fontFamily: 'SF Mono',
+      color: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+    ),
+    blockquote: theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontStyle: FontStyle.italic,
+    ),
+    blockquotePadding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+    codeblockPadding: const EdgeInsets.all(14),
+    codeblockDecoration: BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: theme.colorScheme.primary.withValues(alpha: 0.10),
+      ),
+    ),
+  );
+}
+
+class _SessionMaterialGroupPanel extends StatelessWidget {
+  const _SessionMaterialGroupPanel({
+    required this.group,
+    required this.showDocumentBodies,
+    this.session,
+    this.viewerCanReadLibrary = false,
+    this.onOpenLibraryRoute,
+    this.onStartActivity,
+  });
+
+  final SessionMaterialKindGroup group;
+  final SessionDetail? session;
+  final bool viewerCanReadLibrary;
+  final bool showDocumentBodies;
+  final ValueChanged<String>? onOpenLibraryRoute;
+  final Future<void> Function(SessionDetail session, SessionMaterial material)?
+  onStartActivity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final backgroundColor = _materialKindBackgroundColor(theme, group.kind);
+    final foregroundColor = _materialKindForegroundColor(theme, group.kind);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(_materialKindIcon(group.kind), size: 20, color: foregroundColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_humanizeLabel(group.kind), style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${group.materialCount} item${group.materialCount == 1 ? '' : 's'} · ${_humanizeLabel(group.audience)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...group.materials.map((material) {
+            final hasDocumentBody = (material.documentBody ?? '').trim().isNotEmpty;
+            final canOpenDocument =
+                viewerCanReadLibrary &&
+                onOpenLibraryRoute != null &&
+                material.documentRoutePath != null;
+            final canStart = session != null && onStartActivity != null && material.isExecutable;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: backgroundColor.withValues(alpha: 0.28),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(material.title, style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _PillBadge(
+                        text: '${material.estimatedMinutes} min',
+                        color: backgroundColor,
+                        textColor: foregroundColor,
+                      ),
+                      if (material.isExecutable)
+                        _PillBadge(
+                          text: 'Live',
+                          color: theme.colorScheme.tertiaryContainer,
+                          textColor: theme.colorScheme.onTertiaryContainer,
+                        ),
+                    ],
+                  ),
+                  if (showDocumentBodies && hasDocumentBody) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: SelectionArea(
+                        child: MarkdownBody(
+                          data: material.documentBody!,
+                          selectable: true,
+                          styleSheet: _workspaceMarkdownStyle(theme),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (canStart || canOpenDocument) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        if (canStart)
+                          FilledButton.tonalIcon(
+                            onPressed: () => onStartActivity!(session!, material),
+                            icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                            label: Text(_materialActionLabel(material.kind)),
+                          ),
+                        if (canOpenDocument)
+                          TextButton.icon(
+                            onPressed: () => onOpenLibraryRoute!(material.documentRoutePath!),
+                            icon: const Icon(Icons.description_rounded, size: 18),
+                            label: Text(_materialActionLabel(material.kind)),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkspaceMaterialGroupPanel extends StatelessWidget {
+  const _WorkspaceMaterialGroupPanel({
+    required this.group,
+    required this.onOpenLibraryRoute,
+  });
+
+  final WorkspaceMaterialKindGroup group;
+  final ValueChanged<String> onOpenLibraryRoute;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final backgroundColor = _materialKindBackgroundColor(theme, group.kind);
+    final foregroundColor = _materialKindForegroundColor(theme, group.kind);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _PillBadge(
+                text: _humanizeLabel(group.kind),
+                color: backgroundColor,
+                textColor: foregroundColor,
+              ),
+              _PillBadge(
+                text: '${group.materialCount} item${group.materialCount == 1 ? '' : 's'}',
+                color: theme.colorScheme.surfaceContainerHighest,
+                textColor: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...group.materials.map(
+            (material) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(material.title, style: theme.textTheme.titleSmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${material.estimatedMinutes} min${material.executable ? ' · Live' : ''}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (material.routePath != null)
+                    TextButton(
+                      onPressed: () => onOpenLibraryRoute(material.routePath!),
+                      child: const Text('Open'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OwnerWorkspaceView extends StatelessWidget {
   const _OwnerWorkspaceView({
     required this.viewer,
@@ -31,7 +355,8 @@ class _OwnerWorkspaceView extends StatelessWidget {
   final TextEditingController durationController;
   final TextEditingController notesController;
   final ValueChanged<String> onSelectLearner;
-  final ValueChanged<String> onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId)
+  onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
   final VoidCallback onOpenLibraryWorkspace;
   final VoidCallback onRecordSession;
@@ -51,7 +376,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
     final activeSession = currentActionSession;
     final activeMaterials =
         activeSession?.materials
-            .where((material) => material.runtime?.executable ?? false)
+        .where((material) => material.isExecutable)
             .toList(growable: false) ??
         const <SessionMaterial>[];
 
@@ -232,28 +557,33 @@ class _OwnerWorkspaceView extends StatelessWidget {
                   Text(activeSession.title, style: theme.textTheme.titleLarge),
                   const SizedBox(height: 6),
                   Text(
-                    'Session ${activeSession.sequenceNumber ?? '-'} · ${activeSession.materials.length} materials',
+                    'Session ${activeSession.sequenceNumber ?? '-'} · ${_humanizeLabel(activeSession.dominantKind)} lead',
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: activeSession.materials
-                        .map(
-                          (material) => _PillBadge(
-                            text: '${material.title} · ${_humanizeLabel(material.kind)}${material.runtime != null ? ' · Live' : ''}',
-                            color: material.runtime != null
-                                ? theme.colorScheme.tertiaryContainer
-                                : theme.colorScheme.primary.withValues(alpha: 0.12),
-                            textColor: material.runtime != null
-                                ? theme.colorScheme.onTertiaryContainer
-                                : theme.colorScheme.primary,
-                          ),
-                        )
-                        .toList(growable: false),
+                  if (activeSession.requiresAdultSupport)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _PillBadge(
+                        text: 'Adult guidance is part of this session',
+                        color: theme.colorScheme.tertiaryContainer,
+                        textColor: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                  ...activeSession.materialsByKind.map(
+                    (group) => _SessionMaterialGroupPanel(
+                      group: group,
+                      session: activeSession,
+                      viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
+                      showDocumentBodies: true,
+                      onOpenLibraryRoute: onOpenLibraryRoute,
+                      onStartActivity: onStartActivity,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  if (activeMaterials.isEmpty)
+                    const SizedBox(height: 4)
+                  else
+                    const SizedBox(height: 8),
                   if (activeMaterials.isNotEmpty)
                     Wrap(
                       spacing: 10,
@@ -372,7 +702,10 @@ class _OwnerWorkspaceView extends StatelessWidget {
                                   builder: (context) {
                                     final playlist = starterPlaylist!;
                                     return FilledButton.tonalIcon(
-                                      onPressed: () => onCreateAssignment(playlist.playlistId),
+                                              onPressed: () => onCreateAssignment(
+                                                selectedDetail.learner.learnerId,
+                                                playlist.playlistId,
+                                              ),
                                       icon: const Icon(Icons.playlist_add_check_circle_rounded, size: 18),
                                       label: Text('Assign ${playlist.title}'),
                                     );
@@ -593,10 +926,20 @@ class _LearnerWorkspaceView extends StatelessWidget {
         ifAbsent: () => 1,
       );
     }
+    final practiceSessions = pendingSessions
+        .where(
+          (session) => session.materialsByKind.any(
+            (group) =>
+                group.kind == 'worksheet' ||
+                group.kind == 'drill' ||
+                group.kind == 'quick_check',
+          ),
+        )
+        .toList(growable: false);
 
     Widget buildSessionSequenceCard(SessionDetail session, {required bool active}) {
       final executableMaterials = session.materials
-          .where((material) => material.runtime?.executable ?? false)
+          .where((material) => material.isExecutable)
           .toList(growable: false);
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -635,13 +978,28 @@ class _LearnerWorkspaceView extends StatelessWidget {
                     children: [
                       Text(session.title, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 4),
-                      Text(
-                        active
-                            ? 'Up next'
-                            : session.status == 'completed'
-                            ? 'Completed'
-                            : 'Pending',
-                        style: theme.textTheme.bodySmall,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _PillBadge(
+                            text: _humanizeLabel(session.dominantKind),
+                            color: _materialKindBackgroundColor(
+                              theme,
+                              session.dominantKind,
+                            ),
+                            textColor: _materialKindForegroundColor(
+                              theme,
+                              session.dominantKind,
+                            ),
+                          ),
+                          if (session.requiresAdultSupport)
+                            _PillBadge(
+                              text: 'Adult support',
+                              color: theme.colorScheme.tertiaryContainer,
+                              textColor: theme.colorScheme.onTertiaryContainer,
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -663,16 +1021,12 @@ class _LearnerWorkspaceView extends StatelessWidget {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: session.materials
+              children: session.materialsByKind
                   .map(
-                    (material) => _PillBadge(
-                      text: '${material.title} · ${_humanizeLabel(material.kind)}${material.runtime != null ? ' · Live' : ''}',
-                      color: material.runtime != null
-                          ? theme.colorScheme.tertiaryContainer
-                          : theme.colorScheme.primary.withValues(alpha: 0.12),
-                      textColor: material.runtime != null
-                          ? theme.colorScheme.onTertiaryContainer
-                          : theme.colorScheme.primary,
+                    (group) => _PillBadge(
+                      text: '${_humanizeLabel(group.kind)} · ${group.materialCount}',
+                      color: _materialKindBackgroundColor(theme, group.kind),
+                      textColor: _materialKindForegroundColor(theme, group.kind),
                     ),
                   )
                   .toList(growable: false),
@@ -702,11 +1056,11 @@ class _LearnerWorkspaceView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
-          eyebrow: nextSession == null ? 'Progress' : 'Active session',
+          eyebrow: nextSession == null ? 'Progress' : 'Continue',
           title: nextSession?.title ?? 'No active session right now',
           description: journey == null
-              ? 'Work through the assigned sessions in order and start live materials when they appear here.'
-              : 'Stay inside the assigned journey, follow the session order, and launch the live material when the next step is ready.',
+              ? 'Move through the assigned sessions in order. Lesson notes, practice, and checks appear as each step becomes active.'
+              : 'Continue with the next assigned step, keep the journey in view, and use the right material kind for the job.',
           chips: [
             _StatChip(
               label: 'Pending',
@@ -798,60 +1152,84 @@ class _LearnerWorkspaceView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Start the next session', style: theme.textTheme.headlineSmall),
+                Text('Continue', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
                 Text(
-                  'Follow the steps in order. Live materials can be launched directly here.',
+                  'Lesson notes, practice, and checks stay separate here so the next step is obvious.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 18),
-                ...nextSession.materials.asMap().entries.map((entry) {
-                  final material = entry.value;
-                  final executable = material.runtime?.executable ?? false;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _PillBadge(
+                      text: _humanizeLabel(nextSession.dominantKind),
+                      color: _materialKindBackgroundColor(
+                        theme,
+                        nextSession.dominantKind,
+                      ),
+                      textColor: _materialKindForegroundColor(
+                        theme,
+                        nextSession.dominantKind,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Step ${entry.key + 1}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
+                    if (nextSession.requiresAdultSupport)
+                      _PillBadge(
+                        text: 'Adult support first',
+                        color: theme.colorScheme.tertiaryContainer,
+                        textColor: theme.colorScheme.onTertiaryContainer,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...nextSession.materialsByKind
+                    .where((group) => group.audience == 'learner')
+                    .map(
+                      (group) => _SessionMaterialGroupPanel(
+                        group: group,
+                        session: nextSession,
+                        viewerCanReadLibrary: viewerCanReadLibrary,
+                        showDocumentBodies: true,
+                        onOpenLibraryRoute: onOpenLibraryRoute,
+                        onStartActivity: onStartActivity,
+                      ),
+                    ),
+                if (nextSession.materialsByKind.any(
+                  (group) => group.audience == 'adult',
+                )) ...[
+                  const SizedBox(height: 4),
+                  if (viewer != null && viewer!.isLearner)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        'Ask your parent or coach to guide the teaching note before or alongside this step.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    )
+                  else
+                    ...nextSession.materialsByKind
+                        .where((group) => group.audience == 'adult')
+                        .map(
+                          (group) => _SessionMaterialGroupPanel(
+                            group: group,
+                            session: nextSession,
+                            viewerCanReadLibrary: viewerCanReadLibrary,
+                            showDocumentBodies: true,
+                            onOpenLibraryRoute: onOpenLibraryRoute,
+                            onStartActivity: onStartActivity,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(material.title, style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${_humanizeLabel(material.kind)} · ${material.estimatedMinutes} min',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        if (executable)
-                          FilledButton.tonalIcon(
-                            onPressed: () => onStartActivity(nextSession, material),
-                            icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
-                            label: const Text('Start live activity'),
-                          )
-                        else
-                          Text(
-                            'This step is not executable yet. Complete it with the parent or use the supporting note for this session.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                }),
+                ],
               ],
             ),
           ),
@@ -861,10 +1239,10 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Journey sequence', style: theme.textTheme.headlineSmall),
+              Text('Journey', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Work moves forward session by session. Completed sessions stay visible so progress is obvious.',
+                'Work moves forward session by session. The dominant kind tells you whether the step is teaching, practice, or checking.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -892,7 +1270,91 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Skill progress', style: theme.textTheme.headlineSmall),
+              Text('Practice', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                'These are the learner-facing practice and check materials already in the assigned route.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 18),
+              if (practiceSessions.isEmpty)
+                Text(
+                  'No practice items are available yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                ...practiceSessions.map((session) {
+                  final practiceGroups = session.materialsByKind
+                      .where(
+                        (group) =>
+                            group.kind == 'worksheet' ||
+                            group.kind == 'drill' ||
+                            group.kind == 'quick_check',
+                      )
+                      .toList(growable: false);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface.withValues(alpha: 0.62),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(session.title, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _PillBadge(
+                              text: _humanizeLabel(session.dominantKind),
+                              color: _materialKindBackgroundColor(
+                                theme,
+                                session.dominantKind,
+                              ),
+                              textColor: _materialKindForegroundColor(
+                                theme,
+                                session.dominantKind,
+                              ),
+                            ),
+                            _PillBadge(
+                              text: 'Session ${session.sequenceNumber ?? '?'}',
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              textColor: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        ...practiceGroups.map(
+                          (group) => _SessionMaterialGroupPanel(
+                            group: group,
+                            session: session,
+                            viewerCanReadLibrary: viewerCanReadLibrary,
+                            showDocumentBodies: false,
+                            onOpenLibraryRoute: onOpenLibraryRoute,
+                            onStartActivity: onStartActivity,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Progress', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 'Current status across the skills attached to this learner.',
@@ -978,8 +1440,6 @@ class _LibraryWorkspaceView extends StatelessWidget {
     required this.documents,
     required this.activeDocument,
     required this.libraryDocumentBusy,
-    required this.learners,
-    required this.selectedLearnerId,
     required this.viewerCanManage,
     required this.onCreateAssignment,
     required this.onOpenLibraryRoute,
@@ -989,19 +1449,14 @@ class _LibraryWorkspaceView extends StatelessWidget {
   final LibraryDocumentsPayload? documents;
   final LibraryDocumentData? activeDocument;
   final bool libraryDocumentBusy;
-  final List<LearnerDashboard> learners;
-  final String? selectedLearnerId;
   final bool viewerCanManage;
-  final ValueChanged<String> onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId)
+  onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedLearner = learners
-        .where((learner) => learner.learnerId == selectedLearnerId)
-        .cast<LearnerDashboard?>()
-        .firstWhere((_) => true, orElse: () => null);
     final routeBySourcePath = {
       for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
         document.sourcePath: document.routePath,
@@ -1024,22 +1479,10 @@ class _LibraryWorkspaceView extends StatelessWidget {
             Text('Pathway browser', style: theme.textTheme.headlineSmall),
             const SizedBox(height: 6),
             Text(
-              'Browse the parent-facing pathway contract, inspect the ordered playlist shape, and assign the right entry point for the selected learner.',
+              'Browse the backend-owned pathway contract, inspect delivery shape by canonical material kind, and assign the right playlist directly from each learner target.',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 14),
-            _PillBadge(
-              text: selectedLearner == null
-                  ? 'Select a learner in Household to assign from here'
-                  : 'Assignment target: ${selectedLearner.displayName}',
-              color: selectedLearner == null
-                  ? theme.colorScheme.surfaceContainerHighest
-                  : theme.colorScheme.secondaryContainer,
-              textColor: selectedLearner == null
-                  ? theme.colorScheme.onSurfaceVariant
-                  : theme.colorScheme.onSecondaryContainer,
             ),
             const SizedBox(height: 18),
             if (libraryWorkspace.pathways.isEmpty)
@@ -1148,9 +1591,13 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                         ),
                                       ),
                                       _PillBadge(
-                                        text: '${playlist.liveMaterialCount} live',
-                                        color: theme.colorScheme.tertiaryContainer,
-                                        textColor: theme.colorScheme.onTertiaryContainer,
+                                        text: _humanizeLabel(playlist.deliveryShape.requiresAdultSupport ? 'adult_guided' : 'learner_ready'),
+                                        color: playlist.deliveryShape.requiresAdultSupport
+                                            ? theme.colorScheme.tertiaryContainer
+                                            : theme.colorScheme.secondaryContainer,
+                                        textColor: playlist.deliveryShape.requiresAdultSupport
+                                            ? theme.colorScheme.onTertiaryContainer
+                                            : theme.colorScheme.onSecondaryContainer,
                                       ),
                                     ],
                                   ),
@@ -1174,8 +1621,134 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                         color: theme.colorScheme.secondaryContainer,
                                         textColor: theme.colorScheme.onSecondaryContainer,
                                       ),
+                                      if (playlist.deliveryShape.lessonNoteCount > 0)
+                                        _PillBadge(
+                                          text: '${playlist.deliveryShape.lessonNoteCount} lesson notes',
+                                          color: _materialKindBackgroundColor(theme, 'lesson_note'),
+                                          textColor: _materialKindForegroundColor(theme, 'lesson_note'),
+                                        ),
+                                      if (playlist.deliveryShape.teachingNoteCount > 0)
+                                        _PillBadge(
+                                          text: '${playlist.deliveryShape.teachingNoteCount} teaching notes',
+                                          color: _materialKindBackgroundColor(theme, 'teaching_note'),
+                                          textColor: _materialKindForegroundColor(theme, 'teaching_note'),
+                                        ),
+                                      if (playlist.deliveryShape.worksheetCount > 0)
+                                        _PillBadge(
+                                          text: '${playlist.deliveryShape.worksheetCount} worksheets',
+                                          color: _materialKindBackgroundColor(theme, 'worksheet'),
+                                          textColor: _materialKindForegroundColor(theme, 'worksheet'),
+                                        ),
+                                      if (playlist.deliveryShape.drillCount > 0)
+                                        _PillBadge(
+                                          text: '${playlist.deliveryShape.drillCount} drills',
+                                          color: _materialKindBackgroundColor(theme, 'drill'),
+                                          textColor: _materialKindForegroundColor(theme, 'drill'),
+                                        ),
+                                      if (playlist.deliveryShape.quickCheckCount > 0)
+                                        _PillBadge(
+                                          text: '${playlist.deliveryShape.quickCheckCount} quick checks',
+                                          color: _materialKindBackgroundColor(theme, 'quick_check'),
+                                          textColor: _materialKindForegroundColor(theme, 'quick_check'),
+                                        ),
+                                      _PillBadge(
+                                        text: '${playlist.deliveryShape.estimatedTotalMinutes} min total',
+                                        color: theme.colorScheme.surfaceContainerHighest,
+                                        textColor: theme.colorScheme.onSurfaceVariant,
+                                      ),
                                     ],
                                   ),
+                                  if (playlist.assignmentTargets.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    Text(
+                                      'Assignment targets',
+                                      style: theme.textTheme.titleSmall,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      children: playlist.assignmentTargets.map((target) {
+                                        return ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            minWidth: 220,
+                                            maxWidth: 320,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(14),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            target.displayName,
+                                                            style: theme.textTheme.titleSmall,
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            'Age ${target.currentAge} · ${target.currentLevel}',
+                                                            style: theme.textTheme.bodySmall?.copyWith(
+                                                              color: theme.colorScheme.onSurfaceVariant,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    if (target.recommended)
+                                                      _PillBadge(
+                                                        text: 'Recommended',
+                                                        color: theme.colorScheme.secondaryContainer,
+                                                        textColor: theme.colorScheme.onSecondaryContainer,
+                                                      ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                  target.statusLabel,
+                                                  style: theme.textTheme.bodyMedium,
+                                                ),
+                                                if (target.activeAssignmentTitle != null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Current: ${target.activeAssignmentTitle}',
+                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                      color: theme.colorScheme.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (viewerCanManage) ...[
+                                                  const SizedBox(height: 12),
+                                                  FilledButton.tonal(
+                                                    onPressed: target.assignedHere
+                                                        ? null
+                                                        : () => onCreateAssignment(
+                                                              target.learnerId,
+                                                              playlist.playlistId,
+                                                            ),
+                                                    child: Text(
+                                                      target.assignedHere
+                                                          ? 'Already assigned here'
+                                                          : 'Assign to ${target.displayName}',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(growable: false),
+                                    ),
+                                  ],
                                   const SizedBox(height: 12),
                                   ...playlist.sessions.map((session) {
                                     return Padding(
@@ -1197,19 +1770,37 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                             Wrap(
                                               spacing: 8,
                                               runSpacing: 8,
-                                              children: session.materials
-                                                  .map(
-                                                    (material) => _PillBadge(
-                                                      text: '${material.title} · ${_humanizeLabel(material.kind)}${material.executable ? ' · Live' : ''}',
-                                                      color: material.executable
-                                                          ? theme.colorScheme.tertiaryContainer
-                                                          : theme.colorScheme.primary.withValues(alpha: 0.12),
-                                                      textColor: material.executable
-                                                          ? theme.colorScheme.onTertiaryContainer
-                                                          : theme.colorScheme.primary,
-                                                    ),
-                                                  )
-                                                  .toList(growable: false),
+                                              children: [
+                                                _PillBadge(
+                                                  text: _humanizeLabel(session.dominantKind),
+                                                  color: _materialKindBackgroundColor(
+                                                    theme,
+                                                    session.dominantKind,
+                                                  ),
+                                                  textColor: _materialKindForegroundColor(
+                                                    theme,
+                                                    session.dominantKind,
+                                                  ),
+                                                ),
+                                                _PillBadge(
+                                                  text: '${session.estimatedMinutes} min',
+                                                  color: theme.colorScheme.surfaceContainerHighest,
+                                                  textColor: theme.colorScheme.onSurfaceVariant,
+                                                ),
+                                                if (session.requiresAdultSupport)
+                                                  _PillBadge(
+                                                    text: 'Adult support',
+                                                    color: theme.colorScheme.tertiaryContainer,
+                                                    textColor: theme.colorScheme.onTertiaryContainer,
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 10),
+                                            ...session.materialsByKind.map(
+                                              (group) => _WorkspaceMaterialGroupPanel(
+                                                group: group,
+                                                onOpenLibraryRoute: onOpenLibraryRoute,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -1225,15 +1816,11 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                           onPressed: () => onOpenLibraryRoute(playlist.routePath!),
                                           child: const Text('Open playlist'),
                                         ),
-                                      if (viewerCanManage)
-                                        FilledButton.tonal(
-                                          onPressed: selectedLearner == null
-                                              ? null
-                                              : () => onCreateAssignment(playlist.playlistId),
-                                          child: Text(
-                                            selectedLearner == null
-                                                ? 'Select learner to assign'
-                                                : 'Assign to ${selectedLearner.displayName}',
+                                      if (playlist.assignmentTargets.isEmpty)
+                                        Text(
+                                          'No learner targets are available for this playlist yet.',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: theme.colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                     ],
@@ -1274,7 +1861,7 @@ class _LibraryWorkspaceView extends StatelessWidget {
               eyebrow: 'Library',
               title: 'Pathway planning workspace',
               description:
-                  'Browse the backend-derived pathway catalog, inspect ordered playlists and materials, then read the authored markdown without leaving the app.',
+                  'Browse the backend-derived pathway catalog, inspect delivery shape and assignment targets, then read the authored markdown without leaving the app.',
               chips: [
                 _StatChip(
                   label: 'Pathways',

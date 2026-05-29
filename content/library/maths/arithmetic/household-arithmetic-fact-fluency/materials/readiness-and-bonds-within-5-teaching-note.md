@@ -12,6 +12,8 @@ estimated_minutes: 10
 
 # Readiness And Bonds Within 5 Teaching Note
 
+Adult guide: let the learner look at the lesson note first, then use these prompts with counters, buttons, or fingers.
+
 Use counters, buttons, or fingers.
 
 1. Show a group of up to 5 objects for two seconds, then hide it and ask, `How many did you see?`

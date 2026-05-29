@@ -11,6 +11,7 @@ recommended_age_max: 10
 sessions:
   - title: Teach strategy for 6s to 9s and inverse pairs
     material_ids:
+      - multiplication_facts_through_10_lesson_note
       - multiplication_fact_fluency_teaching_note
     skill_ids:
       - mixed_multiplication_facts_through_10x10

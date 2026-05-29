@@ -23,14 +23,39 @@ use crate::domain::{
     LearnerSummary, LibraryDocumentPayload, LibraryDocumentSummary,
     LibraryReloadResponse, LibraryWorkspaceResponse, MaterialWorkspaceSummary,
     PathwayEntryPointSummary, PathwayWorkspaceSummary, PlaylistSessionWorkspaceSummary,
-    PlaylistWorkspaceSummary, RecordSessionRequest, RecordSessionResponse,
+    PlaylistWorkspaceSummary, PlaylistAssignmentTargetSummary, PlaylistDeliveryShapeSummary,
+    RecordSessionRequest, RecordSessionResponse,
     ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail,
+    SessionMaterialKindGroupSummary,
     SessionMaterialRow, SessionMaterialRuntimeSummary, SessionMaterialSummary,
     SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
     StageProgress, TeamRow, TeamSummary, ViewerSessionResponse,
+    WorkspaceMaterialKindGroupSummary,
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+
+const LESSON_NOTE_KIND: &str = "lesson_note";
+const TEACHING_NOTE_KIND: &str = "teaching_note";
+const WORKSHEET_KIND: &str = "worksheet";
+const DRILL_KIND: &str = "drill";
+const QUICK_CHECK_KIND: &str = "quick_check";
+const AUDIENCE_ADULT: &str = "adult";
+const AUDIENCE_LEARNER: &str = "learner";
+const MATERIAL_KIND_ORDER: [&str; 5] = [
+    LESSON_NOTE_KIND,
+    TEACHING_NOTE_KIND,
+    WORKSHEET_KIND,
+    DRILL_KIND,
+    QUICK_CHECK_KIND,
+];
+const DOMINANT_KIND_ORDER: [&str; 5] = [
+    QUICK_CHECK_KIND,
+    DRILL_KIND,
+    WORKSHEET_KIND,
+    LESSON_NOTE_KIND,
+    TEACHING_NOTE_KIND,
+];
 
 #[derive(Clone)]
 pub struct AppState {
@@ -78,6 +103,151 @@ fn ensure_viewer_can_access_learner(
         viewer.username,
         learner_id
     )
+}
+
+fn material_audience(kind: &str) -> &'static str {
+    if kind == TEACHING_NOTE_KIND {
+        AUDIENCE_ADULT
+    } else {
+        AUDIENCE_LEARNER
+    }
+}
+
+fn dominant_kind_for_materials<'a>(kinds: impl IntoIterator<Item = &'a str>) -> String {
+    let kind_set: BTreeSet<&str> = kinds.into_iter().collect();
+    for kind in DOMINANT_KIND_ORDER {
+        if kind_set.contains(kind) {
+            return kind.to_string();
+        }
+    }
+    kind_set
+        .iter()
+        .next()
+        .copied()
+        .unwrap_or(LESSON_NOTE_KIND)
+        .to_string()
+}
+
+fn build_workspace_material_kind_groups(
+    materials: &[MaterialWorkspaceSummary],
+) -> Vec<WorkspaceMaterialKindGroupSummary> {
+    let mut groups = Vec::new();
+    for kind in MATERIAL_KIND_ORDER {
+        let grouped_materials = materials
+            .iter()
+            .filter(|material| material.kind == kind)
+            .cloned()
+            .collect::<Vec<_>>();
+        if grouped_materials.is_empty() {
+            continue;
+        }
+        groups.push(WorkspaceMaterialKindGroupSummary {
+            kind: kind.to_string(),
+            audience: material_audience(kind).to_string(),
+            material_count: grouped_materials.len(),
+            materials: grouped_materials,
+        });
+    }
+    groups
+}
+
+fn build_session_material_kind_groups(
+    materials: &[SessionMaterialSummary],
+) -> Vec<SessionMaterialKindGroupSummary> {
+    let mut groups = Vec::new();
+    for kind in MATERIAL_KIND_ORDER {
+        let grouped_materials = materials
+            .iter()
+            .filter(|material| material.kind == kind)
+            .cloned()
+            .collect::<Vec<_>>();
+        if grouped_materials.is_empty() {
+            continue;
+        }
+        groups.push(SessionMaterialKindGroupSummary {
+            kind: kind.to_string(),
+            audience: material_audience(kind).to_string(),
+            material_count: grouped_materials.len(),
+            materials: grouped_materials,
+        });
+    }
+    groups
+}
+
+fn build_playlist_delivery_shape(
+    sessions: &[PlaylistSessionWorkspaceSummary],
+) -> PlaylistDeliveryShapeSummary {
+    let mut lesson_note_count = 0usize;
+    let mut teaching_note_count = 0usize;
+    let mut worksheet_count = 0usize;
+    let mut drill_count = 0usize;
+    let mut quick_check_count = 0usize;
+
+    for session in sessions {
+        for material in &session.materials {
+            match material.kind.as_str() {
+                LESSON_NOTE_KIND => lesson_note_count += 1,
+                TEACHING_NOTE_KIND => teaching_note_count += 1,
+                WORKSHEET_KIND => worksheet_count += 1,
+                DRILL_KIND => drill_count += 1,
+                QUICK_CHECK_KIND => quick_check_count += 1,
+                _ => {}
+            }
+        }
+    }
+
+    PlaylistDeliveryShapeSummary {
+        estimated_total_minutes: sessions.iter().map(|session| session.estimated_minutes).sum(),
+        lesson_note_count,
+        teaching_note_count,
+        worksheet_count,
+        drill_count,
+        quick_check_count,
+        requires_adult_support: sessions.iter().any(|session| session.requires_adult_support),
+    }
+}
+
+fn build_playlist_assignment_targets(
+    playlist: &catalog::Playlist,
+    learners: &[LearnerRow],
+    active_assignments: &BTreeMap<String, AssignmentSummary>,
+) -> Vec<PlaylistAssignmentTargetSummary> {
+    let recommended_age = i32::from(playlist.recommended_age);
+    learners
+        .iter()
+        .map(|learner| {
+            let current_age = calculate_age(learner.date_of_birth);
+            let active_assignment = active_assignments.get(&learner.learner_id);
+            let assigned_here = active_assignment
+                .map(|assignment| assignment.playlist_id == playlist.playlist_id)
+                .unwrap_or(false);
+            let (recommended, status_label) = if assigned_here {
+                (true, "Assigned here now".to_string())
+            } else if let Some(assignment) = active_assignment {
+                (false, format!("Currently on {}", assignment.title))
+            } else if current_age < recommended_age - 1 {
+                (
+                    false,
+                    format!("Usually later than the target age {}", playlist.recommended_age),
+                )
+            } else if current_age > recommended_age + 2 {
+                (true, "Older than target; use as catch-up or review".to_string())
+            } else {
+                (true, "Recommended now".to_string())
+            };
+
+            PlaylistAssignmentTargetSummary {
+                learner_id: learner.learner_id.clone(),
+                display_name: learner.display_name.clone(),
+                current_age,
+                current_level: learner.current_level.clone(),
+                recommended,
+                status_label,
+                assigned_here,
+                active_assignment_title: active_assignment.map(|assignment| assignment.title.clone()),
+            }
+        })
+        .collect()
 }
 
 async fn resolve_viewer_member(
@@ -271,7 +441,15 @@ pub async fn fetch_library_workspace(
 
     let library = state.library.read().await.clone();
     let documents = state.library_documents.read().await.clone();
-    let pathways = build_library_workspace_pathways(&library, &documents);
+    let learners = query_as::<_, LearnerRow>(
+        "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
+         from learner_profile
+         order by display_name",
+    )
+    .fetch_all(&state.pool)
+    .await?;
+    let active_assignments = fetch_active_assignments_for_learners(&state.pool, &learners).await?;
+    let pathways = build_library_workspace_pathways(&library, &documents, &learners, &active_assignments);
     let featured_route_path = pathways.iter().find_map(|pathway| {
         pathway.route_path.clone().or_else(|| {
             pathway
@@ -893,6 +1071,8 @@ fn library_document_payload(document: &LibraryDocument) -> LibraryDocumentPayloa
 fn build_library_workspace_pathways(
     library: &LibraryBundle,
     documents: &[LibraryDocument],
+    learners: &[LearnerRow],
+    active_assignments: &BTreeMap<String, AssignmentSummary>,
 ) -> Vec<PathwayWorkspaceSummary> {
     let mut pathways = Vec::new();
 
@@ -927,6 +1107,7 @@ fn build_library_workspace_pathways(
                         material_id: material.id.clone(),
                         title: material.title.clone(),
                         kind: material.kind.clone(),
+                        audience: material_audience(&material.kind).to_string(),
                         estimated_minutes: material.estimated_minutes,
                         skill_ids: material.skill_ids.clone(),
                         executable,
@@ -934,17 +1115,31 @@ fn build_library_workspace_pathways(
                     });
                 }
 
+                let dominant_kind =
+                    dominant_kind_for_materials(materials.iter().map(|material| material.kind.as_str()));
+                let requires_adult_support = materials
+                    .iter()
+                    .any(|material| material.audience == AUDIENCE_ADULT);
+                let materials_by_kind = build_workspace_material_kind_groups(&materials);
+
                 sessions.push(PlaylistSessionWorkspaceSummary {
                     session_index: index + 1,
                     day_offset: session.day_offset,
                     title: session.title.clone(),
                     skill_ids: session.skill_ids.clone(),
+                    dominant_kind,
+                    requires_adult_support,
                     material_count: materials.len(),
                     estimated_minutes,
                     live_material_count: session_live_material_count,
+                    materials_by_kind,
                     materials,
                 });
             }
+
+            let delivery_shape = build_playlist_delivery_shape(&sessions);
+            let assignment_targets =
+                build_playlist_assignment_targets(playlist, learners, active_assignments);
 
             playlists.push(PlaylistWorkspaceSummary {
                 playlist_id: playlist.playlist_id.clone(),
@@ -964,6 +1159,8 @@ fn build_library_workspace_pathways(
                 skill_count: playlist.skill_ids.len(),
                 material_count,
                 live_material_count,
+                delivery_shape,
+                assignment_targets,
                 route_path: document_route_path_for_kind(documents, "playlist", &playlist.playlist_id),
                 sessions,
             });
@@ -1384,6 +1581,37 @@ async fn fetch_active_assignment_for_learner(pool: &PgPool, learner_id: &str) ->
     Ok(row.map(assignment_row_to_summary))
 }
 
+async fn fetch_active_assignments_for_learners(
+    pool: &PgPool,
+    learners: &[LearnerRow],
+) -> anyhow::Result<BTreeMap<String, AssignmentSummary>> {
+    if learners.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+
+    let learner_ids = learners
+        .iter()
+        .map(|learner| learner.learner_id.clone())
+        .collect::<Vec<_>>();
+    let rows = query_as::<_, AssignmentRow>(
+        "select distinct on (learner_id)
+            assignment_id, learner_id, playlist_id, title, start_date, end_date, status, total_sessions, completed_sessions
+         from assignment
+         where learner_id = any($1) and status in ('active', 'scheduled', 'completed')
+         order by learner_id, case status when 'active' then 0 when 'scheduled' then 1 else 2 end, start_date desc",
+    )
+    .bind(&learner_ids)
+    .fetch_all(pool)
+    .await?;
+
+    let mut assignments = BTreeMap::new();
+    for row in rows {
+        let learner_id = row.learner_id.clone();
+        assignments.insert(learner_id, assignment_row_to_summary(row));
+    }
+    Ok(assignments)
+}
+
 async fn fetch_next_session_for_assignment(pool: &PgPool, assignment_id: &str) -> anyhow::Result<Option<SessionSummary>> {
     let row = query_as::<_, SessionRow>(
         "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
@@ -1442,6 +1670,13 @@ async fn fetch_sessions(
         .fetch_all(pool)
         .await?;
         let latest_evidence = fetch_latest_evidence_for_session(pool, &row.session_id).await?;
+        let materials = build_session_material_summaries(library, documents, material_rows);
+        let dominant_kind =
+            dominant_kind_for_materials(materials.iter().map(|material| material.kind.as_str()));
+        let requires_adult_support = materials
+            .iter()
+            .any(|material| material.audience == AUDIENCE_ADULT);
+        let materials_by_kind = build_session_material_kind_groups(&materials);
         sessions.push(SessionDetail {
             session_id: row.session_id,
             title: row.title,
@@ -1449,8 +1684,11 @@ async fn fetch_sessions(
             status: row.status,
             day_offset: row.day_offset,
             sequence_number: ordered_sessions.then_some(index + 1),
+            dominant_kind,
+            requires_adult_support,
             notes: row.notes,
-            materials: build_session_material_summaries(library, documents, material_rows),
+            materials_by_kind,
+            materials,
             latest_evidence,
         });
     }
@@ -1500,10 +1738,14 @@ fn build_session_material_summaries(
             kind: material
                 .map(|item| item.kind.clone())
                 .unwrap_or_else(|| "material".to_string()),
+            audience: material
+                .map(|item| material_audience(&item.kind).to_string())
+                .unwrap_or_else(|| AUDIENCE_LEARNER.to_string()),
             estimated_minutes: material.map(|item| item.estimated_minutes).unwrap_or(0),
             skill_ids,
             status,
             document_route_path: document_route_path_for_kind(documents, "material", &material_id),
+            document_body: material.map(|item| item.body.clone()),
             runtime: material.and_then(|item| {
                 item.runtime.as_ref().map(|runtime| SessionMaterialRuntimeSummary {
                     runtime_id: runtime::build_runtime_id(&runtime.engine_id, &runtime.template_id),

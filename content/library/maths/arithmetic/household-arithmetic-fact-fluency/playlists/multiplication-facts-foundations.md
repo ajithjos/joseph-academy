@@ -11,6 +11,7 @@ recommended_age_max: 10
 sessions:
   - title: Teach equal groups, arrays, and inverse pairs
     material_ids:
+      - multiplication_facts_foundations_lesson_note
       - multiplication_fact_fluency_teaching_note
     skill_ids:
       - multiply_by_2_5_10

@@ -103,8 +103,33 @@ pub struct PlaylistWorkspaceSummary {
     pub skill_count: usize,
     pub material_count: usize,
     pub live_material_count: usize,
+    pub delivery_shape: PlaylistDeliveryShapeSummary,
+    pub assignment_targets: Vec<PlaylistAssignmentTargetSummary>,
     pub route_path: Option<String>,
     pub sessions: Vec<PlaylistSessionWorkspaceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlaylistDeliveryShapeSummary {
+    pub estimated_total_minutes: u32,
+    pub lesson_note_count: usize,
+    pub teaching_note_count: usize,
+    pub worksheet_count: usize,
+    pub drill_count: usize,
+    pub quick_check_count: usize,
+    pub requires_adult_support: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlaylistAssignmentTargetSummary {
+    pub learner_id: String,
+    pub display_name: String,
+    pub current_age: i32,
+    pub current_level: String,
+    pub recommended: bool,
+    pub status_label: String,
+    pub assigned_here: bool,
+    pub active_assignment_title: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -113,9 +138,12 @@ pub struct PlaylistSessionWorkspaceSummary {
     pub day_offset: i32,
     pub title: String,
     pub skill_ids: Vec<String>,
+    pub dominant_kind: String,
+    pub requires_adult_support: bool,
     pub material_count: usize,
     pub estimated_minutes: u32,
     pub live_material_count: usize,
+    pub materials_by_kind: Vec<WorkspaceMaterialKindGroupSummary>,
     pub materials: Vec<MaterialWorkspaceSummary>,
 }
 
@@ -124,10 +152,19 @@ pub struct MaterialWorkspaceSummary {
     pub material_id: String,
     pub title: String,
     pub kind: String,
+    pub audience: String,
     pub estimated_minutes: u16,
     pub skill_ids: Vec<String>,
     pub executable: bool,
     pub route_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkspaceMaterialKindGroupSummary {
+    pub kind: String,
+    pub audience: String,
+    pub material_count: usize,
+    pub materials: Vec<MaterialWorkspaceSummary>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -263,7 +300,10 @@ pub struct SessionDetail {
     pub status: String,
     pub day_offset: i32,
     pub sequence_number: Option<usize>,
+    pub dominant_kind: String,
+    pub requires_adult_support: bool,
     pub notes: String,
+    pub materials_by_kind: Vec<SessionMaterialKindGroupSummary>,
     pub materials: Vec<SessionMaterialSummary>,
     pub latest_evidence: Option<EvidenceSummary>,
 }
@@ -274,11 +314,21 @@ pub struct SessionMaterialSummary {
     pub title: String,
     pub material_id: String,
     pub kind: String,
+    pub audience: String,
     pub estimated_minutes: u16,
     pub skill_ids: Vec<String>,
     pub status: String,
     pub document_route_path: Option<String>,
+    pub document_body: Option<String>,
     pub runtime: Option<SessionMaterialRuntimeSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SessionMaterialKindGroupSummary {
+    pub kind: String,
+    pub audience: String,
+    pub material_count: usize,
+    pub materials: Vec<SessionMaterialSummary>,
 }
 
 #[derive(Debug, Clone, Serialize)]

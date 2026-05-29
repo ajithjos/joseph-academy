@@ -17,6 +17,8 @@ estimated_minutes: 12
 
 # Addition And Subtraction Fact Fluency Teaching Note
 
+Adult guide: keep this beside the learner lesson note so the learner sees the fact family while you guide the prompts.
+
 Use known anchors and inverse facts.
 
 1. Teach pairs first, not isolated facts.

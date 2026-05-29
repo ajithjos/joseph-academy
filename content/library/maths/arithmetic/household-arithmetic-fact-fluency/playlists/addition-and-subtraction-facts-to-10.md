@@ -12,6 +12,7 @@ recommended_age_max: 8
 sessions:
   - title: Teach bonds and inverse pairs to 10
     material_ids:
+      - addition_and_subtraction_facts_to_10_lesson_note
       - addition_and_subtraction_fact_fluency_teaching_note
     skill_ids:
       - number_bonds_within_10

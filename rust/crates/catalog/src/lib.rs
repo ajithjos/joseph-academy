@@ -7,6 +7,23 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
+const LESSON_NOTE_KIND: &str = "lesson_note";
+const TEACHING_NOTE_KIND: &str = "teaching_note";
+const WORKSHEET_KIND: &str = "worksheet";
+const DRILL_KIND: &str = "drill";
+const QUICK_CHECK_KIND: &str = "quick_check";
+
+fn is_supported_material_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        LESSON_NOTE_KIND | TEACHING_NOTE_KIND | WORKSHEET_KIND | DRILL_KIND | QUICK_CHECK_KIND
+    )
+}
+
+fn runtime_allowed_for_kind(kind: &str) -> bool {
+    matches!(kind, DRILL_KIND | QUICK_CHECK_KIND)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubjectCatalog {
     pub subjects: Vec<Subject>,
@@ -1326,6 +1343,8 @@ fn validate_catalog(
         let playlist_skill_set: BTreeSet<&str> = playlist.skill_ids.iter().map(|skill_id| skill_id.as_str()).collect();
         let playlist_stage_set: BTreeSet<&str> = playlist.stage_ids.iter().map(|stage_id| stage_id.as_str()).collect();
         let mut covered_skills = BTreeSet::new();
+        let mut introduced_lesson_skills = BTreeSet::new();
+        let mut playlist_material_kinds = BTreeSet::new();
         let mut seen_day_offsets = BTreeSet::new();
         for session in &playlist.session_pattern.sessions {
             if session.day_offset < 0 {
@@ -1354,6 +1373,10 @@ fn validate_catalog(
             }
 
             let mut session_supported_skills = BTreeSet::new();
+            let mut session_kinds = BTreeSet::new();
+            let mut session_lesson_skills = BTreeSet::new();
+            let mut session_practice_skills = BTreeSet::new();
+            let mut session_prior_instruction_skills = BTreeSet::new();
             for skill_id in &session.skill_ids {
                 ensure_contains(
                     &skill_ids,
@@ -1393,6 +1416,8 @@ fn validate_catalog(
                     "session material",
                     &playlist.playlist_id,
                 )?;
+                session_kinds.insert(session_material.kind.as_str());
+                playlist_material_kinds.insert(session_material.kind.as_str());
                 if session_material.subject_id != playlist.subject_id
                     || session_material.area_id != playlist.area_id
                 {
@@ -1420,6 +1445,22 @@ fn validate_catalog(
                 for material_skill_id in &session_material.skill_ids {
                     if session.skill_ids.contains(material_skill_id) {
                         session_supported_skills.insert(material_skill_id.as_str());
+                        match session_material.kind.as_str() {
+                            LESSON_NOTE_KIND => {
+                                session_lesson_skills.insert(material_skill_id.as_str());
+                            }
+                            WORKSHEET_KIND => {
+                                session_practice_skills.insert(material_skill_id.as_str());
+                            }
+                            DRILL_KIND => {
+                                session_practice_skills.insert(material_skill_id.as_str());
+                                session_prior_instruction_skills.insert(material_skill_id.as_str());
+                            }
+                            QUICK_CHECK_KIND => {
+                                session_prior_instruction_skills.insert(material_skill_id.as_str());
+                            }
+                            _ => {}
+                        }
                         matched_skill = true;
                     }
                 }
@@ -1432,6 +1473,48 @@ fn validate_catalog(
                     );
                 }
             }
+
+            if session_kinds.len() == 1 && session_kinds.contains(TEACHING_NOTE_KIND) {
+                bail!(
+                    "playlist '{}' session '{}' is adult-only; scheduled learner sessions need at least one learner-facing material",
+                    playlist.playlist_id,
+                    session.title
+                );
+            }
+
+            let mut instruction_available_now = introduced_lesson_skills.clone();
+            instruction_available_now.extend(session_lesson_skills.iter().copied());
+            for skill_id in &session_practice_skills {
+                if !instruction_available_now.contains(skill_id) {
+                    bail!(
+                        "playlist '{}' session '{}' practices skill '{}' before a lesson_note teaches it",
+                        playlist.playlist_id,
+                        session.title,
+                        skill_id
+                    );
+                }
+            }
+            for skill_id in &session_prior_instruction_skills {
+                if !introduced_lesson_skills.contains(skill_id) {
+                    bail!(
+                        "playlist '{}' session '{}' uses '{}' before a prior lesson_note introduces skill '{}'",
+                        playlist.playlist_id,
+                        session.title,
+                        session
+                            .material_ids
+                            .iter()
+                            .find_map(|material_id| material_map.get(material_id.as_str()))
+                            .filter(|material| {
+                                matches!(material.kind.as_str(), DRILL_KIND | QUICK_CHECK_KIND)
+                                    && material.skill_ids.iter().any(|item| item == skill_id)
+                            })
+                            .map(|material| material.kind.as_str())
+                            .unwrap_or("material"),
+                        skill_id
+                    );
+                }
+            }
+            introduced_lesson_skills.extend(session_lesson_skills.iter().copied());
 
             for skill_id in &session.skill_ids {
                 if !session_supported_skills.contains(skill_id.as_str()) {
@@ -1454,6 +1537,27 @@ fn validate_catalog(
                 );
             }
         }
+
+        if !playlist_material_kinds.contains(LESSON_NOTE_KIND) {
+            bail!(
+                "playlist '{}' is missing a lesson_note material",
+                playlist.playlist_id
+            );
+        }
+        if !(playlist_material_kinds.contains(WORKSHEET_KIND)
+            || playlist_material_kinds.contains(DRILL_KIND))
+        {
+            bail!(
+                "playlist '{}' is missing learner practice material; add a worksheet or drill",
+                playlist.playlist_id
+            );
+        }
+        if !playlist_material_kinds.contains(QUICK_CHECK_KIND) {
+            bail!(
+                "playlist '{}' is missing a quick_check material",
+                playlist.playlist_id
+            );
+        }
     }
 
     for material in materials {
@@ -1475,6 +1579,20 @@ fn validate_catalog(
             &material.id,
         )?;
         ensure_contains(&area_ids, material.area_id.as_str(), "material area", &material.id)?;
+        if !is_supported_material_kind(material.kind.as_str()) {
+            bail!(
+                "material '{}' uses unsupported kind '{}'; supported kinds are lesson_note, teaching_note, worksheet, drill, and quick_check",
+                material.id,
+                material.kind
+            );
+        }
+        if material.runtime.is_some() && !runtime_allowed_for_kind(material.kind.as_str()) {
+            bail!(
+                "material '{}' uses runtime but kind '{}' is not executable",
+                material.id,
+                material.kind
+            );
+        }
         if material.skill_ids.is_empty() {
             bail!("material '{}' has no skills", material.id);
         }
