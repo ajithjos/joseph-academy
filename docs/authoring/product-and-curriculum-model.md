@@ -97,7 +97,7 @@ The default playlist contract is at least one `lesson_note`, at least one practi
 
 Authors do not usually edit runtime objects directly, but they should know how the product uses authored curriculum.
 
-- Team: the household or learning group.
+- Team: the learning team.
 - User: one person in the team.
 - Learner: a user who receives assignments.
 - Assignment: one learner's live use of one playlist over time.

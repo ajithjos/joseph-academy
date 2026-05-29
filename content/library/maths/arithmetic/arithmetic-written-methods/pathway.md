@@ -1,11 +1,11 @@
 ---
-id: household_arithmetic_written_methods
+id: arithmetic_written_methods
 slug: pathway
-title: Household Arithmetic Written Methods
+title: Arithmetic Written Methods
 subject_id: maths
 area_id: arithmetic
 status: active
-brief_source: docs/authoring/examples/household-arithmetic-written-methods-brief.md
+brief_source: docs/authoring/examples/arithmetic-written-methods-brief.md
 recommended_age_min: 7
 recommended_age_max: 10
 stage_ids:
@@ -21,13 +21,13 @@ entry_points:
   age_10: written_addition_and_subtraction
 ---
 
-# Household Arithmetic Written Methods
+# Arithmetic Written Methods
 
 This pathway teaches the arithmetic structure that sits on top of fact fluency.
 
 It is for learners who now need to understand place value, written addition and subtraction, and the first useful multiplication and division methods. For many learners, this is the pathway that turns arithmetic from a pile of separate tricks into one connected system.
 
-Use this pathway alongside or after [Household Arithmetic Fact Fluency](../household-arithmetic-fact-fluency/pathway.md). Facts still matter here. The written methods become much easier when the fact layer is secure.
+Use this pathway alongside or after [Arithmetic Fact Fluency](../arithmetic-fact-fluency/pathway.md). Facts still matter here. The written methods become much easier when the fact layer is secure.
 
 ## Why This Pathway Exists
 

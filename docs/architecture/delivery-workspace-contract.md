@@ -143,18 +143,18 @@ That should become the top-level learner workspace structure.
 
 These are derived runtime contracts, not new authored files.
 
-### Household planning workspace
+### Team planning workspace
 
 Use a dedicated parent-facing workspace payload for browse, inspect, and assign.
 
 Recommended endpoint direction:
 
 - extend `GET /api/v1/library/workspace` into a real planning workspace payload, or
-- add `GET /api/v1/household/workspace` and keep the current library workspace as the content-only version
+- add `GET /api/v1/team/workspace` and keep the current library workspace as the content-only version
 
 Required sections:
 
-- household learner summaries
+- team learner summaries
 - pathway summaries
 - playlist planning summaries
 - explicit assignment target options per playlist

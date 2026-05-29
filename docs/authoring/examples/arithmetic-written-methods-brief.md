@@ -1,4 +1,4 @@
-# Household Arithmetic Written Methods Brief
+# Arithmetic Written Methods Brief
 
 This brief defines the second arithmetic pathway for Cornerstone.
 
@@ -10,7 +10,7 @@ The fact-fluency pathway makes basic facts secure. This pathway uses that fluenc
 - Subject title: Maths
 - Area id: `arithmetic`
 - Area title: Arithmetic
-- Pathway id: `household_arithmetic_written_methods`
+- Pathway id: `arithmetic_written_methods`
 
 ## Learner Context
 

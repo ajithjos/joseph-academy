@@ -10,17 +10,17 @@ areas:
     description: Number facts, written operations, and fluency for primary learners.
 
 pathways:
-  - pathway_id: household_arithmetic_fact_fluency
+  - pathway_id: arithmetic_fact_fluency
     subject_id: maths
     area_id: arithmetic
-    title: Household Arithmetic Fact Fluency
+    title: Arithmetic Fact Fluency
     status: active
-    brief_source: docs/authoring/examples/household-arithmetic-fact-fluency-brief.md
-    path: maths/arithmetic/household-arithmetic-fact-fluency/pathway.md
-  - pathway_id: household_arithmetic_written_methods
+    brief_source: docs/authoring/examples/arithmetic-fact-fluency-brief.md
+    path: maths/arithmetic/arithmetic-fact-fluency/pathway.md
+  - pathway_id: arithmetic_written_methods
     subject_id: maths
     area_id: arithmetic
-    title: Household Arithmetic Written Methods
+    title: Arithmetic Written Methods
     status: active
-    brief_source: docs/authoring/examples/household-arithmetic-written-methods-brief.md
-    path: maths/arithmetic/household-arithmetic-written-methods/pathway.md
+    brief_source: docs/authoring/examples/arithmetic-written-methods-brief.md
+    path: maths/arithmetic/arithmetic-written-methods/pathway.md

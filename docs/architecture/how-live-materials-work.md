@@ -325,8 +325,8 @@ The first three arithmetic playlist items are the reference example.
 
 They show:
 
-- executable drill materials in `content/library/maths/arithmetic/household-arithmetic-fact-fluency/materials/`
-- playlists that schedule those materials in `content/library/maths/arithmetic/household-arithmetic-fact-fluency/playlists/`
+- executable drill materials in `content/library/maths/arithmetic/arithmetic-fact-fluency/materials/`
+- playlists that schedule those materials in `content/library/maths/arithmetic/arithmetic-fact-fluency/playlists/`
 - backend runtime generation and scoring in `rust/crates/control_plane/src/service.rs`
 - frontend activity start and completion in the Flutter app
 

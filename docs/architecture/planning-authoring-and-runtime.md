@@ -31,7 +31,7 @@ content/
     registry.yaml
     maths/
       arithmetic/
-        household-arithmetic-fact-fluency/
+        arithmetic-fact-fluency/
           pathway.md
           stages/
           skills/
@@ -45,7 +45,7 @@ This keeps the system connected in one place:
 - each pathway directory is the contained authoring unit for one real route
 - stages, skills, playlists, and materials live inside the pathway they belong to
 
-The brief stays in [docs/authoring/examples/household-arithmetic-fact-fluency-brief.md](../authoring/examples/household-arithmetic-fact-fluency-brief.md) as the planning input. The authored pathway under `content/library/` is the curriculum output built from that brief.
+The brief stays in [docs/authoring/examples/arithmetic-fact-fluency-brief.md](../authoring/examples/arithmetic-fact-fluency-brief.md) as the planning input. The authored pathway under `content/library/` is the curriculum output built from that brief.
 
 ## The Three Layers
 
@@ -197,22 +197,22 @@ That gives one clean rule:
 6. Build playlists that order those materials into short assignable blocks.
 7. Add entry guidance that maps approximate ages or current readiness to the right starting playlist.
 
-## Example: Household Arithmetic Fact Fluency
+## Example: Arithmetic Fact Fluency
 
 The first complete pathway in this model is:
 
 - subject: `maths`
 - area: `arithmetic`
-- pathway: `household_arithmetic_fact_fluency`
+- pathway: `arithmetic_fact_fluency`
 
 Its authored source lives under:
 
 - `content/library/registry.yaml`
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway.md`
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/stages/`
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/skills/`
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/playlists/`
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/materials/`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/pathway.md`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/stages/`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/skills/`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/playlists/`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/materials/`
 
 That pathway contains the route, stage sequence, skills, playlists, material links, and age-based entry guidance in one contained scope.
 
@@ -220,6 +220,6 @@ That pathway contains the route, stage sequence, skills, playlists, material lin
 
 The cleaned authoring shape now lives under `content/library/`.
 
-The household arithmetic pathway is the first end-to-end slice in that tree.
+The arithmetic fact-fluency pathway is the first end-to-end slice in that tree.
 
 The Rust loader and the docs-site renderer now read directly from `content/library/`.

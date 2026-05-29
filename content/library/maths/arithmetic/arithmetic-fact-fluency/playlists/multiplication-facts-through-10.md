@@ -37,7 +37,7 @@ sessions:
 
 # Multiplication Facts Through 10
 
-This playlist completes the household route and should only be introduced after earlier facts are steady.
+This playlist completes the route and should only be introduced after earlier facts are steady.
 
 The teaching move here is not blind repetition. The learner should use reliable anchor facts to rebuild `6`, `7`, `8`, and `9` facts when needed.
 

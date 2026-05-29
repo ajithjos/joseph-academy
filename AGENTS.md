@@ -8,13 +8,22 @@ So I am already comfortable with programming languages and frameworks and applic
 
 Right now, the immediate focus is on results. We should deliver results and start anything actionable very quickly, rather than making this a hi-fi application or a hi-fi system.
 
-Additional project guidance:
+## Additional project guidance:
 
 - Keep product logic in the Rust control-plane. Flutter should render explicit backend contracts for learner journeys, pathway browse flows, assignments, and activity launch, not re-derive those rules from raw content payloads.
 - For parent and learner surfaces, prefer clear modules and reusable widgets with direct names over large mixed screens or placeholder dashboards.
 - When replacing temporary, dirty, or prototype code, remove the obsolete path in the same change instead of leaving both versions behind.
+
+## Pedagogy: Content and curriculum rules
+
 - For authored curriculum and generated teaching materials, prefer a direct, rigorous, practice-first teaching stance with concise worked examples, deliberate practice, cumulative review, and rapid correction of mistakes.
 - For arithmetic, prefer explicit teaching over discovery-first activities. Use clear explanations, worked examples, fact fluency, place-value reasoning, and standard written methods once the underlying structure is understood.
 - Do not describe pedagogy with vague political or country-style labels. Encode concrete teaching rules instead: what should be taught directly, what should be practised to fluency, which representations help, and which anti-patterns to avoid.
-- Treat a Christian and specifically Catholic household and school context as background cultural context for examples and tone when that is helpful, without turning ordinary curriculum into explicit religious instruction unless asked.
+
+### Cultural and family-context rules
+
+- Treat a Christian and specifically Catholic family and school context as background cultural context for examples and tone when that is helpful, without turning ordinary curriculum into explicit religious instruction unless asked.
 - When examples need people, names, or family roles, prefer ordinary traditional names and family language that fit that context naturally; do not force religious references into every lesson.
+- In authored examples and stories, use specific named people or `he or she` when a singular generic person must be described. Do not use the singular "they" for individuals in the curriculum unless the reference is to an actual group of people.
+- In stories and examples, prefer traditional family and household contexts when they are natural and helpful, but do not force every example into a family context if that would feel unnatural or confusing.
+- Do not generate or promote content that promote or describe non-traditional family structures, non-traditional gender roles, or non-traditional relationships.

@@ -16,7 +16,7 @@ Cornerstone uses one stable domain model across authored content, backend APIs, 
 
 ### Runtime
 
-- Team: the household or learning group.
+- Team: the learning team.
 - User: one person in the team.
 - Learner: a user who receives assignments.
 - Assignment: one learner's live use of one playlist over time.

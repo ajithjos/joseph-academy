@@ -9,4 +9,4 @@ stage_ids:
 
 - successful performance: answers at least 18 out of 20 mixed facts correctly in one short check
 - likely mistakes: over-relies on skip counting or stalls on `6`, `7`, `8`, and `9` facts
-- out of scope: `11` and `12` tables for this household pathway
+- out of scope: `11` and `12` tables for this pathway

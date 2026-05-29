@@ -191,7 +191,7 @@ Use this real example.
 
 Material file:
 
-- `content/library/maths/arithmetic/household-arithmetic-fact-fluency/materials/addition-and-subtraction-facts-to-10-check.md`
+- `content/library/maths/arithmetic/arithmetic-fact-fluency/materials/addition-and-subtraction-facts-to-10-check.md`
 
 That material declares:
 

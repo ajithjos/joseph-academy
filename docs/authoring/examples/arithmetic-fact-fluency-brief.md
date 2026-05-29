@@ -1,4 +1,4 @@
-# Household Arithmetic Fact Fluency Brief
+# Arithmetic Fact Fluency Brief
 
 This is a worked example of the [Curriculum slice brief template](../curriculum-slice-brief-template.md).
 
@@ -141,7 +141,7 @@ The goal is not to cover all of maths. The goal is to get two young learners int
 - Skill title: Mixed multiplication facts through 10 x 10
   - successful performance: answers at least 18 out of 20 mixed facts correctly in one short check
   - likely mistakes or misconceptions: over-relies on skip counting or stalls on 6, 7, 8, and 9 facts
-  - out of scope: 11 and 12 tables for the first household MVP
+  - out of scope: 11 and 12 tables for the first arithmetic MVP
 
 ## Materials And Delivery
 
@@ -175,8 +175,8 @@ The goal is not to cover all of maths. The goal is to get two young learners int
   - keep the core model of stage, skill, material, playlist, assignment, session, evidence, and progress
 - files that may change:
   - `content/library/registry.yaml`
-  - `content/library/maths/arithmetic/household-arithmetic-fact-fluency/pathway.md`
-  - stage, skill, playlist, and material files under `content/library/maths/arithmetic/household-arithmetic-fact-fluency/`
+  - `content/library/maths/arithmetic/arithmetic-fact-fluency/pathway.md`
+  - stage, skill, playlist, and material files under `content/library/maths/arithmetic/arithmetic-fact-fluency/`
 - files that must not change for the first content pass:
   - learner runtime concepts such as assignment, session, evidence, and progress
   - Flutter app structure beyond small usability fixes unless a clearer pathway surface is being added deliberately
@@ -188,7 +188,7 @@ The goal is not to cover all of maths. The goal is to get two young learners int
   - prefer `addition facts` or `number bonds` over `addition table`
   - both `times tables` and `multiplication tables` are acceptable, but `times tables` is the more natural phrase for young learners
 - family, classroom, or accessibility constraints:
-  - this is household teaching, not a classroom program
+  - this is parent-led or coach-led teaching, not a classroom program
   - sessions should work with paper first and computer second
   - no voice input or handwriting recognition is required for MVP
 - anything that must not be generated:

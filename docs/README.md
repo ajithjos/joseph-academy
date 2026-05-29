@@ -19,4 +19,4 @@ These docs describe the canonical Cornerstone model and the authoring workflow a
 - `authoring/authoring-rules.md`: tone, vocabulary, schema, reuse, and validation rules
 - `authoring/authoring-workflow.md`: how to brief, generate, review, and validate curriculum work
 - `authoring/curriculum-slice-brief-template.md`: the fillable brief for one subject-area slice
-- `authoring/examples/household-arithmetic-fact-fluency-brief.md`: a worked arithmetic example of the brief template
+- `authoring/examples/arithmetic-fact-fluency-brief.md`: a worked arithmetic example of the brief template

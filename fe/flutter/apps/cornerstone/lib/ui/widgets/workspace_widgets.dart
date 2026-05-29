@@ -916,7 +916,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
           children: [
             _PageHeroCard(
               eyebrow: 'Teaching workspace',
-              title: 'Household teaching workspace',
+              title: 'Team teaching workspace',
               description:
                   'Choose a learner, see where they stand in the pathway, and run the current session with learner materials and teaching notes side by side.',
               chips: [

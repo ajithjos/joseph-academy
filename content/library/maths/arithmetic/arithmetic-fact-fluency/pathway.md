@@ -1,11 +1,11 @@
 ---
-id: household_arithmetic_fact_fluency
+id: arithmetic_fact_fluency
 slug: pathway
-title: Household Arithmetic Fact Fluency
+title: Arithmetic Fact Fluency
 subject_id: maths
 area_id: arithmetic
 status: active
-brief_source: docs/authoring/examples/household-arithmetic-fact-fluency-brief.md
+brief_source: docs/authoring/examples/arithmetic-fact-fluency-brief.md
 recommended_age_min: 7
 recommended_age_max: 10
 stage_ids:
@@ -28,9 +28,9 @@ entry_points:
   age_10: multiplication_facts_foundations
 ---
 
-# Household Arithmetic Fact Fluency
+# Arithmetic Fact Fluency
 
-This is the household route for getting a learner from shaky or uneven number facts to steady arithmetic fluency.
+This is the route for getting a learner from shaky or uneven number facts to steady arithmetic fluency.
 
 It is built for two common starting points:
 
@@ -73,7 +73,7 @@ For a parent or coach, the visible signs are simpler:
 
 ## Daily Delivery Shape
 
-The route assumes short household sessions, not classroom blocks.
+The route assumes short teaching sessions at home or in a small learning team, not classroom blocks.
 
 - session length: 10 to 15 minutes
 - cadence: 4 to 5 sessions per week
@@ -85,7 +85,7 @@ The delivery rule is simple: meaning first, then accuracy, then speed. If a lear
 
 This pathway does not try to teach the full written arithmetic curriculum by itself.
 
-It prepares the ground for that work by making the facts secure. For place value, written addition and subtraction, and later multiplication and division methods, pair this route with [Household Arithmetic Written Methods](../household-arithmetic-written-methods/pathway.md).
+It prepares the ground for that work by making the facts secure. For place value, written addition and subtraction, and later multiplication and division methods, pair this route with [Arithmetic Written Methods](../arithmetic-written-methods/pathway.md).
 
 ## The Route
 
@@ -203,4 +203,4 @@ This document is the human route description for the pathway.
 
 The linked files under `stages/`, `skills/`, `playlists/`, and `materials/` are the supporting authored objects that make the route testable, assignable, and browseable in the product.
 
-The source planning brief for this route is [docs/authoring/examples/household-arithmetic-fact-fluency-brief.md](../../../../docs/authoring/examples/household-arithmetic-fact-fluency-brief.md).
+The source planning brief for this route is [docs/authoring/examples/arithmetic-fact-fluency-brief.md](../../../../docs/authoring/examples/arithmetic-fact-fluency-brief.md).

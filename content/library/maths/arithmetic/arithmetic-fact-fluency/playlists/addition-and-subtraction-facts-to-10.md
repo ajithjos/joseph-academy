@@ -43,7 +43,7 @@ sessions:
 
 # Addition And Subtraction Facts To 10
 
-This is the normal household entry point for a seven-year-old who can already count and record simple sums.
+This is the normal entry point for a seven-year-old who can already count and record simple sums.
 
 It also works as a repair stage for older learners whose written work is being slowed down by weak bonds and fact families.
 

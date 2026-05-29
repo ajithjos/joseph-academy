@@ -6,7 +6,7 @@ sequence: 6
 
 # Multiplication Facts Through 10
 
-This stage completes the household fact-fluency route.
+This stage completes the fact-fluency route.
 
 ## Plain-Language Meaning
 

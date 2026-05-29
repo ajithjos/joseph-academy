@@ -70,7 +70,7 @@ For each skill, describe:
 
 - vocabulary or tone constraints
 - pedagogy constraints and anti-patterns
-- household, faith, or cultural-context constraints for names, family roles, and example situations
+- family, faith, or cultural-context constraints for names, family roles, example situations, and pronoun style
 - whether those references should stay as background context only or become explicit in the material
 - family, classroom, or accessibility constraints
 - anything that must not be generated

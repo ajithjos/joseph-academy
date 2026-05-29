@@ -1,6 +1,6 @@
 # Cornerstone
 
-Cornerstone is a learning control plane for a small household-sized learning team.
+Cornerstone is a learning control plane for a small learning team.
 
 This repository now contains an MVP stack with:
 

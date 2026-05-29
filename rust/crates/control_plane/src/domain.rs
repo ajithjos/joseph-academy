@@ -187,8 +187,8 @@ pub struct DashboardResponse {
 pub struct ViewerSessionResponse {
     pub status: String,
     pub team: Option<TeamSummary>,
-    pub current_user: Option<HouseholdMemberSummary>,
-    pub available_users: Vec<HouseholdMemberSummary>,
+    pub current_user: Option<TeamMemberSummary>,
+    pub available_users: Vec<TeamMemberSummary>,
     pub developer_docs_url: Option<String>,
 }
 
@@ -200,7 +200,7 @@ pub struct TeamSummary {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct HouseholdMemberSummary {
+pub struct TeamMemberSummary {
     pub user_id: String,
     pub username: String,
     pub display_name: String,
@@ -208,7 +208,7 @@ pub struct HouseholdMemberSummary {
     pub current_level: Option<String>,
     pub notes: String,
     pub learner_id: Option<String>,
-    pub can_manage_household: bool,
+    pub can_manage_team: bool,
     pub can_read_library: bool,
     pub can_view_all_learners: bool,
     pub can_open_developer_docs: bool,
@@ -499,7 +499,7 @@ pub struct TeamRow {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, FromRow)]
-pub struct HouseholdMemberRow {
+pub struct TeamMemberRow {
     pub user_id: String,
     pub username: String,
     pub display_name: String,

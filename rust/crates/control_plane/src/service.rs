@@ -18,7 +18,7 @@ use crate::domain::{
     ActivitySummary, AssignmentRequest, AssignmentResponse,
     AssignmentRow, AssignmentSummary, BootstrapApplyResponse, CompleteActivityRequest,
     CompleteActivityResponse,
-    DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, HouseholdMemberSummary,
+    DashboardResponse, EvidenceRow, EvidenceSummary, TeamMemberRow, TeamMemberSummary,
     LearnerDashboard, LearnerDetailResponse, LearnerJourneySummary, LearnerRow,
     LearnerSummary, LibraryDocumentPayload, LibraryDocumentSummary,
     LibraryReloadResponse, LibraryWorkspaceResponse, MaterialWorkspaceSummary,
@@ -66,7 +66,7 @@ pub struct AppState {
     pub library_report: Arc<RwLock<LibraryValidationReport>>,
 }
 
-fn role_can_manage_household(role: &str) -> bool {
+fn role_can_manage_team(role: &str) -> bool {
     matches!(role, "owner" | "parent" | "teacher")
 }
 
@@ -74,14 +74,14 @@ fn role_can_open_developer_docs(role: &str) -> bool {
     role == "owner"
 }
 
-fn ensure_viewer_can_manage_household(viewer: &HouseholdMemberSummary) -> anyhow::Result<()> {
-    if viewer.can_manage_household {
+fn ensure_viewer_can_manage_team(viewer: &TeamMemberSummary) -> anyhow::Result<()> {
+    if viewer.can_manage_team {
         return Ok(());
     }
-    bail!("viewer '{}' cannot manage the household workspace", viewer.username)
+    bail!("viewer '{}' cannot manage the team workspace", viewer.username)
 }
 
-fn ensure_viewer_can_read_library(viewer: &HouseholdMemberSummary) -> anyhow::Result<()> {
+fn ensure_viewer_can_read_library(viewer: &TeamMemberSummary) -> anyhow::Result<()> {
     if viewer.can_read_library {
         return Ok(());
     }
@@ -89,7 +89,7 @@ fn ensure_viewer_can_read_library(viewer: &HouseholdMemberSummary) -> anyhow::Re
 }
 
 fn ensure_viewer_can_access_learner(
-    viewer: &HouseholdMemberSummary,
+    viewer: &TeamMemberSummary,
     learner_id: &str,
 ) -> anyhow::Result<()> {
     if viewer.can_view_all_learners {
@@ -253,13 +253,13 @@ fn build_playlist_assignment_targets(
 async fn resolve_viewer_member(
     state: &Arc<AppState>,
     username: &str,
-) -> anyhow::Result<HouseholdMemberSummary> {
+) -> anyhow::Result<TeamMemberSummary> {
     let normalized = username.trim();
     if normalized.is_empty() {
         bail!("viewer username is required")
     }
 
-    let member = query_as::<_, HouseholdMemberRow>(
+    let member = query_as::<_, TeamMemberRow>(
         "select
             ua.user_id,
             ua.username,
@@ -328,7 +328,7 @@ pub async fn reload_library(
     viewer_username: &str,
 ) -> anyhow::Result<LibraryReloadResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
-    ensure_viewer_can_manage_household(&viewer)?;
+    ensure_viewer_can_manage_team(&viewer)?;
 
     let library_content = load_library_content(&state.config.content_root)?;
     {
@@ -437,7 +437,7 @@ pub async fn fetch_library_workspace(
     viewer_username: &str,
 ) -> anyhow::Result<LibraryWorkspaceResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
-    ensure_viewer_can_manage_household(&viewer)?;
+    ensure_viewer_can_manage_team(&viewer)?;
 
     let library = state.library.read().await.clone();
     let documents = state.library_documents.read().await.clone();
@@ -508,7 +508,7 @@ pub async fn fetch_viewer_session(
     username: Option<&str>,
 ) -> anyhow::Result<ViewerSessionResponse> {
     let team = fetch_team_summary(state).await?;
-    let available_users = list_household_members(state).await?;
+    let available_users = list_team_members(state).await?;
     let current_user = username.and_then(|value| {
         let normalized = value.trim();
         if normalized.is_empty() {
@@ -671,7 +671,7 @@ pub async fn create_assignment(
     request: AssignmentRequest,
 ) -> anyhow::Result<AssignmentResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
-    ensure_viewer_can_manage_household(&viewer)?;
+    ensure_viewer_can_manage_team(&viewer)?;
 
     let library = state.library.read().await.clone();
     let assignment = create_assignment_internal(
@@ -695,7 +695,7 @@ pub async fn record_session(
     request: RecordSessionRequest,
 ) -> anyhow::Result<RecordSessionResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
-    ensure_viewer_can_manage_household(&viewer)?;
+    ensure_viewer_can_manage_team(&viewer)?;
 
     if request.max_score <= 0.0 {
         bail!("max_score must be greater than zero");
@@ -995,7 +995,7 @@ pub async fn rebuild_review_items(
     learner_id: Option<String>,
 ) -> anyhow::Result<ReviewRebuildResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
-    ensure_viewer_can_manage_household(&viewer)?;
+    ensure_viewer_can_manage_team(&viewer)?;
 
     let learner_ids = if let Some(learner_id) = learner_id {
         vec![learner_id]
@@ -1330,8 +1330,8 @@ async fn fetch_team_summary(state: &Arc<AppState>) -> anyhow::Result<Option<Team
     }))
 }
 
-async fn list_household_members(state: &Arc<AppState>) -> anyhow::Result<Vec<HouseholdMemberSummary>> {
-    let members = query_as::<_, HouseholdMemberRow>(
+async fn list_team_members(state: &Arc<AppState>) -> anyhow::Result<Vec<TeamMemberSummary>> {
+    let members = query_as::<_, TeamMemberRow>(
         "select
             ua.user_id,
             ua.username,
@@ -1351,10 +1351,10 @@ async fn list_household_members(state: &Arc<AppState>) -> anyhow::Result<Vec<Hou
     Ok(members.into_iter().map(member_row_to_summary).collect())
 }
 
-fn member_row_to_summary(row: HouseholdMemberRow) -> HouseholdMemberSummary {
+fn member_row_to_summary(row: TeamMemberRow) -> TeamMemberSummary {
     let role = row.role.clone();
-    let can_manage_household = role_can_manage_household(&role);
-    HouseholdMemberSummary {
+    let can_manage_team = role_can_manage_team(&role);
+    TeamMemberSummary {
         user_id: row.user_id,
         username: row.username,
         display_name: row.display_name,
@@ -1362,9 +1362,9 @@ fn member_row_to_summary(row: HouseholdMemberRow) -> HouseholdMemberSummary {
         current_level: row.current_level,
         notes: row.notes,
         learner_id: row.learner_id,
-        can_manage_household,
-        can_read_library: can_manage_household,
-        can_view_all_learners: can_manage_household,
+        can_manage_team,
+        can_read_library: can_manage_team,
+        can_view_all_learners: can_manage_team,
         can_open_developer_docs: role_can_open_developer_docs(&row.role),
     }
 }

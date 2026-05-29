@@ -639,8 +639,8 @@ class TeamInfo {
 class ViewerUser {
   factory ViewerUser.fromJson(Map<String, dynamic> json) {
     final role = json['role'] as String;
-    final canManageHousehold =
-        json['can_manage_household'] as bool? ?? role != 'learner';
+    final canManageTeam =
+      json['can_manage_team'] as bool? ?? role != 'learner';
     return ViewerUser(
       userId: json['user_id'] as String,
       username: json['username'] as String,
@@ -649,11 +649,11 @@ class ViewerUser {
       currentLevel: json['current_level'] as String?,
       notes: json['notes'] as String? ?? '',
       learnerId: json['learner_id'] as String?,
-      canManageHousehold: canManageHousehold,
+        canManageTeam: canManageTeam,
       canReadLibrary:
-          json['can_read_library'] as bool? ?? canManageHousehold,
+          json['can_read_library'] as bool? ?? canManageTeam,
       canViewAllLearners:
-          json['can_view_all_learners'] as bool? ?? canManageHousehold,
+          json['can_view_all_learners'] as bool? ?? canManageTeam,
       canOpenDeveloperDocs:
           json['can_open_developer_docs'] as bool? ?? role == 'owner',
     );
@@ -665,7 +665,7 @@ class ViewerUser {
     required this.displayName,
     required this.role,
     required this.notes,
-    required this.canManageHousehold,
+    required this.canManageTeam,
     required this.canReadLibrary,
     required this.canViewAllLearners,
     required this.canOpenDeveloperDocs,
@@ -680,7 +680,7 @@ class ViewerUser {
   final String notes;
   final String? currentLevel;
   final String? learnerId;
-  final bool canManageHousehold;
+  final bool canManageTeam;
   final bool canReadLibrary;
   final bool canViewAllLearners;
   final bool canOpenDeveloperDocs;

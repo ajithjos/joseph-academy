@@ -24,4 +24,4 @@ Keep this short and mixed. The learner should rely on known anchors, not guesswo
 9. `64 / 8 =`
 10. `9 x 7 =`
 
-Passing guide: 8 or more quick correct answers means the household fact-fluency route is secure enough for later arithmetic work. If accuracy is acceptable but speed is fragile, keep one short mixed review each week while the learner begins written methods.
+Passing guide: 8 or more quick correct answers means the fact-fluency route is secure enough for later arithmetic work. If accuracy is acceptable but speed is fragile, keep one short mixed review each week while the learner begins written methods.

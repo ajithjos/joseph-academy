@@ -10,7 +10,7 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 - the stable curriculum model and file ownership
 - authoring rules for tone, vocabulary, naming, reuse, and validation
 - arithmetic teaching guidance for pathway design and material generation
-- household cultural-context guidance for names, examples, and tone
+- family and cultural-context guidance for names, examples, and tone
 - the practical workflow for creating, revising, or reviewing curriculum
 - a fillable brief template for one curriculum slice
 - worked example briefs under `examples/`
@@ -27,7 +27,7 @@ Architecture decisions about planning objects and runtime surfaces live under `.
 4. [Authoring workflow](./authoring-workflow.md)
 5. [Curriculum slice brief template](./curriculum-slice-brief-template.md)
 6. [Planning, authoring, and runtime](../architecture/planning-authoring-and-runtime.md) if you need the whole-system mental model
-7. [Household arithmetic fact fluency brief](./examples/household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
+7. [Arithmetic fact fluency brief](./examples/arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
 
 ## How To Use This Directory
 

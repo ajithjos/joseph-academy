@@ -39,14 +39,17 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Do not use sugary praise, filler encouragement, or theatrical motivation.
 - Do not hide weak work behind soft language.
 
-## Household Cultural Context
+## Family And Cultural Context
 
-- Author ordinary examples and background tone so they fit naturally inside a Christian and specifically Catholic household or school context when that context is relevant.
+- Author ordinary examples and background tone so they fit naturally inside a Christian and specifically Catholic family or school context when that context is relevant.
 - Treat that as background context, not as a command to turn ordinary maths or reading materials into explicit religious instruction.
 - When an example needs people, prefer ordinary traditional names and family roles that fit that context naturally.
 - Use family language such as boy, girl, brother, sister, mother, and father when the example genuinely needs those roles.
 - Keep examples modest, sincere, and family-centred rather than trendy, stylised, or culture-war coded.
 - Do not add sectarian comparison, political commentary, or forced devotional language unless the brief explicitly asks for it.
+- In authored examples and stories, use specific named people or `he or she` when a singular generic person must be described. Do not use the singular "they" for individuals in the curriculum unless the reference is to an actual group of people.
+- In stories and examples, prefer traditional family and household contexts when they are natural and helpful, but do not force every example into a family context if that would feel unnatural or confusing.
+- Do not generate or promote content that promote or describe non-traditional family structures, non-traditional gender roles, or non-traditional relationships.
 
 ## Pedagogy Policy
 
@@ -93,7 +96,7 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Keep material metadata in the material file itself. Do not duplicate it in a separate material index.
 - Make review and recap deliberate when the slice needs them; do not leave reinforcement to chance.
 - For arithmetic, every material should make the teaching move clear: what is being taught directly, what is being practised, what counts as secure, and what mistake pattern should trigger reteaching.
-- When a material uses named examples, choose names and household details deliberately instead of using random contemporary filler.
+- When a material uses named examples, choose names and family details deliberately instead of using random contemporary filler.
 
 ## Required Material Kind Contract
 

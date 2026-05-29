@@ -1,7 +1,7 @@
 part of '../../main.dart';
 
 enum _ShellDestination {
-  owner('Household', 'Track learners, assignments, and daily progress.', Icons.dashboard_rounded),
+  owner('Team', 'Track learners, assignments, and daily progress.', Icons.dashboard_rounded),
   learner('Workspace', 'See where you stand in the pathway and open session workspaces.', Icons.school_rounded),
   library('Pathways', 'Review authored routes, playlists, and materials.', Icons.auto_stories_rounded),
   account('Profile', 'Profile, theme, and personal settings.', Icons.person_rounded);
@@ -66,7 +66,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   ViewerUser? get _currentViewer => _viewerSession?.currentUser;
-  bool get _viewerCanManage => _currentViewer?.canManageHousehold ?? false;
+  bool get _viewerCanManage => _currentViewer?.canManageTeam ?? false;
   bool get _viewerCanReadLibrary => _currentViewer?.canReadLibrary ?? false;
   bool get _viewerCanOpenDeveloperDocs =>
       _currentViewer?.canOpenDeveloperDocs ?? false;
@@ -75,7 +75,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   List<_ShellDestination> get _availableDestinations {
     final viewer = _currentViewer;
     if (viewer == null) return const <_ShellDestination>[];
-    if (viewer.canManageHousehold) {
+    if (viewer.canManageTeam) {
       return <_ShellDestination>[
         _ShellDestination.owner,
         _ShellDestination.learner,
@@ -612,13 +612,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   String _viewerRoleLabel(ViewerUser? viewer) {
     if (viewer == null) return 'Signed out';
     if (viewer.canOpenDeveloperDocs) return 'Owner';
-    return viewer.canManageHousehold ? 'Parent / Teacher' : 'Student';
+    return viewer.canManageTeam ? 'Parent / Teacher' : 'Student';
   }
 
   String _shellWorkspaceLabel() {
     final viewer = _currentViewer;
     if (viewer == null) return 'Signed out';
-    return viewer.canManageHousehold ? 'Household workspace' : 'Learner workspace';
+    return viewer.canManageTeam ? 'Team workspace' : 'Learner workspace';
   }
 
   bool _hasMeaningfulViewerNotes(ViewerUser viewer) {
@@ -810,11 +810,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildShellHeader(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     final shellEyebrow = _viewerCanManage ? 'WORKSPACE' : 'LEARNING WORKSPACE';
-    final shellTitle = _viewerCanManage ? 'Household workspace' : 'My learning workspace';
+    final shellTitle = _viewerCanManage ? 'Team workspace' : 'My learning workspace';
     final shellDescription = _viewerCanManage
       ? _viewerCanReadLibrary
-        ? 'Move between household progress, learner operations, the pathway library, and profile tools.'
-        : 'Move between household progress, learner operations, and profile tools.'
+        ? 'Move between team progress, learner operations, the pathway library, and profile tools.'
+        : 'Move between team progress, learner operations, and profile tools.'
       : 'See where you stand in the pathway, open session workspaces, and track your progress.';
 
     return Padding(
@@ -1135,7 +1135,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildSignedOutScaffold(BuildContext context) {
     final session = _viewerSession;
     final availableUsers = session?.availableUsers ?? const <ViewerUser>[];
-    final ownerCount = availableUsers.where((user) => user.canManageHousehold).length;
+    final ownerCount = availableUsers.where((user) => user.canManageTeam).length;
     final learnerCount = availableUsers.where((user) => user.isLearner).length;
 
     return Scaffold(
@@ -1155,7 +1155,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                       const SizedBox(height: 20),
                       _PageHeroCard(
                         eyebrow: 'Sign In',
-                        title: session?.team?.displayName ?? 'Cornerstone Household',
+                        title: session?.team?.displayName ?? 'Cornerstone Team',
                         description:
                             'Choose a username to enter the parent / teacher workspace or the student view. There is no password yet, so keep the flow simple and fast.',
                         chips: [
@@ -1220,7 +1220,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         Text('Continue with username', style: Theme.of(context).textTheme.headlineSmall),
                         const SizedBox(height: 8),
                         Text(
-                          'Pick a household profile below or type the username directly.',
+                          'Pick a team profile below or type the username directly.',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: Theme.of(context)
                                     .colorScheme
@@ -1358,8 +1358,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               ? _availableDestinations.first
               : _ShellDestination.account);
     final content = switch (activeDestination) {
-      _ShellDestination.owner => libraryWorkspace == null
-          ? const Center(child: Text('Household planning data is unavailable.'))
+        _ShellDestination.owner => libraryWorkspace == null
+          ? const Center(child: Text('Team planning data is unavailable.'))
         : _buildOwnerView(context, dashboard, libraryWorkspace),
       _ShellDestination.learner => _buildLearnerView(context),
       _ShellDestination.library => libraryWorkspace == null
@@ -1385,8 +1385,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           title: username,
           description: viewer == null
               ? (dashboard.team?.description ?? 'Manage your profile and theme in one place.')
-              : viewer.canManageHousehold
-                ? 'Manage your profile, theme, and household learning space in one place.'
+              : viewer.canManageTeam
+                ? 'Manage your profile, theme, and team learning space in one place.'
                 : 'Keep your profile, theme, and learner space settings in one place.',
           trailing: Container(
             padding: const EdgeInsets.all(18),
@@ -1428,7 +1428,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 Text('Session', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 8),
                 Text(
-                  viewer.canManageHousehold
+                    viewer.canManageTeam
                       ? 'This account can manage every learner, assignments, and progress updates.'
                       : 'This account stays focused on the learner view, progress, and pending work.',
                   style: theme.textTheme.bodyLarge?.copyWith(
@@ -1450,10 +1450,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   subtitle: Text('@${viewer.username}', style: theme.textTheme.bodySmall),
                   trailing: _PillBadge(
                     text: _viewerRoleLabel(viewer),
-                    color: viewer.canManageHousehold
+                    color: viewer.canManageTeam
                         ? theme.colorScheme.secondaryContainer
                         : theme.colorScheme.primary.withValues(alpha: 0.12),
-                    textColor: viewer.canManageHousehold
+                    textColor: viewer.canManageTeam
                         ? theme.colorScheme.onSecondaryContainer
                         : theme.colorScheme.primary,
                   ),
