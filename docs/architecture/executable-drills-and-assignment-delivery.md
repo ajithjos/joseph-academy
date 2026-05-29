@@ -110,7 +110,7 @@ runtime:
   parameters:
     operations: [addition, subtraction]
     range_max: 10
-    prompt_forms: [equation, missing_number]
+    item_forms: [equation, missing_number]
     question_count: 14
     allow_negative_answers: false
   scoring:
@@ -127,7 +127,7 @@ Recommended contract fields:
 - `engine_id`: the approved backend engine
 - `spec_version`: schema version for validation
 - `template_id`: the named generator template inside that engine
-- `parameters`: limits for generation, prompt forms, timing, and batch size
+- `parameters`: limits for generation, item forms, timing, and batch size
 - `scoring`: pass or mastery thresholds
 - `persistence`: whether long-lived response logs are stored
 
@@ -319,11 +319,11 @@ Useful parameter families:
 
 - allowed operations
 - max total or max operand
-- whether missing-number prompts are allowed
-- whether inverse-family prompts are allowed
+- whether missing-number items are allowed
+- whether inverse-family items are allowed
 - question count
 - time limit
-- allowed prompt forms
+- allowed item forms
 - weak-fact replay policy
 
 This is enough to cover the first three arithmetic playlists without overbuilding.
@@ -336,7 +336,7 @@ Once this contract is accepted, the first content rollout should target the exis
 
 Add later:
 
-- one live drill for small groups, bonds to 5, and tiny add-or-take-away prompts
+- one live drill for small groups, bonds to 5, and tiny add-or-take-away items
 - one short quick check with a soft timer and low pressure
 
 ### Addition And Subtraction Facts To 10

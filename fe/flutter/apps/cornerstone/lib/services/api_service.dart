@@ -156,7 +156,7 @@ class CornerstoneApiClient {
   Future<CompleteActivityResponse> completeActivity({
     required String activityInstanceId,
     required List<String> answers,
-    required List<ActivityPrompt> prompts,
+    required List<ActivityItem> items,
     required int durationSeconds,
     required String notes,
   }) async {
@@ -165,10 +165,10 @@ class CornerstoneApiClient {
       headers: _viewerHeaders(contentTypeJson: true),
       body: jsonEncode({
         'responses': List.generate(
-          prompts.length,
+          items.length,
           (index) => {
-            'prompt_id': prompts[index].promptId,
-            'answer': answers[index],
+            'item_id': items[index].itemId,
+            'value': answers[index],
           },
         ),
         'duration_seconds': durationSeconds,

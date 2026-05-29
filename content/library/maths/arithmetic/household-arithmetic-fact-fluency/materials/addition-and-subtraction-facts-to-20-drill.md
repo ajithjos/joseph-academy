@@ -18,7 +18,7 @@ runtime:
     operations:
       - addition
       - subtraction
-    prompt_forms:
+    item_forms:
       - equation
       - bond_missing
       - missing_subtraction
@@ -32,6 +32,6 @@ runtime:
 
 # Addition And Subtraction Facts To 20 Drill
 
-Use this when facts to 10 are steady and the learner needs short live practice on teen numbers and missing-number prompts.
+Use this when facts to 10 are steady and the learner needs short live practice on teen numbers and missing-number items.
 
 The drill should stay mixed. It should not become a block of only addition or only subtraction because the point is flexible recall under light pressure.

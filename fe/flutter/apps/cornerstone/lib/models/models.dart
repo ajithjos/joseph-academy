@@ -593,6 +593,7 @@ class SessionMaterial {
 
 class SessionMaterialRuntimeSummary {
   SessionMaterialRuntimeSummary({
+    required this.runtimeId,
     required this.engineId,
     required this.templateId,
     required this.executable,
@@ -600,12 +601,14 @@ class SessionMaterialRuntimeSummary {
 
   factory SessionMaterialRuntimeSummary.fromJson(Map<String, dynamic> json) {
     return SessionMaterialRuntimeSummary(
+      runtimeId: json['runtime_id'] as String,
       engineId: json['engine_id'] as String,
       templateId: json['template_id'] as String,
       executable: json['executable'] as bool? ?? true,
     );
   }
 
+  final String runtimeId;
   final String engineId;
   final String templateId;
   final bool executable;
@@ -1103,12 +1106,13 @@ class ActivityInstance {
     required this.sessionMaterialId,
     required this.materialId,
     required this.materialTitle,
+    required this.runtimeId,
     required this.engineId,
     required this.templateId,
     required this.instructions,
     required this.estimatedMinutes,
     required this.scoring,
-    required this.prompts,
+    required this.items,
   });
 
   factory ActivityInstance.fromJson(Map<String, dynamic> json) {
@@ -1118,6 +1122,7 @@ class ActivityInstance {
       sessionMaterialId: json['session_material_id'] as String,
       materialId: json['material_id'] as String,
       materialTitle: json['material_title'] as String,
+      runtimeId: json['runtime_id'] as String,
       engineId: json['engine_id'] as String,
       templateId: json['template_id'] as String,
       instructions: json['instructions'] as String,
@@ -1125,8 +1130,8 @@ class ActivityInstance {
       scoring: ActivityScoringSummary.fromJson(
         json['scoring'] as Map<String, dynamic>,
       ),
-      prompts: (json['prompts'] as List<dynamic>)
-          .map((item) => ActivityPrompt.fromJson(item as Map<String, dynamic>))
+      items: (json['items'] as List<dynamic>)
+          .map((item) => ActivityItem.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -1136,12 +1141,13 @@ class ActivityInstance {
   final String sessionMaterialId;
   final String materialId;
   final String materialTitle;
+  final String runtimeId;
   final String engineId;
   final String templateId;
   final String instructions;
   final int estimatedMinutes;
   final ActivityScoringSummary scoring;
-  final List<ActivityPrompt> prompts;
+  final List<ActivityItem> items;
 }
 
 class ActivityScoringSummary {
@@ -1161,24 +1167,24 @@ class ActivityScoringSummary {
   final int? softTimeLimitSeconds;
 }
 
-class ActivityPrompt {
-  ActivityPrompt({
-    required this.promptId,
-    required this.prompt,
-    required this.answerKind,
+class ActivityItem {
+  ActivityItem({
+    required this.itemId,
+    required this.content,
+    required this.responseKind,
   });
 
-  factory ActivityPrompt.fromJson(Map<String, dynamic> json) {
-    return ActivityPrompt(
-      promptId: json['prompt_id'] as String,
-      prompt: json['prompt'] as String,
-      answerKind: json['answer_kind'] as String,
+  factory ActivityItem.fromJson(Map<String, dynamic> json) {
+    return ActivityItem(
+      itemId: json['item_id'] as String,
+      content: json['content'] as String,
+      responseKind: json['response_kind'] as String,
     );
   }
 
-  final String promptId;
-  final String prompt;
-  final String answerKind;
+  final String itemId;
+  final String content;
+  final String responseKind;
 }
 
 class CompleteActivityResponse {
@@ -1212,7 +1218,7 @@ class ActivitySummary {
   ActivitySummary({
     required this.attemptedCount,
     required this.correctCount,
-    required this.promptCount,
+    required this.itemCount,
     required this.accuracy,
     required this.passed,
     required this.completionReason,
@@ -1223,7 +1229,7 @@ class ActivitySummary {
     return ActivitySummary(
       attemptedCount: (json['attempted_count'] as num).toInt(),
       correctCount: (json['correct_count'] as num).toInt(),
-      promptCount: (json['prompt_count'] as num).toInt(),
+      itemCount: (json['item_count'] as num).toInt(),
       accuracy: (json['accuracy'] as num).toDouble(),
       passed: json['passed'] as bool,
       completionReason: json['completion_reason'] as String,
@@ -1235,7 +1241,7 @@ class ActivitySummary {
 
   final int attemptedCount;
   final int correctCount;
-  final int promptCount;
+  final int itemCount;
   final double accuracy;
   final bool passed;
   final String completionReason;

@@ -29,7 +29,7 @@ runtime:
   template_id: mixed_add_sub_to_10
   parameters:
     operations: [addition, subtraction]
-    prompt_forms: [equation, bond_missing]
+    item_forms: [equation, bond_missing]
     question_count: 10
   scoring:
     pass_accuracy: 0.85
@@ -79,13 +79,20 @@ That runtime id is:
 - used by the backend registry to resolve the correct program
 - returned in session runtime summaries and activity instances for debugging and inspection
 
+The code layout should mirror that contract.
+
+For example, the runtime id `arithmetic_fact_fluency.v1/mixed_add_sub_to_10` is implemented under:
+
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/mixed_add_sub_to_10.rs`
+
 ## Where The Code Lives
 
 The current separation is:
 
 - `rust/crates/control_plane/src/service.rs`: session orchestration, evidence persistence, assignment flow, activity start and complete endpoints
 - `rust/crates/control_plane/src/runtime/mod.rs`: runtime registry, runtime id helpers, generated/scored activity contracts, dispatch
-- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency.rs`: the current arithmetic engine and its registered runtime programs
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/`: the current arithmetic engine folder, with one file per runtime template plus shared helpers
 
 This means `service.rs` no longer contains the runtime implementation details. It only orchestrates session state and calls the runtime registry.
 
@@ -114,7 +121,7 @@ fn generate(runtime: &MaterialRuntime, seed: u64) -> anyhow::Result<GeneratedAct
 It receives:
 
 - the authored runtime block
-- a seed for deterministic prompt generation
+- a seed for deterministic item generation
 
 It must return a `GeneratedActivity` containing:
 
@@ -122,7 +129,7 @@ It must return a `GeneratedActivity` containing:
 - `engine_id`
 - `template_id`
 - `instructions`
-- `prompts`
+- `items`
 - scoring thresholds
 - persistence flags
 
@@ -143,7 +150,7 @@ It returns:
 
 - attempted count
 - correct count
-- prompt count
+- item count
 - accuracy
 - pass or fail
 - completion reason
@@ -161,7 +168,7 @@ This is the real backend execution path.
 3. It calls `runtime::generate_activity(material, seed)`.
 4. `runtime::resolve_program` matches `engine_id` plus `template_id` to a registered runtime program.
 5. The selected program's `generate` function runs.
-6. The backend returns an `ActivityInstance` with `runtime_id`, prompts, instructions, and scoring settings.
+6. The backend returns an `ActivityInstance` with `runtime_id`, items, instructions, and scoring settings.
 
 ### Complete flow
 
@@ -199,7 +206,7 @@ arithmetic_fact_fluency.v1/mixed_add_sub_to_10
 
 The runtime registry then dispatches to the registered arithmetic runtime program in:
 
-- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency.rs`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/mixed_add_sub_to_10.rs`
 
 Specifically, the program entry is the one whose registration matches:
 
@@ -237,7 +244,7 @@ Do this when the engine is the same, but you need a new runtime variation.
 
 Steps:
 
-1. Add a new generate function in the engine module, for example in `runtime/arithmetic_fact_fluency.rs`.
+1. Add a new generate function in the engine folder, for example in `runtime/arithmetic_fact_fluency_v1/`.
 2. Reuse an existing score function or add a new one if needed.
 3. Register the new program in that module's `PROGRAMS` list.
 4. Choose a new `template_id`.
@@ -255,7 +262,7 @@ Steps:
 3. Implement the generate and score functions.
 4. Register those programs through `runtime/mod.rs`.
 5. Author materials that use the new `engine_id` and `template_id` values.
-6. Extend frontend rendering only if the prompt shape requires it.
+6. Extend frontend rendering only if the item shape requires it.
 
 ## What Content Authors Need To Know
 
@@ -266,7 +273,7 @@ Content authors only need to know:
 - which parameter names are accepted
 - what the scoring fields mean
 
-For example, `prompt_forms` is just a parameter name passed into the runtime program. It is not a framework or magic runtime feature.
+For example, `item_forms` is just a parameter name passed into the runtime program. It is not a framework or magic runtime feature.
 
 Content authors do not need to know session persistence internals or every function in the control plane.
 

@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::config::AppConfig;
 use crate::domain::{
-    ActivityInstance, ActivityPrompt, ActivityScoringSummary, ActivityStartResponse,
+    ActivityInstance, ActivityItem, ActivityScoringSummary, ActivityStartResponse,
     ActivitySummary, AssignmentRequest, AssignmentResponse,
     AssignmentRow, AssignmentSummary, BootstrapApplyResponse, CompleteActivityRequest,
     CompleteActivityResponse,
@@ -572,13 +572,13 @@ pub async fn start_session_material_activity(
                 pass_accuracy: generated.pass_accuracy,
                 soft_time_limit_seconds: generated.soft_time_limit_seconds,
             },
-            prompts: generated
-                .prompts
+            items: generated
+                .items
                 .into_iter()
-                .map(|prompt| ActivityPrompt {
-                    prompt_id: prompt.prompt_id,
-                    prompt: prompt.prompt,
-                    answer_kind: prompt.answer_kind,
+                .map(|item| ActivityItem {
+                    item_id: item.item_id,
+                    content: item.content,
+                    response_kind: item.response_kind,
                 })
                 .collect(),
         },
@@ -613,7 +613,7 @@ pub async fn complete_activity_instance(
     let notes = build_activity_notes(&material.title, &scored, &request.notes);
     let artifact_summary = format!(
         "{}: {}/{} correct",
-        material.title, scored.correct_count, scored.prompt_count
+        material.title, scored.correct_count, scored.item_count
     );
     let artifact_payload = build_activity_artifact_payload(
         &session,
@@ -628,7 +628,7 @@ pub async fn complete_activity_instance(
         &session,
         &materials,
         scored.correct_count as f64,
-        scored.prompt_count as f64,
+        scored.item_count as f64,
         duration_minutes_from_seconds(request.duration_seconds),
         notes,
         "activity_summary",
@@ -644,7 +644,7 @@ pub async fn complete_activity_instance(
         activity_summary: ActivitySummary {
             attempted_count: scored.attempted_count,
             correct_count: scored.correct_count,
-            prompt_count: scored.prompt_count,
+            item_count: scored.item_count,
             accuracy: scored.accuracy,
             passed: scored.passed,
             completion_reason: scored.completion_reason,
@@ -1372,7 +1372,7 @@ fn build_activity_notes(material_title: &str, scored: &ScoredActivity, notes: &s
             "{}: {}/{} correct ({:.0}% accuracy)",
             material_title,
             scored.correct_count,
-            scored.prompt_count,
+            scored.item_count,
             scored.accuracy * 100.0,
         )
     } else {
@@ -1380,7 +1380,7 @@ fn build_activity_notes(material_title: &str, scored: &ScoredActivity, notes: &s
             "{}: {}/{} correct ({:.0}% accuracy). Weak groups: {}",
             material_title,
             scored.correct_count,
-            scored.prompt_count,
+            scored.item_count,
             scored.accuracy * 100.0,
             scored.weak_groups.join(", "),
         )
@@ -1412,7 +1412,7 @@ fn build_activity_artifact_payload(
         "template_id": generated.template_id,
         "attempted_count": scored.attempted_count,
         "correct_count": scored.correct_count,
-        "prompt_count": scored.prompt_count,
+        "item_count": scored.item_count,
         "accuracy": scored.accuracy,
         "passed": scored.passed,
         "completion_reason": scored.completion_reason,

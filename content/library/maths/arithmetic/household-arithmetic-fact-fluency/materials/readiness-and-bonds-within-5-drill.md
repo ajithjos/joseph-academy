@@ -14,7 +14,7 @@ runtime:
   template_id: readiness_within_5
   parameters:
     question_count: 12
-    prompt_forms:
+    item_forms:
       - count_group
       - bond_missing
       - addition
@@ -31,4 +31,4 @@ runtime:
 
 Use this after the learner has already handled real objects, fingers, or buttons.
 
-The live drill should stay short and calm. It should mix tiny counting, make-5 prompts, and simple add-or-take-away facts without turning into a long pressured test.
+The live drill should stay short and calm. It should mix tiny counting, make-5 items, and simple add-or-take-away facts without turning into a long pressured test.

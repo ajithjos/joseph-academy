@@ -1,4 +1,4 @@
-mod arithmetic_fact_fluency;
+mod arithmetic_fact_fluency_v1;
 
 use anyhow::{Context, anyhow, bail};
 use catalog::{MaterialDocument, MaterialRuntime};
@@ -8,11 +8,11 @@ use uuid::Uuid;
 use crate::domain::ActivityResponseInput;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GeneratedPrompt {
-    pub prompt_id: String,
-    pub prompt: String,
-    pub answer_kind: String,
-    pub answer: i32,
+pub struct GeneratedActivityItem {
+    pub item_id: String,
+    pub content: String,
+    pub response_kind: String,
+    pub expected_response: i32,
     pub family: String,
 }
 
@@ -23,7 +23,7 @@ pub struct GeneratedActivity {
     pub engine_id: String,
     pub template_id: String,
     pub instructions: String,
-    pub prompts: Vec<GeneratedPrompt>,
+    pub items: Vec<GeneratedActivityItem>,
     pub pass_accuracy: Option<f64>,
     pub soft_time_limit_seconds: Option<u32>,
     pub store_response_log: bool,
@@ -33,7 +33,7 @@ pub struct GeneratedActivity {
 pub struct ScoredActivity {
     pub attempted_count: usize,
     pub correct_count: usize,
-    pub prompt_count: usize,
+    pub item_count: usize,
     pub accuracy: f64,
     pub passed: bool,
     pub completion_reason: String,
@@ -117,7 +117,7 @@ pub fn resolve_program(runtime: &MaterialRuntime) -> anyhow::Result<&'static Run
 }
 
 fn registered_programs() -> &'static [RuntimeProgramRegistration] {
-    arithmetic_fact_fluency::PROGRAMS
+    arithmetic_fact_fluency_v1::PROGRAMS
 }
 
 #[cfg(test)]
@@ -158,7 +158,7 @@ mod tests {
             json!({
                 "question_count": 4,
                 "operations": ["addition", "subtraction"],
-                "prompt_forms": ["equation"]
+                "item_forms": ["equation"]
             }),
         );
 
@@ -169,31 +169,31 @@ mod tests {
     }
 
     #[test]
-    fn generates_deterministic_prompts_for_same_seed() {
+    fn generates_deterministic_items_for_same_seed() {
         let material = build_material(
             "mixed_add_sub_to_10",
             json!({
                 "question_count": 4,
                 "operations": ["addition", "subtraction"],
-                "prompt_forms": ["equation", "bond_missing"]
+                "item_forms": ["equation", "bond_missing"]
             }),
         );
 
         let first = generate_activity(&material, 42).expect("first generation");
         let second = generate_activity(&material, 42).expect("second generation");
 
-        let first_prompts = first
-            .prompts
+        let first_items = first
+            .items
             .iter()
-            .map(|prompt| (prompt.prompt.clone(), prompt.answer))
+            .map(|item| (item.content.clone(), item.expected_response))
             .collect::<Vec<_>>();
-        let second_prompts = second
-            .prompts
+        let second_items = second
+            .items
             .iter()
-            .map(|prompt| (prompt.prompt.clone(), prompt.answer))
+            .map(|item| (item.content.clone(), item.expected_response))
             .collect::<Vec<_>>();
 
         assert_eq!(first.runtime_id, second.runtime_id);
-        assert_eq!(first_prompts, second_prompts);
+        assert_eq!(first_items, second_items);
     }
 }

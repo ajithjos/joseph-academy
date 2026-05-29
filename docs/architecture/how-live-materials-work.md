@@ -11,7 +11,7 @@ Yes, the normal product flow is simple:
 1. A parent, teacher, or owner assigns a playlist to a learner.
 2. That assignment creates scheduled sessions from the playlist session pattern.
 3. If one of those session materials has a `runtime` block, the app shows it as a live item.
-4. When the learner starts it, the backend generates the prompts, the client renders them, and the backend scores the completed submission.
+4. When the learner starts it, the backend generates the activity items, the client renders them, and the backend scores the completed submission.
 5. The result becomes session evidence and updates skill progress.
 
 The important rule is that authored content never executes code directly. The runtime block is only a contract that tells trusted backend code what kind of activity to generate.
@@ -21,11 +21,11 @@ The important rule is that authored content never executes code directly. The ru
 This part needs to be explicit.
 
 - It does not mean Google Chrome.
-- It does not mean an LLM is inventing prompts at runtime.
+- It does not mean an LLM is inventing activity items at runtime.
 - It does not mean an AI agent is writing new code while the learner waits.
 - It does not mean content markdown is executed like a script.
 
-When this guide says `generate prompts from a backend seed`, it means:
+When this guide says `generate activity items from a backend seed`, it means:
 
 - the backend creates a random seed value such as a number
 - the backend passes that seed into normal Rust functions
@@ -43,8 +43,8 @@ The real execution path is:
 2. The catalog loader reads that block into `MaterialDocument.runtime`.
 3. The library and learner APIs expose enough metadata for the UI to know that the material is executable.
 4. The Flutter app calls a start endpoint for the current session material.
-5. The Rust control plane picks a backend-owned engine and template, generates prompt JSON, and returns an activity instance.
-6. Flutter renders those prompts using normal UI widgets.
+5. The Rust control plane picks a backend-owned engine and template, generates activity item JSON, and returns an activity instance.
+6. Flutter renders those items using normal UI widgets.
 7. The learner submits answers.
 8. The Rust control plane regenerates the same activity from the encoded seed, scores it, writes evidence, marks the session complete, and updates progress.
 
@@ -54,15 +54,13 @@ So the runtime block maps to real execution through a fixed backend dispatch, no
 
 The program is the Rust code already compiled into the control-plane service.
 
-Right now the live arithmetic runtime is implemented in normal backend functions such as:
+Right now the live arithmetic runtime is implemented in the dedicated runtime layer:
 
-- `generate_activity`
-- `generate_readiness_prompts`
-- `generate_add_sub_to_10_prompts`
-- `generate_add_sub_to_20_prompts`
-- `score_activity`
-
-Those functions live in `rust/crates/control_plane/src/service.rs`.
+- `rust/crates/control_plane/src/runtime/mod.rs`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/readiness_within_5.rs`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/mixed_add_sub_to_10.rs`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/mixed_add_sub_to_20.rs`
+- `rust/crates/control_plane/src/runtime/arithmetic_fact_fluency_v1/shared.rs`
 
 That is the important distinction:
 
@@ -78,7 +76,7 @@ These are the key handoff points.
 - `content/library/.../materials/*.md`: authored materials define the optional `runtime` block.
 - `rust/crates/catalog/src/lib.rs`: loads material frontmatter and carries `runtime` into the in-memory library model.
 - `rust/crates/control_plane/src/http.rs`: exposes the activity start and complete endpoints.
-- `rust/crates/control_plane/src/service.rs`: creates assignments, generates activities, scores them, and persists results.
+- `rust/crates/control_plane/src/service.rs`: creates assignments, starts and completes activities, and persists results.
 - `fe/flutter/apps/cornerstone/lib/services/api_service.dart`: calls the start and complete endpoints.
 - `fe/flutter/apps/cornerstone/lib/ui/screens/home_screen.dart`: launches live activities from the current learner session.
 - `fe/flutter/apps/cornerstone/lib/ui/widgets/home_widgets.dart`: renders the executable activity dialog and submission flow.
@@ -94,7 +92,7 @@ runtime:
   template_id: mixed_add_sub_to_10
   parameters:
     operations: [addition, subtraction]
-    prompt_forms: [equation, bond_missing]
+    item_forms: [equation, bond_missing]
     question_count: 14
   scoring:
     pass_accuracy: 0.85
@@ -112,7 +110,7 @@ Today that means:
 
 - `engine_id` selects the backend engine
 - `template_id` selects the generator inside that engine
-- `parameters` tune prompt generation
+- `parameters` tune item generation
 - `scoring` defines pass rules
 - `persistence` controls what to store
 
@@ -160,7 +158,7 @@ Use this as the mental model.
 1. Open the current assigned session.
 2. See the live material for that session.
 3. Start the activity.
-4. Answer the prompts.
+4. Answer the items.
 5. Submit once.
 6. See the result summary.
 7. Move on to the next scheduled session later.
@@ -174,8 +172,8 @@ When Flutter calls the start endpoint, the backend:
 1. loads the scheduled session and session material
 2. finds the matching material in the library bundle
 3. checks that the material has a supported runtime
-4. generates prompts from a backend seed
-5. returns an `activity_instance_id`, prompt list, instructions, and scoring summary
+4. generates activity items from a backend seed
+5. returns an `activity_instance_id`, item list, instructions, and scoring summary
 6. marks the session and material active
 
 In the current arithmetic implementation, this happens in `start_session_material_activity`, which calls `generate_activity`.
@@ -188,7 +186,7 @@ In plain words:
 2. the backend runs Rust code immediately
 3. the backend returns a JSON activity payload
 
-That payload contains the prompt list, instructions, and scoring settings for that one activity instance.
+That payload contains the item list, instructions, and scoring settings for that one activity instance.
 
 ## What The Backend Does On Complete
 
@@ -196,7 +194,7 @@ When Flutter submits the answers, the backend:
 
 1. parses the `activity_instance_id`
 2. extracts the session material id and the original seed
-3. regenerates the same prompt set from that seed
+3. regenerates the same item set from that seed
 4. scores the submitted answers
 5. writes summary evidence and an activity artifact
 6. marks the session completed
@@ -204,7 +202,7 @@ When Flutter submits the answers, the backend:
 
 In the current arithmetic implementation, this happens in `complete_activity_instance`, which calls `score_activity` and then `persist_session_result`.
 
-That seed-based regeneration is how the system can score reliably without storing every prompt attempt in the database first.
+That seed-based regeneration is how the system can score reliably without storing every item attempt in the database first.
 
 The activity instance id is just a compact way to carry enough information to recreate the same generated activity later. In the current implementation it contains the session material id plus the seed.
 
@@ -218,7 +216,7 @@ There are three common cases.
 
 This is the simplest case.
 
-Do this when you want more arithmetic drills or checks that still fit the existing prompt types and scoring model.
+Do this when you want more arithmetic drills or checks that still fit the existing item types and scoring model.
 
 Steps:
 
@@ -232,21 +230,21 @@ In this case you usually do not need backend or frontend changes.
 
 ### 2. New template inside the existing engine
 
-Do this when the runtime is still arithmetic fact fluency, but you need a new prompt family or generation rule.
+Do this when the runtime is still arithmetic fact fluency, but you need a new item family or generation rule.
 
 Steps:
 
 1. Add support for the new `template_id` in `generate_activity`.
-2. Add a generator function that produces prompts for that template.
-3. Make sure `score_activity` still matches the prompt structure.
+2. Add a generator function that produces items for that template.
+3. Make sure `score_activity` still matches the item structure.
 4. Add or update authored materials to use the new template.
 5. Validate the end-to-end flow.
 
-If the prompts still use the current integer-answer UI, Flutter may not need any changes.
+If the items still use the current integer-response UI, Flutter may not need any changes.
 
 ### 3. New engine or new interaction type
 
-Do this only when the current engine and prompt shapes are not enough.
+Do this only when the current engine and item shapes are not enough.
 
 Examples:
 
@@ -277,13 +275,13 @@ Content writers can:
 - create a new material file
 - choose an approved `engine_id`
 - choose an approved `template_id`
-- set parameters such as prompt count, operations, or thresholds
+- set parameters such as item count, operations, or thresholds
 - place that material into playlist sessions
 
 Content writers should not:
 
 - create a brand new backend engine in markdown
-- invent new prompt payload shapes without code changes
+- invent new item payload shapes without code changes
 - assume the frontend can render new interaction types automatically
 
 ### Developer responsibility

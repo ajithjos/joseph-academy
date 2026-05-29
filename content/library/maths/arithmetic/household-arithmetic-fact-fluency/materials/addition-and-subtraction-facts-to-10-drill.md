@@ -17,7 +17,7 @@ runtime:
     operations:
       - addition
       - subtraction
-    prompt_forms:
+    item_forms:
       - equation
       - bond_missing
   scoring:
@@ -32,4 +32,4 @@ runtime:
 
 Use this once the learner can already say most pairs to 10 and needs mixed live recall.
 
-The app should generate a short mixed run of addition, subtraction, and make-10 prompts so the learner has to recognise the fact family instead of staying inside one narrow pattern.
+The app should generate a short mixed run of addition, subtraction, and make-10 items so the learner has to recognise the fact family instead of staying inside one narrow pattern.

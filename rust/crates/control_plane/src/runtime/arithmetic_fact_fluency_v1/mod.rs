@@ -1,0 +1,32 @@
+mod mixed_add_sub_to_10;
+mod mixed_add_sub_to_20;
+mod readiness_within_5;
+mod shared;
+
+use super::RuntimeProgramRegistration;
+
+const ENGINE_ID: &str = "arithmetic_fact_fluency.v1";
+
+pub const PROGRAMS: &[RuntimeProgramRegistration] = &[
+    RuntimeProgramRegistration {
+        runtime_id: readiness_within_5::RUNTIME_ID,
+        engine_id: ENGINE_ID,
+        template_id: readiness_within_5::TEMPLATE_ID,
+        generate: readiness_within_5::generate,
+        score: shared::score_integer_activity,
+    },
+    RuntimeProgramRegistration {
+        runtime_id: mixed_add_sub_to_10::RUNTIME_ID,
+        engine_id: ENGINE_ID,
+        template_id: mixed_add_sub_to_10::TEMPLATE_ID,
+        generate: mixed_add_sub_to_10::generate,
+        score: shared::score_integer_activity,
+    },
+    RuntimeProgramRegistration {
+        runtime_id: mixed_add_sub_to_20::RUNTIME_ID,
+        engine_id: ENGINE_ID,
+        template_id: mixed_add_sub_to_20::TEMPLATE_ID,
+        generate: mixed_add_sub_to_20::generate,
+        score: shared::score_integer_activity,
+    },
+];

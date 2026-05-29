@@ -17,7 +17,7 @@ runtime:
     operations:
       - addition
       - subtraction
-    prompt_forms:
+    item_forms:
       - equation
       - bond_missing
   scoring:

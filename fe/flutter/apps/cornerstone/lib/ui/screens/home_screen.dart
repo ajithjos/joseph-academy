@@ -563,7 +563,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       final response = await _apiClient.completeActivity(
         activityInstanceId: activity.activityInstanceId,
         answers: answers,
-        prompts: activity.prompts,
+        items: activity.items,
         durationSeconds: durationSeconds,
         notes: notes,
       );

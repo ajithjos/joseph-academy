@@ -14,7 +14,7 @@ runtime:
   template_id: readiness_within_5
   parameters:
     question_count: 10
-    prompt_forms:
+    item_forms:
       - count_group
       - bond_missing
       - addition

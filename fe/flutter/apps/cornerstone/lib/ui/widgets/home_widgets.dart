@@ -267,7 +267,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
-    _answerControllers = widget.activity.prompts
+    _answerControllers = widget.activity.items
         .map((_) => TextEditingController())
         .toList(growable: false);
   }
@@ -325,7 +325,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                     Text(widget.activity.materialTitle, style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 8),
                     Text(
-                      'Completed with ${result.activitySummary.correctCount}/${result.activitySummary.promptCount} correct (${(result.activitySummary.accuracy * 100).round()}%).',
+                      'Completed with ${result.activitySummary.correctCount}/${result.activitySummary.itemCount} correct (${(result.activitySummary.accuracy * 100).round()}%).',
                       style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 12),
@@ -386,7 +386,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                       runSpacing: 8,
                       children: [
                         _PillBadge(
-                          text: '${widget.activity.prompts.length} prompts',
+                          text: '${widget.activity.items.length} items',
                           color: theme.colorScheme.primary.withValues(alpha: 0.12),
                           textColor: theme.colorScheme.primary,
                         ),
@@ -413,10 +413,10 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                     const SizedBox(height: 16),
                     Expanded(
                       child: ListView.separated(
-                        itemCount: widget.activity.prompts.length,
+                        itemCount: widget.activity.items.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          final prompt = widget.activity.prompts[index];
+                          final item = widget.activity.items[index];
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -427,15 +427,15 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prompt ${index + 1}', style: theme.textTheme.labelLarge),
+                                Text('Item ${index + 1}', style: theme.textTheme.labelLarge),
                                 const SizedBox(height: 8),
-                                Text(prompt.prompt, style: theme.textTheme.titleMedium),
+                                Text(item.content, style: theme.textTheme.titleMedium),
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _answerControllers[index],
                                   keyboardType: TextInputType.number,
                                   enabled: !_submitting,
-                                  decoration: const InputDecoration(labelText: 'Answer'),
+                                  decoration: const InputDecoration(labelText: 'Response'),
                                 ),
                               ],
                             ),

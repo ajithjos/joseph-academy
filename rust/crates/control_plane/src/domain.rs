@@ -279,7 +279,7 @@ pub struct ActivityInstance {
     pub instructions: String,
     pub estimated_minutes: u16,
     pub scoring: ActivityScoringSummary,
-    pub prompts: Vec<ActivityPrompt>,
+    pub items: Vec<ActivityItem>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -289,10 +289,10 @@ pub struct ActivityScoringSummary {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ActivityPrompt {
-    pub prompt_id: String,
-    pub prompt: String,
-    pub answer_kind: String,
+pub struct ActivityItem {
+    pub item_id: String,
+    pub content: String,
+    pub response_kind: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -305,8 +305,8 @@ pub struct CompleteActivityRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ActivityResponseInput {
-    pub prompt_id: String,
-    pub answer: String,
+    pub item_id: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -321,7 +321,7 @@ pub struct CompleteActivityResponse {
 pub struct ActivitySummary {
     pub attempted_count: usize,
     pub correct_count: usize,
-    pub prompt_count: usize,
+    pub item_count: usize,
     pub accuracy: f64,
     pub passed: bool,
     pub completion_reason: String,
