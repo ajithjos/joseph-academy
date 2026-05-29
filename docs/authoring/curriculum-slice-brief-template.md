@@ -22,6 +22,14 @@ Fill this in before generating, revising, or reviewing curriculum for one subjec
 - What should a parent or coach notice in real life?
 - What counts as weak, partial, or secure performance?
 
+## Teaching Approach
+
+- What must be taught directly and explicitly?
+- Which concrete representations or mental models are allowed because they reduce errors and support later work?
+- Which standard methods should eventually be reached?
+- What must not happen in this slice? For example: discovery-only teaching, excessive theory, drills before instruction, or multiple conflicting strategies.
+- Which weak patterns should trigger immediate reteaching instead of more repetition?
+
 ## Candidate Stages
 
 For each stage, describe:
@@ -61,6 +69,7 @@ For each skill, describe:
 ## Constraints And Open Questions
 
 - vocabulary or tone constraints
+- pedagogy constraints and anti-patterns
 - family, classroom, or accessibility constraints
 - anything that must not be generated
 - unresolved questions that need answers before authoring continues

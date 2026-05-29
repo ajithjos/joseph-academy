@@ -39,6 +39,27 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Do not use sugary praise, filler encouragement, or theatrical motivation.
 - Do not hide weak work behind soft language.
 
+## Pedagogy Policy
+
+- Define teaching style with concrete instructional rules, not with vague national, regional, or political labels.
+- Prefer explicit instruction for new arithmetic content: state the idea clearly, show a worked example, then practise it.
+- Use representations such as number bonds, fact families, place-value partitioning, arrays, and equal groups when they reduce errors and make later arithmetic easier.
+- Keep conceptual explanation short and useful. Theory exists to support accurate performance, not to replace it.
+- Build fluency deliberately with mixed practice, retrieval, cumulative review, and fast correction of weak spots.
+- Introduce standard written methods once the learner can explain the structure underneath them.
+- Treat age guidance as an entry hint, not as a rule that blocks a learner from the right starting point.
+- Do not delay real arithmetic behind long discovery-only activities, reflective journaling, or motivational padding.
+- Do not introduce a drill or check before the learner has seen a direct teaching step.
+- Do not generate multiple competing strategies for the same small skill unless the brief explicitly calls for comparison.
+
+## Arithmetic-Specific Guidance
+
+- Number bonds are a useful arithmetic tool, not a region-specific ideology. Use them because they strengthen recall, inverse reasoning, and later written methods.
+- Fact families are useful when they help the learner connect addition to subtraction and multiplication to division.
+- Place value should be explicit early. Do not teach written addition, subtraction, multiplication, or division as empty symbol shuffling.
+- Mental methods and written methods should support each other. Do not present them as rival systems.
+- Use concise explanation, then repetition, then mixed review. Do not overbuild theory pages that delay practice.
+
 ## Curriculum Structure Rules
 
 - Keep ids in `snake_case`.
@@ -62,6 +83,7 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Write for repeatable use, not for a one-time demo activity.
 - Keep material metadata in the material file itself. Do not duplicate it in a separate material index.
 - Make review and recap deliberate when the slice needs them; do not leave reinforcement to chance.
+- For arithmetic, every material should make the teaching move clear: what is being taught directly, what is being practised, what counts as secure, and what mistake pattern should trigger reteaching.
 
 ## Required Material Kind Contract
 

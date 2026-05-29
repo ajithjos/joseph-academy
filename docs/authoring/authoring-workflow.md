@@ -7,6 +7,7 @@ Use this workflow whether a human expert is writing curriculum directly or an AI
 Before authoring or reviewing a slice, gather:
 
 - this directory
+- the subject-specific pedagogy guide when one exists, such as [Arithmetic teaching guidance](./arithmetic-teaching-guidance.md)
 - `content/library/registry.yaml`
 - the in-scope pathway directory under `content/library/{subject}/{area}/{pathway}/`
 - a filled-in [Curriculum slice brief template](./curriculum-slice-brief-template.md), when available
@@ -15,17 +16,18 @@ Before authoring or reviewing a slice, gather:
 ## Standard Authoring Flow
 
 1. Define the subject, area, learner context, and desired outcome.
-2. Review the existing pathway registry and in-scope pathway files before creating anything new.
-3. Draft or revise the pathway as the whole route.
-4. Draft or revise the skills for the slice.
-5. Group those skills into stages that make sense to a parent or coach.
-6. Decide what materials are needed for explanation, practice, review, and checking.
-7. Write or revise the markdown materials.
-8. Assemble or revise one or more playlists.
-9. Add or revise entry guidance for age or current readiness.
-9. Run the [review checklist](./authoring-rules.md).
-10. Run `uv run --with pytest python -m pytest tests/test_pathway_library.py` while iterating on the cleaned tree.
-11. Run legacy validation commands only if you changed compatibility files.
+2. Define the pedagogy stance for the slice in concrete terms: what must be taught directly, what must be practised to fluency, and what anti-patterns must be avoided.
+3. Review the existing pathway registry and in-scope pathway files before creating anything new.
+4. Draft or revise the pathway as the whole route.
+5. Draft or revise the skills for the slice.
+6. Group those skills into stages that make sense to a parent or coach.
+7. Decide what materials are needed for explanation, practice, review, and checking.
+8. Write or revise the markdown materials.
+9. Assemble or revise one or more playlists.
+10. Add or revise entry guidance for age or current readiness.
+11. Run the [review checklist](./authoring-rules.md).
+12. Run `uv run --with pytest python -m pytest tests/test_pathway_library.py` while iterating on the cleaned tree.
+13. Run legacy validation commands only if you changed compatibility files.
 
 These checks should cover the whole in-scope pathway, not only one individual file.
 
@@ -37,6 +39,7 @@ State the request plainly. Say:
 - which subject and area are in scope
 - which files may change
 - which files must stay fixed
+- which pedagogy rules are required for the slice and which teaching anti-patterns must be rejected
 - any tone, classroom, family, or accessibility constraints
 - whether you want exact file edits or only a proposed plan
 

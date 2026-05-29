@@ -9,6 +9,7 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 - product context for Cornerstone
 - the stable curriculum model and file ownership
 - authoring rules for tone, vocabulary, naming, reuse, and validation
+- arithmetic teaching guidance for pathway design and material generation
 - the practical workflow for creating, revising, or reviewing curriculum
 - a fillable brief template for one curriculum slice
 - worked example briefs under `examples/`
@@ -21,10 +22,11 @@ Architecture decisions about planning objects and runtime surfaces live under `.
 
 1. [Product and curriculum model](./product-and-curriculum-model.md)
 2. [Authoring rules](./authoring-rules.md)
-3. [Authoring workflow](./authoring-workflow.md)
-4. [Curriculum slice brief template](./curriculum-slice-brief-template.md)
-5. [Planning, authoring, and runtime](../architecture/planning-authoring-and-runtime.md) if you need the whole-system mental model
-6. [Household arithmetic fact fluency brief](./examples/household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
+3. [Arithmetic teaching guidance](./arithmetic-teaching-guidance.md) when the slice touches arithmetic
+4. [Authoring workflow](./authoring-workflow.md)
+5. [Curriculum slice brief template](./curriculum-slice-brief-template.md)
+6. [Planning, authoring, and runtime](../architecture/planning-authoring-and-runtime.md) if you need the whole-system mental model
+7. [Household arithmetic fact fluency brief](./examples/household-arithmetic-fact-fluency-brief.md) for a concrete first curriculum slice
 
 ## How To Use This Directory
 
