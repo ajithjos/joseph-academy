@@ -33,7 +33,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   ViewerSessionPayload? _viewerSession;
   DashboardPayload? _dashboard;
-  LibraryPayload? _library;
+  LibraryWorkspacePayload? _libraryWorkspace;
   LibraryDocumentsPayload? _libraryDocuments;
   LibraryDocumentData? _selectedLibraryDocument;
   LearnerDetailPayload? _learnerDetail;
@@ -181,7 +181,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           _sessionLoading = false;
           _authBusy = false;
           _dashboard = null;
-          _library = null;
+          _libraryWorkspace = null;
           _libraryDocuments = null;
           _selectedLibraryDocument = null;
           _learnerDetail = null;
@@ -204,7 +204,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _authBusy = false;
         _sessionErrorMessage = null;
         _dashboard = null;
-        _library = null;
+        _libraryWorkspace = null;
         _libraryDocuments = null;
         _selectedLibraryDocument = null;
         _learnerDetail = null;
@@ -263,7 +263,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _viewerSession = viewerSession;
         _authBusy = false;
         _dashboard = null;
-        _library = null;
+        _libraryWorkspace = null;
         _libraryDocuments = null;
         _selectedLibraryDocument = null;
         _learnerDetail = null;
@@ -320,7 +320,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         dashboard,
         preserveSelection: preserveSelection,
       );
-      LibraryPayload? library;
+      LibraryWorkspacePayload? libraryWorkspace;
       LibraryDocumentsPayload? libraryDocuments;
       String? nextLibraryRoutePath;
       LearnerDetailPayload? learnerDetail;
@@ -329,10 +329,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         learnerDetail = await _apiClient.fetchLearnerDetail(nextLearnerId);
       }
       if (_viewerCanReadLibrary) {
-        library = await _apiClient.fetchLibrary();
+        libraryWorkspace = await _apiClient.fetchLibraryWorkspace();
         libraryDocuments = await _apiClient.fetchLibraryDocuments();
         nextLibraryRoutePath = _nextLibraryRoutePath(
-          library: library,
+          libraryWorkspace: libraryWorkspace,
           documents: libraryDocuments,
           preserveSelection: preserveSelection,
         );
@@ -345,7 +345,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       if (!mounted) return;
       setState(() {
         _dashboard = dashboard;
-        _library = library;
+        _libraryWorkspace = libraryWorkspace;
         _libraryDocuments = libraryDocuments;
         _selectedLibraryRoutePath = nextLibraryRoutePath;
         _selectedLibraryDocument = selectedLibraryDocument;
@@ -366,7 +366,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   String? _nextLibraryRoutePath({
-    required LibraryPayload library,
+    required LibraryWorkspacePayload libraryWorkspace,
     required LibraryDocumentsPayload documents,
     bool preserveSelection = true,
   }) {
@@ -380,11 +380,25 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       return _selectedLibraryRoutePath;
     }
 
-    if (library.bundle.pathways.isNotEmpty) {
-      final preferredSourcePath = library.bundle.pathways.first.sourcePath;
-      for (final document in documents.documents) {
-        if (document.sourcePath == preferredSourcePath) {
-          return document.routePath;
+    final featuredRoutePath = libraryWorkspace.featuredRoutePath;
+    if (featuredRoutePath != null && availableRoutes.contains(featuredRoutePath)) {
+      return featuredRoutePath;
+    }
+
+    for (final pathway in libraryWorkspace.pathways) {
+      if (pathway.routePath != null && availableRoutes.contains(pathway.routePath)) {
+        return pathway.routePath;
+      }
+      for (final playlist in pathway.playlists) {
+        if (playlist.routePath != null && availableRoutes.contains(playlist.routePath)) {
+          return playlist.routePath;
+        }
+        for (final session in playlist.sessions) {
+          for (final material in session.materials) {
+            if (material.routePath != null && availableRoutes.contains(material.routePath)) {
+              return material.routePath;
+            }
+          }
         }
       }
     }
@@ -466,11 +480,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       _errorMessage = null;
     });
     try {
-      final today = DateTime.now().toIso8601String().split('T').first;
       await _apiClient.createAssignment(
         learnerId: learnerId,
         playlistId: playlistId,
-        startDate: today,
       );
       await _loadAll();
     } catch (error) {
@@ -1336,101 +1348,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     );
   }
 
-  Widget _buildLearnerMetricCard(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.54),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: theme.colorScheme.primary),
-          const SizedBox(height: 14),
-          Text(value, style: theme.textTheme.headlineMedium),
-          const SizedBox(height: 4),
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSessionListCard(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required String emptyMessage,
-    required List<SessionDetail> sessions,
-    required bool completed,
-  }) {
-    final theme = Theme.of(context);
-    return _SurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 18),
-          if (sessions.isEmpty)
-            Text(
-              emptyMessage,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
-          else
-            ...sessions.map(
-              (session) {
-                final evidence = session.latestEvidence;
-                final trailingLabel = completed && evidence != null
-                    ? '${evidence.score.toStringAsFixed(0)}/${evidence.maxScore.toStringAsFixed(0)}'
-                    : session.scheduledDate;
-                final subtitle = completed
-                    ? (session.notes.isEmpty ? 'Completed' : session.notes)
-                    : (session.notes.isEmpty
-                          ? 'Still pending'
-                          : session.notes);
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(session.title),
-                  subtitle: Text(subtitle, style: theme.textTheme.bodySmall),
-                  trailing: _PillBadge(
-                    text: trailingLabel,
-                    color: completed
-                        ? theme.colorScheme.secondaryContainer
-                        : theme.colorScheme.primary.withValues(alpha: 0.12),
-                    textColor: completed
-                        ? theme.colorScheme.onSecondaryContainer
-                        : theme.colorScheme.primary,
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildContentBody(BuildContext context) {
     final dashboard = _dashboard;
-    final library = _library;
+    final libraryWorkspace = _libraryWorkspace;
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_errorMessage != null) return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
     if (dashboard == null) return const Center(child: Text('No data loaded'));
@@ -1440,13 +1360,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               ? _availableDestinations.first
               : _ShellDestination.account);
     final content = switch (activeDestination) {
-      _ShellDestination.owner => library == null
+      _ShellDestination.owner => libraryWorkspace == null
           ? const Center(child: Text('Household planning data is unavailable.'))
-          : _buildOwnerView(context, dashboard, library),
+        : _buildOwnerView(context, dashboard, libraryWorkspace),
       _ShellDestination.learner => _buildLearnerView(context),
-      _ShellDestination.library => library == null
+      _ShellDestination.library => libraryWorkspace == null
           ? const Center(child: Text('Library access is unavailable for this viewer.'))
-          : _buildLibraryView(context, library),
+        : _buildLibraryView(context, libraryWorkspace),
       _ShellDestination.account => _buildAccountView(context, dashboard),
     };
     return _wrapMainContent(
@@ -1650,772 +1570,55 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     );
   }
 
-  Widget _buildOwnerView(BuildContext context, DashboardPayload dashboard, LibraryPayload library) {
-    final detail = _learnerDetail;
-    final theme = Theme.of(context);
-    final viewer = _currentViewer;
-    final learners = _visibleLearners;
-    final activeSessionCount = learners.where((learner) => learner.todaySession != null).length;
-    final totalReviewItems = learners.fold<int>(0, (sum, learner) => sum + learner.reviewItemCount);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth > 1120;
-        final hero = _PageHeroCard(
-          eyebrow: 'Parent / Teacher',
-          title: viewer == null ? (dashboard.team?.displayName ?? 'Learning Team') : '${viewer.displayName} dashboard',
-          description: 'Manage assignments, review needs, and learner progress across the whole household from one workspace.',
-          chips: [
-            _StatChip(label: 'Learners', value: '${learners.length}', icon: Icons.groups_rounded),
-            _StatChip(label: 'Active Today', value: '$activeSessionCount', icon: Icons.today_rounded),
-            _StatChip(label: 'Review Queue', value: '$totalReviewItems', icon: Icons.pending_actions_rounded),
-          ],
-        );
-        final leftPanel = _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Learner roster', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Choose a learner to inspect assignments, review needs, and live session state.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 20),
-              _GoldAccentDivider(),
-              const SizedBox(height: 18),
-              if (learners.isEmpty)
-                Text(
-                  'No learners are visible in this workspace yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                )
-              else
-                ...learners.map(
-                  (learner) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _LearnerCard(learner: learner, selected: learner.learnerId == _selectedLearnerId, onTap: () => _selectLearner(learner.learnerId)),
-                  ),
-                ),
-            ],
-          ),
-        );
-        final rightPanel = _SurfaceCard(
-          child: detail == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.person_search_rounded, size: 52, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.45)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Select a learner to inspect\nassignment and review state.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Learner workspace', style: theme.textTheme.headlineSmall),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Active assignment, current session capture, and skill progress in one place.',
-                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 20),
-                    _LearnerOperationsPanel(
-                      detail: detail,
-                      library: library.bundle,
-                      currentActionSession: _currentActionSession,
-                      scoreController: _scoreController,
-                      maxScoreController: _maxScoreController,
-                      durationController: _durationController,
-                      notesController: _notesController,
-                      onCreateAssignment: _createAssignment,
-                      onRecordSession: _recordCurrentSession,
-                      onStartActivity: (material) => _startActivityForMaterial(
-                        _currentActionSession!,
-                        material,
-                      ),
-                    ),
-                  ],
-                ),
-        );
-
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          children: [
-            hero,
-            const SizedBox(height: 20),
-            if (wide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 5, child: leftPanel),
-                  const SizedBox(width: 20),
-                  Expanded(flex: 6, child: rightPanel),
-                ],
-              )
-            else ...[
-              leftPanel,
-              const SizedBox(height: 20),
-              rightPanel,
-            ],
-          ],
-        );
-      },
+  Widget _buildOwnerView(
+    BuildContext context,
+    DashboardPayload dashboard,
+    LibraryWorkspacePayload libraryWorkspace,
+  ) {
+    return _OwnerWorkspaceView(
+      viewer: _currentViewer,
+      learners: _visibleLearners,
+      selectedLearnerId: _selectedLearnerId,
+      detail: _learnerDetail,
+      libraryWorkspace: libraryWorkspace,
+      currentActionSession: _currentActionSession,
+      scoreController: _scoreController,
+      maxScoreController: _maxScoreController,
+      durationController: _durationController,
+      notesController: _notesController,
+      onSelectLearner: _selectLearner,
+      onCreateAssignment: _createAssignment,
+      onOpenLibraryRoute: _selectLibraryDocument,
+      onOpenLibraryWorkspace: () => _setDestination(_ShellDestination.library),
+      onRecordSession: _recordCurrentSession,
+      onStartActivity: _startActivityForMaterial,
     );
   }
 
   Widget _buildLearnerView(BuildContext context) {
-    final detail = _learnerDetail;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final viewer = _currentViewer;
-    if (detail == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.school_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-              const SizedBox(height: 20),
-              Text(
-                viewer != null && viewer.isLearner
-                    ? 'This username is not linked to a learner profile yet.'
-                    : 'Select a learner to open the student view.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final pendingSessions = detail.sessions
-        .where((session) => session.status != 'completed')
-        .toList(growable: false);
-    final completedSessions = detail.sessions
-        .where((session) => session.status == 'completed')
-        .toList(growable: false);
-    final progressStatusCounts = <String, int>{};
-    for (final state in detail.progress) {
-      progressStatusCounts.update(state.status, (count) => count + 1, ifAbsent: () => 1);
-    }
-    final nextSession = pendingSessions.isNotEmpty ? pendingSessions.first : null;
-    final heroLabel = nextSession == null ? 'PROGRESS' : 'ACTIVE SESSION';
-    final heroTitle = nextSession?.title ?? 'No active session right now';
-    final heroDescription = viewer != null && viewer.canManageHousehold
-        ? 'Use this learner-facing view to understand what is still pending, what is already completed, and what the learner sees next.'
-        : 'See what is next, what you have already completed, and what still needs attention.';
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xFF2A2117), _BrandPalette.slateRaised, const Color(0xFF171411)]
-                  : [const Color(0xFFFFF4CC), Colors.white, const Color(0xFFF7ECDD)],
-              stops: const [0.0, 0.58, 1.0],
-            ),
-            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.28)),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.10 : 0.08),
-                blurRadius: 34,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.30)),
-                    ),
-                    child: Text(
-                      heroLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(nextSession?.scheduledDate ?? 'Up to date', style: theme.textTheme.bodySmall),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(detail.learner.displayName, style: theme.textTheme.displaySmall?.copyWith(color: theme.colorScheme.primary)),
-              const SizedBox(height: 8),
-              Text(heroTitle, style: theme.textTheme.headlineMedium),
-              const SizedBox(height: 10),
-              Text(
-                heroDescription,
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 22),
-              Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: [
-                  _buildLearnerMetricCard(
-                    context,
-                    label: 'Pending sessions',
-                    value: '${pendingSessions.length}',
-                    icon: Icons.pending_actions_rounded,
-                  ),
-                  _buildLearnerMetricCard(
-                    context,
-                    label: 'Completed sessions',
-                    value: '${completedSessions.length}',
-                    icon: Icons.task_alt_rounded,
-                  ),
-                  _buildLearnerMetricCard(
-                    context,
-                    label: 'Review items',
-                    value: '${detail.reviewItems.length}',
-                    icon: Icons.assignment_late_rounded,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (nextSession != null) ...[
-          const SizedBox(height: 20),
-          _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Material sequence', style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 6),
-                Text(
-                  '${nextSession.materials.length} materials lined up for the next session.',
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: nextSession.materials
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                        final index = entry.key;
-                        final material = entry.value;
-                        return Container(
-                          width: 280,
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: isDark ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised] : [Colors.white, _BrandPalette.warmPaper],
-                            ),
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
-                                blurRadius: 14,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(999)),
-                                child: Text(
-                                  'STEP ${index + 1}',
-                                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 0.8),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(material.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 10),
-                              Text(
-                                '${_humanizeLabel(material.kind)} · ${material.estimatedMinutes} min · ${material.skillIds.length} skills',
-                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                              ),
-                              const SizedBox(height: 12),
-                              if (material.runtime?.executable ?? false)
-                                FilledButton.tonalIcon(
-                                  onPressed: () => _startActivityForMaterial(nextSession, material),
-                                  icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
-                                  label: const Text('Start live activity'),
-                                )
-                              else
-                                Text(
-                                  'Use the teaching note or worksheet for this step, then record the result from the household view.',
-                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                                ),
-                            ],
-                          ),
-                        );
-                      })
-                      .toList(growable: false),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth > 1120;
-            final pendingCard = _buildSessionListCard(
-              context,
-              title: 'What is pending',
-              description: 'Sessions that still need attention in the current assignment.',
-              emptyMessage: 'No pending sessions right now.',
-              sessions: pendingSessions,
-              completed: false,
-            );
-            final completedCard = _buildSessionListCard(
-              context,
-              title: 'Completed work',
-              description: 'Work that has already been recorded for this learner.',
-              emptyMessage: 'No completed sessions have been recorded yet.',
-              sessions: completedSessions,
-              completed: true,
-            );
-            if (wide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: pendingCard),
-                  const SizedBox(width: 20),
-                  Expanded(child: completedCard),
-                ],
-              );
-            }
-            return Column(
-              children: [
-                pendingCard,
-                const SizedBox(height: 20),
-                completedCard,
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Skill progress', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
-              Text(
-                'Current status across the skills attached to this learner.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 18),
-              if (progressStatusCounts.isEmpty)
-                Text(
-                  'No progress has been recorded yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                )
-              else
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: progressStatusCounts.entries
-                      .map(
-                        (entry) => _PillBadge(
-                          text: '${entry.value} ${_humanizeLabel(entry.key)}',
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          textColor: theme.colorScheme.primary,
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-            ],
-          ),
-        ),
-      ],
+    return _LearnerWorkspaceView(
+      viewer: _currentViewer,
+      detail: _learnerDetail,
+      viewerCanReadLibrary: _viewerCanReadLibrary,
+      onOpenLibraryRoute: _selectLibraryDocument,
+      onStartActivity: _startActivityForMaterial,
     );
   }
 
-  Widget _buildLibraryView(BuildContext context, LibraryPayload library) {
-    final theme = Theme.of(context);
-    final documents = _libraryDocuments;
-    final activeDocument = _selectedLibraryDocument;
-    LearnerDashboard? selectedLearner;
-    for (final learner in _visibleLearners) {
-      if (learner.learnerId == _selectedLearnerId) {
-        selectedLearner = learner;
-        break;
-      }
-    }
-    final areaById = {
-      for (final area in library.bundle.areas) area.areaId: area,
-    };
-    final playlistsById = {
-      for (final playlist in library.bundle.playlists) playlist.playlistId: playlist,
-    };
-    final materialsById = {
-      for (final material in library.bundle.materials) material.id: material,
-    };
-    final routeBySourcePath = {
-      for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
-        document.sourcePath: document.routePath,
-    };
-    final documentsByKey = {
-      for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
-        '${document.kind}:${document.documentId}': document,
-    };
-
-    Widget buildNavigatorPanel() {
-      return Column(
-        children: [
-          _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Pathways', style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 6),
-                Text(
-                  'Open the route document first, then jump to the supporting playlists and materials as needed.',
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 12),
-                _PillBadge(
-                  text: selectedLearner == null
-                      ? 'Select a learner in Household to assign from this screen'
-                      : 'Assignment target: ${selectedLearner.displayName}',
-                  color: selectedLearner == null
-                      ? theme.colorScheme.surfaceContainerHighest
-                      : theme.colorScheme.secondaryContainer,
-                  textColor: selectedLearner == null
-                      ? theme.colorScheme.onSurfaceVariant
-                      : theme.colorScheme.onSecondaryContainer,
-                ),
-                const SizedBox(height: 16),
-                if (library.bundle.pathways.isEmpty)
-                  Text(
-                    'No pathways are available yet.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  )
-                else
-                  ...library.bundle.pathways.map((pathway) {
-                    final areaTitle = areaById[pathway.areaId]?.title ?? pathway.areaId;
-                    final orderedPlaylists = pathway.playlistIds
-                        .map((playlistId) => playlistsById[playlistId])
-                        .whereType<PlaylistInfo>()
-                        .toList(growable: false);
-                    final entryPoints = pathway.entryPoints.entries.toList(growable: false)
-                      ..sort((left, right) {
-                        final leftAge = int.tryParse(left.key.replaceFirst('age_', '')) ?? 0;
-                        final rightAge = int.tryParse(right.key.replaceFirst('age_', '')) ?? 0;
-                        return leftAge.compareTo(rightAge);
-                      });
-                    final pathwayRoutePath = routeBySourcePath[pathway.sourcePath];
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(pathway.title, style: theme.textTheme.titleLarge),
-                            const SizedBox(height: 8),
-                            Text(
-                              pathway.description,
-                              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                            ),
-                            const SizedBox(height: 14),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _PillBadge(
-                                  text: areaTitle,
-                                  color: theme.colorScheme.secondaryContainer,
-                                  textColor: theme.colorScheme.onSecondaryContainer,
-                                ),
-                                _PillBadge(
-                                  text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                  textColor: theme.colorScheme.primary,
-                                ),
-                                _PillBadge(
-                                  text: '${pathway.stageIds.length} stages',
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                  textColor: theme.colorScheme.primary,
-                                ),
-                                _PillBadge(
-                                  text: '${orderedPlaylists.length} playlists',
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                  textColor: theme.colorScheme.primary,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            FilledButton.icon(
-                              onPressed: pathwayRoutePath == null
-                                  ? null
-                                  : () => _selectLibraryDocument(pathwayRoutePath),
-                              icon: const Icon(Icons.description_rounded, size: 18),
-                              label: const Text('Open route document'),
-                            ),
-                            if (entryPoints.isNotEmpty) ...[
-                              const SizedBox(height: 18),
-                              Text('Entry guidance', style: theme.textTheme.titleSmall),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: entryPoints.map((entry) {
-                                  final age = entry.key.replaceFirst('age_', '');
-                                  final playlistTitle = playlistsById[entry.value]?.title ?? entry.value;
-                                  return _PillBadge(
-                                    text: 'Age $age: $playlistTitle',
-                                    color: theme.colorScheme.tertiaryContainer,
-                                    textColor: theme.colorScheme.onTertiaryContainer,
-                                  );
-                                }).toList(growable: false),
-                              ),
-                            ],
-                            if (orderedPlaylists.isNotEmpty) ...[
-                              const SizedBox(height: 18),
-                              Text('Ordered playlists', style: theme.textTheme.titleSmall),
-                              const SizedBox(height: 10),
-                              ...orderedPlaylists.asMap().entries.map((entry) {
-                                final playlist = entry.value;
-                                final playlistRoute = documentsByKey['playlist:${playlist.playlistId}']?.routePath;
-                                final playlistMaterials = playlist.sessions
-                                    .expand((session) => session.materialIds)
-                                    .toSet()
-                                    .length;
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 14),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface.withValues(alpha: 0.55),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: theme.colorScheme.outlineVariant,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                            foregroundColor: theme.colorScheme.primary,
-                                            child: Text(
-                                              '${entry.key + 1}',
-                                              style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(playlist.title, style: theme.textTheme.titleMedium),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  'Age ${playlist.recommendedAge} · ${playlist.durationDays} sessions · $playlistMaterials materials · ${playlist.skillIds.length} skills',
-                                                  style: theme.textTheme.bodySmall,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      ...playlist.sessions.asMap().entries.map((sessionEntry) {
-                                        final session = sessionEntry.value;
-                                        final sessionMaterials = session.materialIds
-                                            .map((materialId) => materialsById[materialId])
-                                            .whereType<MaterialInfo>()
-                                            .toList(growable: false);
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 10),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  '${sessionEntry.key + 1}. ${session.title}',
-                                                  style: theme.textTheme.titleSmall,
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Wrap(
-                                                  spacing: 8,
-                                                  runSpacing: 8,
-                                                  children: sessionMaterials
-                                                      .map(
-                                                        (material) => _PillBadge(
-                                                          text: '${material.title} · ${_humanizeLabel(material.kind)}${material.runtime != null ? ' · Live' : ''}',
-                                                          color: material.runtime != null
-                                                              ? theme.colorScheme.tertiaryContainer
-                                                              : theme.colorScheme.primary.withValues(alpha: 0.12),
-                                                          textColor: material.runtime != null
-                                                              ? theme.colorScheme.onTertiaryContainer
-                                                              : theme.colorScheme.primary,
-                                                        ),
-                                                      )
-                                                      .toList(growable: false),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                      Wrap(
-                                        spacing: 10,
-                                        runSpacing: 10,
-                                        children: [
-                                          TextButton(
-                                            onPressed: playlistRoute == null
-                                                ? null
-                                                : () => _selectLibraryDocument(playlistRoute),
-                                            child: const Text('Open'),
-                                          ),
-                                          if (_viewerCanManage)
-                                            FilledButton.tonal(
-                                              onPressed: selectedLearner == null
-                                                  ? null
-                                                  : () => _createAssignment(playlist.playlistId),
-                                              child: Text(
-                                                selectedLearner == null
-                                                    ? 'Select learner to assign'
-                                                    : 'Assign to ${selectedLearner.displayName}',
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Supporting materials', style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 6),
-                Text(
-                  'Open the exact worksheet, teaching note, or check without leaving the app.',
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 16),
-                ...library.bundle.materials.map((item) {
-                  final materialRoute = documentsByKey['material:${item.id}']?.routePath;
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(item.title),
-                    subtitle: Text(
-                      '${_humanizeLabel(item.kind)}${item.runtime != null ? ' · Live' : ''} · ${item.estimatedMinutes} min · age ${item.recommendedAge}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    trailing: TextButton(
-                      onPressed: materialRoute == null
-                          ? null
-                          : () => _selectLibraryDocument(materialRoute),
-                      child: const Text('Open'),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    Widget buildReaderPanel() {
-      return _SurfaceCard(
-        child: _LibraryDocumentReader(
-          document: activeDocument,
-          busy: _libraryDocumentBusy,
-          routeBySourcePath: routeBySourcePath,
-          onOpenLibraryRoute: _selectLibraryDocument,
-        ),
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth > 1240;
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          children: [
-            _PageHeroCard(
-              eyebrow: 'Library',
-              title: 'Learning Library',
-              description: 'Browse the authored pathways first, then read the underlying markdown documents directly inside Cornerstone.',
-              chips: [
-                _StatChip(label: 'Pathways', value: '${library.report.pathwayCount}', icon: Icons.route_rounded),
-                _StatChip(label: 'Documents', value: '${documents?.documents.length ?? 0}', icon: Icons.description_rounded),
-                _StatChip(label: 'Materials', value: '${library.report.materialCount}', icon: Icons.menu_book_rounded),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (wide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 5, child: buildNavigatorPanel()),
-                  const SizedBox(width: 20),
-                  Expanded(flex: 6, child: buildReaderPanel()),
-                ],
-              )
-            else ...[
-              buildNavigatorPanel(),
-              const SizedBox(height: 20),
-              buildReaderPanel(),
-            ],
-          ],
-        );
-      },
+  Widget _buildLibraryView(
+    BuildContext context,
+    LibraryWorkspacePayload libraryWorkspace,
+  ) {
+    return _LibraryWorkspaceView(
+      libraryWorkspace: libraryWorkspace,
+      documents: _libraryDocuments,
+      activeDocument: _selectedLibraryDocument,
+      libraryDocumentBusy: _libraryDocumentBusy,
+      learners: _visibleLearners,
+      selectedLearnerId: _selectedLearnerId,
+      viewerCanManage: _viewerCanManage,
+      onCreateAssignment: _createAssignment,
+      onOpenLibraryRoute: _selectLibraryDocument,
     );
   }
 }

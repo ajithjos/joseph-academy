@@ -63,13 +63,80 @@ pub struct LibraryDocumentResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct LibraryWorkspaceResponse {
+    pub status: String,
+    pub featured_route_path: Option<String>,
+    pub pathways: Vec<PathwayWorkspaceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PathwayWorkspaceSummary {
+    pub pathway_id: String,
+    pub title: String,
+    pub description: String,
+    pub area_title: String,
+    pub recommended_age_min: u8,
+    pub recommended_age_max: u8,
+    pub stage_count: usize,
+    pub playlist_count: usize,
+    pub route_path: Option<String>,
+    pub entry_points: Vec<PathwayEntryPointSummary>,
+    pub playlists: Vec<PlaylistWorkspaceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PathwayEntryPointSummary {
+    pub age: u8,
+    pub playlist_id: String,
+    pub playlist_title: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlaylistWorkspaceSummary {
+    pub playlist_id: String,
+    pub title: String,
+    pub description: String,
+    pub recommended_age: u8,
+    pub recommended_level: String,
+    pub duration_days: i32,
+    pub stage_count: usize,
+    pub skill_count: usize,
+    pub material_count: usize,
+    pub live_material_count: usize,
+    pub route_path: Option<String>,
+    pub sessions: Vec<PlaylistSessionWorkspaceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlaylistSessionWorkspaceSummary {
+    pub session_index: usize,
+    pub day_offset: i32,
+    pub title: String,
+    pub skill_ids: Vec<String>,
+    pub material_count: usize,
+    pub estimated_minutes: u32,
+    pub live_material_count: usize,
+    pub materials: Vec<MaterialWorkspaceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MaterialWorkspaceSummary {
+    pub material_id: String,
+    pub title: String,
+    pub kind: String,
+    pub estimated_minutes: u16,
+    pub skill_ids: Vec<String>,
+    pub executable: bool,
+    pub route_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct BootstrapApplyResponse {
     pub status: String,
     pub team_id: String,
     pub user_count: usize,
     pub membership_count: usize,
     pub learner_count: usize,
-    pub seeded_assignment_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -129,9 +196,31 @@ pub struct LearnerDashboard {
 pub struct LearnerDetailResponse {
     pub learner: LearnerSummary,
     pub active_assignment: Option<AssignmentSummary>,
+    pub journey: Option<LearnerJourneySummary>,
     pub sessions: Vec<SessionDetail>,
     pub progress: Vec<SkillProgressSummary>,
     pub review_items: Vec<ReviewItemSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerJourneySummary {
+    pub pathway_id: Option<String>,
+    pub pathway_title: Option<String>,
+    pub pathway_description: Option<String>,
+    pub pathway_route_path: Option<String>,
+    pub playlist_id: String,
+    pub playlist_title: String,
+    pub playlist_description: String,
+    pub playlist_route_path: Option<String>,
+    pub recommended_age: u8,
+    pub recommended_level: String,
+    pub duration_days: i32,
+    pub total_session_count: usize,
+    pub completed_session_count: usize,
+    pub pending_session_count: usize,
+    pub total_material_count: usize,
+    pub live_material_count: usize,
+    pub next_session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -162,6 +251,8 @@ pub struct SessionSummary {
     pub title: String,
     pub scheduled_date: NaiveDate,
     pub status: String,
+    pub day_offset: i32,
+    pub sequence_number: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -170,6 +261,8 @@ pub struct SessionDetail {
     pub title: String,
     pub scheduled_date: NaiveDate,
     pub status: String,
+    pub day_offset: i32,
+    pub sequence_number: Option<usize>,
     pub notes: String,
     pub materials: Vec<SessionMaterialSummary>,
     pub latest_evidence: Option<EvidenceSummary>,
@@ -184,6 +277,7 @@ pub struct SessionMaterialSummary {
     pub estimated_minutes: u16,
     pub skill_ids: Vec<String>,
     pub status: String,
+    pub document_route_path: Option<String>,
     pub runtime: Option<SessionMaterialRuntimeSummary>,
 }
 
@@ -236,7 +330,7 @@ pub struct StageProgress {
 pub struct AssignmentRequest {
     pub learner_id: String,
     pub playlist_id: String,
-    pub start_date: NaiveDate,
+    pub start_date: Option<NaiveDate>,
 }
 
 #[derive(Debug, Clone, Serialize)]

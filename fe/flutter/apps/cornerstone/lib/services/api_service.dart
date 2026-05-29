@@ -77,6 +77,14 @@ class CornerstoneApiClient {
     return LibraryPayload.fromJson(_decode(response));
   }
 
+  Future<LibraryWorkspacePayload> fetchLibraryWorkspace() async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/library/workspace'),
+      headers: _viewerHeaders(),
+    );
+    return LibraryWorkspacePayload.fromJson(_decode(response));
+  }
+
   Future<LibraryDocumentsPayload> fetchLibraryDocuments() async {
     final response = await _client.get(
       Uri.parse('$baseUrl/api/v1/library/documents'),
@@ -106,7 +114,7 @@ class CornerstoneApiClient {
   Future<void> createAssignment({
     required String learnerId,
     required String playlistId,
-    required String startDate,
+    String? startDate,
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/v1/assignments'),
@@ -114,7 +122,7 @@ class CornerstoneApiClient {
       body: jsonEncode({
         'learner_id': learnerId,
         'playlist_id': playlistId,
-        'start_date': startDate,
+        if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
       }),
     );
     _decode(response);

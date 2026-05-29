@@ -20,9 +20,10 @@ use crate::domain::{
 };
 use crate::service::{
     AppState, apply_bootstrap, complete_activity_instance, create_assignment,
-    fetch_dashboard, fetch_learner_detail, fetch_library, fetch_library_document,
-    fetch_viewer_session, list_learners, list_library_documents,
-    login_viewer_session, rebuild_review_items, record_session, reload_library,
+    fetch_dashboard, fetch_learner_detail, fetch_library,
+    fetch_library_document, fetch_library_workspace, fetch_viewer_session,
+    list_learners, list_library_documents, login_viewer_session,
+    rebuild_review_items, record_session, reload_library,
     start_session_material_activity,
 };
 
@@ -103,6 +104,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/", get(index))
         .route("/health", get(health))
         .route("/api/v1/library", get(get_library))
+        .route("/api/v1/library/workspace", get(get_library_workspace))
         .route("/api/v1/library/reload", post(post_library_reload))
         .route("/api/v1/library/documents", get(get_library_documents))
         .route("/api/v1/library/document", get(get_library_document))
@@ -159,6 +161,14 @@ async fn get_library(
     let viewer_username = viewer_username_from_headers(&headers)?;
     let (bundle, report) = fetch_library(&state, &viewer_username).await?;
     Ok(Json(LibraryPayload { report, bundle }))
+}
+
+async fn get_library_workspace(
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<crate::domain::LibraryWorkspaceResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(fetch_library_workspace(&state, &viewer_username).await?))
 }
 
 async fn post_library_reload(

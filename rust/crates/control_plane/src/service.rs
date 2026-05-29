@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use anyhow::{Context, anyhow, bail};
-use catalog::{LibraryBundle, LibraryDocument, LibraryValidationReport, Pathway, Playlist, PlaylistSession, load_bootstrap, load_library_content};
+use catalog::{LibraryBundle, LibraryDocument, LibraryValidationReport, PlaylistSession, load_bootstrap, load_library_content};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use learning_activity_runtime::{self as runtime, GeneratedActivity, ScoredActivity};
 use serde_json::{Value as JsonValue, json};
@@ -19,12 +19,15 @@ use crate::domain::{
     AssignmentRow, AssignmentSummary, BootstrapApplyResponse, CompleteActivityRequest,
     CompleteActivityResponse,
     DashboardResponse, EvidenceRow, EvidenceSummary, HouseholdMemberRow, HouseholdMemberSummary,
-    LearnerDashboard, LearnerDetailResponse, LearnerRow, LearnerSummary, LibraryDocumentPayload,
-    LibraryDocumentSummary, LibraryReloadResponse, RecordSessionRequest, RecordSessionResponse,
-    ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail, SessionMaterialRow,
-    SessionMaterialRuntimeSummary, SessionMaterialSummary, SessionRow, SessionSummary,
-    SkillProgressRow, SkillProgressSummary, StageProgress, TeamRow, TeamSummary,
-    ViewerSessionResponse,
+    LearnerDashboard, LearnerDetailResponse, LearnerJourneySummary, LearnerRow,
+    LearnerSummary, LibraryDocumentPayload, LibraryDocumentSummary,
+    LibraryReloadResponse, LibraryWorkspaceResponse, MaterialWorkspaceSummary,
+    PathwayEntryPointSummary, PathwayWorkspaceSummary, PlaylistSessionWorkspaceSummary,
+    PlaylistWorkspaceSummary, RecordSessionRequest, RecordSessionResponse,
+    ReviewItemRow, ReviewItemSummary, ReviewRebuildResponse, SessionDetail,
+    SessionMaterialRow, SessionMaterialRuntimeSummary, SessionMaterialSummary,
+    SessionRow, SessionSummary, SkillProgressRow, SkillProgressSummary,
+    StageProgress, TeamRow, TeamSummary, ViewerSessionResponse,
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
@@ -238,14 +241,12 @@ pub async fn apply_bootstrap(state: &Arc<AppState>) -> anyhow::Result<BootstrapA
         .await?;
     }
 
-    let seeded_assignment_count = seed_default_assignments_if_missing(state).await?;
     Ok(BootstrapApplyResponse {
         status: "ok".to_string(),
         team_id: bootstrap.team.team_id,
         user_count: bootstrap.users.len(),
         membership_count: bootstrap.memberships.len(),
         learner_count: learner_memberships.len(),
-        seeded_assignment_count,
     })
 }
 
@@ -259,6 +260,32 @@ pub async fn fetch_library(
     let bundle = state.library.read().await.clone();
     let report = library_report_response(&*state.library_report.read().await);
     Ok((bundle, report))
+}
+
+pub async fn fetch_library_workspace(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+) -> anyhow::Result<LibraryWorkspaceResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_manage_household(&viewer)?;
+
+    let library = state.library.read().await.clone();
+    let documents = state.library_documents.read().await.clone();
+    let pathways = build_library_workspace_pathways(&library, &documents);
+    let featured_route_path = pathways.iter().find_map(|pathway| {
+        pathway.route_path.clone().or_else(|| {
+            pathway
+                .playlists
+                .iter()
+                .find_map(|playlist| playlist.route_path.clone())
+        })
+    });
+
+    Ok(LibraryWorkspaceResponse {
+        status: "ok".to_string(),
+        featured_route_path,
+        pathways,
+    })
 }
 
 pub async fn list_library_documents(
@@ -429,9 +456,20 @@ pub async fn fetch_learner_detail(
         .as_ref()
         .map(|assignment| assignment.assignment_id.clone());
     let library = state.library.read().await.clone();
-    let sessions = fetch_sessions(&state.pool, &library, learner_id, assignment_filter.as_deref()).await?;
+    let documents = state.library_documents.read().await.clone();
+    let sessions = fetch_sessions(
+        &state.pool,
+        &library,
+        &documents,
+        learner_id,
+        assignment_filter.as_deref(),
+    )
+    .await?;
     let progress = fetch_progress(&state.pool, learner_id).await?;
     let review_items = fetch_review_items(&state.pool, learner_id).await?;
+    let journey = active_assignment
+        .as_ref()
+        .map(|assignment| build_learner_journey(&library, &documents, assignment, &sessions));
 
     Ok(LearnerDetailResponse {
         learner: LearnerSummary {
@@ -442,6 +480,7 @@ pub async fn fetch_learner_detail(
             notes: learner.notes,
         },
         active_assignment,
+        journey,
         sessions,
         progress,
         review_items,
@@ -462,7 +501,7 @@ pub async fn create_assignment(
         &library,
         &request.learner_id,
         &request.playlist_id,
-        request.start_date,
+        request.start_date.unwrap_or_else(|| Utc::now().date_naive()),
     )
     .await?;
     Ok(AssignmentResponse {
@@ -851,6 +890,237 @@ fn library_document_payload(document: &LibraryDocument) -> LibraryDocumentPayloa
     }
 }
 
+fn build_library_workspace_pathways(
+    library: &LibraryBundle,
+    documents: &[LibraryDocument],
+) -> Vec<PathwayWorkspaceSummary> {
+    let mut pathways = Vec::new();
+
+    for pathway in &library.pathways {
+        let mut playlists = Vec::new();
+        for playlist_id in &pathway.playlist_ids {
+            let Some(playlist) = library.playlist(playlist_id) else {
+                continue;
+            };
+
+            let mut sessions = Vec::new();
+            let mut material_count = 0usize;
+            let mut live_material_count = 0usize;
+
+            for (index, session) in playlist.session_pattern.sessions.iter().enumerate() {
+                let mut materials = Vec::new();
+                let mut session_live_material_count = 0usize;
+                let mut estimated_minutes = 0u32;
+
+                for material_id in &session.material_ids {
+                    let Some(material) = library.material(material_id) else {
+                        continue;
+                    };
+                    let executable = material.runtime.is_some();
+                    if executable {
+                        session_live_material_count += 1;
+                        live_material_count += 1;
+                    }
+                    material_count += 1;
+                    estimated_minutes += u32::from(material.estimated_minutes);
+                    materials.push(MaterialWorkspaceSummary {
+                        material_id: material.id.clone(),
+                        title: material.title.clone(),
+                        kind: material.kind.clone(),
+                        estimated_minutes: material.estimated_minutes,
+                        skill_ids: material.skill_ids.clone(),
+                        executable,
+                        route_path: document_route_path_for_kind(documents, "material", &material.id),
+                    });
+                }
+
+                sessions.push(PlaylistSessionWorkspaceSummary {
+                    session_index: index + 1,
+                    day_offset: session.day_offset,
+                    title: session.title.clone(),
+                    skill_ids: session.skill_ids.clone(),
+                    material_count: materials.len(),
+                    estimated_minutes,
+                    live_material_count: session_live_material_count,
+                    materials,
+                });
+            }
+
+            playlists.push(PlaylistWorkspaceSummary {
+                playlist_id: playlist.playlist_id.clone(),
+                title: playlist.title.clone(),
+                description: document_description_for_kind(documents, "playlist", &playlist.playlist_id)
+                    .unwrap_or_else(|| {
+                        format!(
+                            "{} sessions across {} days.",
+                            playlist.session_pattern.sessions.len(),
+                            playlist.duration_days
+                        )
+                    }),
+                recommended_age: playlist.recommended_age,
+                recommended_level: playlist.recommended_level.clone(),
+                duration_days: playlist.duration_days,
+                stage_count: playlist.stage_ids.len(),
+                skill_count: playlist.skill_ids.len(),
+                material_count,
+                live_material_count,
+                route_path: document_route_path_for_kind(documents, "playlist", &playlist.playlist_id),
+                sessions,
+            });
+        }
+
+        let mut entry_points = pathway
+            .entry_points
+            .iter()
+            .filter_map(|(key, playlist_id)| {
+                key.strip_prefix("age_")
+                    .and_then(|value| value.parse::<u8>().ok())
+                    .map(|age| PathwayEntryPointSummary {
+                        age,
+                        playlist_id: playlist_id.clone(),
+                        playlist_title: library
+                            .playlist(playlist_id)
+                            .map(|playlist| playlist.title.clone())
+                            .unwrap_or_else(|| playlist_id.clone()),
+                    })
+            })
+            .collect::<Vec<_>>();
+        entry_points.sort_by_key(|entry| entry.age);
+
+        pathways.push(PathwayWorkspaceSummary {
+            pathway_id: pathway.pathway_id.clone(),
+            title: pathway.title.clone(),
+            description: pathway.description.clone(),
+            area_title: library
+                .areas
+                .iter()
+                .find(|area| area.area_id == pathway.area_id)
+                .map(|area| area.title.clone())
+                .unwrap_or_else(|| pathway.area_id.clone()),
+            recommended_age_min: pathway.recommended_age_min,
+            recommended_age_max: pathway.recommended_age_max,
+            stage_count: pathway.stage_ids.len(),
+            playlist_count: playlists.len(),
+            route_path: document_route_path_for_source(documents, &pathway.source_path),
+            entry_points,
+            playlists,
+        });
+    }
+
+    pathways
+}
+
+fn build_learner_journey(
+    library: &LibraryBundle,
+    documents: &[LibraryDocument],
+    assignment: &AssignmentSummary,
+    sessions: &[SessionDetail],
+) -> LearnerJourneySummary {
+    let playlist = library.playlist(&assignment.playlist_id);
+    let pathway = find_pathway_for_playlist(library, &assignment.playlist_id);
+    let completed_session_count = sessions
+        .iter()
+        .filter(|session| session.status == "completed")
+        .count();
+    let pending_session_count = sessions.len().saturating_sub(completed_session_count);
+    let total_material_count = sessions.iter().map(|session| session.materials.len()).sum();
+    let live_material_count = sessions
+        .iter()
+        .flat_map(|session| session.materials.iter())
+        .filter(|material| {
+            material
+                .runtime
+                .as_ref()
+                .map(|runtime| runtime.executable)
+                .unwrap_or(false)
+        })
+        .count();
+    let next_session_id = sessions
+        .iter()
+        .find(|session| session.status != "completed")
+        .map(|session| session.session_id.clone());
+
+    LearnerJourneySummary {
+        pathway_id: pathway.map(|item| item.pathway_id.clone()),
+        pathway_title: pathway.map(|item| item.title.clone()),
+        pathway_description: pathway.map(|item| item.description.clone()),
+        pathway_route_path: pathway
+            .and_then(|item| document_route_path_for_source(documents, &item.source_path)),
+        playlist_id: assignment.playlist_id.clone(),
+        playlist_title: playlist
+            .map(|item| item.title.clone())
+            .unwrap_or_else(|| assignment.title.clone()),
+        playlist_description: document_description_for_kind(
+            documents,
+            "playlist",
+            &assignment.playlist_id,
+        )
+        .unwrap_or_else(|| {
+            format!(
+                "{} sessions are queued in this learning path.",
+                sessions.len()
+            )
+        }),
+        playlist_route_path: document_route_path_for_kind(documents, "playlist", &assignment.playlist_id),
+        recommended_age: playlist.map(|item| item.recommended_age).unwrap_or(0),
+        recommended_level: playlist
+            .map(|item| item.recommended_level.clone())
+            .unwrap_or_default(),
+        duration_days: playlist
+            .map(|item| item.duration_days)
+            .unwrap_or(assignment.total_sessions),
+        total_session_count: sessions.len(),
+        completed_session_count,
+        pending_session_count,
+        total_material_count,
+        live_material_count,
+        next_session_id,
+    }
+}
+
+fn find_pathway_for_playlist<'a>(
+    library: &'a LibraryBundle,
+    playlist_id: &str,
+) -> Option<&'a catalog::Pathway> {
+    library
+        .pathways
+        .iter()
+        .find(|pathway| pathway.playlist_ids.iter().any(|item| item == playlist_id))
+}
+
+fn document_route_path_for_source(
+    documents: &[LibraryDocument],
+    source_path: &str,
+) -> Option<String> {
+    documents
+        .iter()
+        .find(|document| document.source_path == source_path)
+        .map(|document| document.route_path.clone())
+}
+
+fn document_route_path_for_kind(
+    documents: &[LibraryDocument],
+    kind: &str,
+    document_id: &str,
+) -> Option<String> {
+    documents
+        .iter()
+        .find(|document| document.kind == kind && document.document_id == document_id)
+        .map(|document| document.route_path.clone())
+}
+
+fn document_description_for_kind(
+    documents: &[LibraryDocument],
+    kind: &str,
+    document_id: &str,
+) -> Option<String> {
+    documents
+        .iter()
+        .find(|document| document.kind == kind && document.document_id == document_id)
+        .map(|document| document.description.trim().to_string())
+        .filter(|description| !description.is_empty())
+}
+
 async fn fetch_team_summary(state: &Arc<AppState>) -> anyhow::Result<Option<TeamSummary>> {
     let team = query_as::<_, TeamRow>("select team_id, display_name, description from team order by team_id limit 1")
         .fetch_optional(&state.pool)
@@ -1001,94 +1271,6 @@ fn summarize_progress(
     (counts, stage_progress)
 }
 
-async fn seed_default_assignments_if_missing(state: &Arc<AppState>) -> anyhow::Result<usize> {
-    let learners = query_as::<_, LearnerRow>(
-        "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
-         from learner_profile
-         order by display_name",
-    )
-    .fetch_all(&state.pool)
-    .await?;
-    let library = state.library.read().await.clone();
-    let today = Utc::now().date_naive();
-
-    let mut seeded = 0usize;
-    for learner in learners {
-        let active_count = query_scalar::<_, i64>(
-            "select count(*) from assignment where learner_id = $1 and status in ('active', 'scheduled')",
-        )
-        .bind(&learner.learner_id)
-        .fetch_one(&state.pool)
-        .await?;
-        if active_count > 0 {
-            continue;
-        }
-        if let Some(playlist) = choose_default_playlist(&library, calculate_age(learner.date_of_birth)) {
-            let _ = create_assignment_internal(
-                state,
-            &library,
-                &learner.learner_id,
-                &playlist.playlist_id,
-                today,
-            )
-            .await?;
-            seeded += 1;
-        }
-    }
-    Ok(seeded)
-}
-
-fn choose_default_playlist(library: &LibraryBundle, age: i32) -> Option<&Playlist> {
-    let normalized_age = age.clamp(0, u8::MAX as i32) as u8;
-
-    let pathway_candidate = library
-        .pathways
-        .iter()
-        .min_by_key(|pathway| pathway_age_distance(pathway, normalized_age));
-    if let Some(pathway) = pathway_candidate {
-        if let Some(playlist_id) = choose_pathway_entry_point(pathway, normalized_age) {
-            if let Some(playlist) = library.playlist(playlist_id) {
-                return Some(playlist);
-            }
-        }
-    }
-
-    library
-        .playlists
-        .iter()
-        .min_by_key(|playlist| (playlist.recommended_age as i32 - age).abs())
-}
-
-fn pathway_age_distance(pathway: &Pathway, age: u8) -> u8 {
-    if age < pathway.recommended_age_min {
-        pathway.recommended_age_min - age
-    } else if age > pathway.recommended_age_max {
-        age - pathway.recommended_age_max
-    } else {
-        0
-    }
-}
-
-fn choose_pathway_entry_point<'a>(pathway: &'a Pathway, age: u8) -> Option<&'a str> {
-    let mut thresholds = pathway
-        .entry_points
-        .iter()
-        .filter_map(|(key, playlist_id)| {
-            key.strip_prefix("age_")
-                .and_then(|value| value.parse::<u8>().ok())
-                .map(|threshold| (threshold, playlist_id.as_str()))
-        })
-        .collect::<Vec<_>>();
-    thresholds.sort_by_key(|(threshold, _)| *threshold);
-
-    thresholds
-        .iter()
-        .rev()
-        .find(|(threshold, _)| age >= *threshold)
-        .map(|(_, playlist_id)| *playlist_id)
-        .or_else(|| thresholds.first().map(|(_, playlist_id)| *playlist_id))
-}
-
 async fn create_assignment_internal(
     state: &Arc<AppState>,
     library: &LibraryBundle,
@@ -1219,9 +1401,11 @@ async fn fetch_next_session_for_assignment(pool: &PgPool, assignment_id: &str) -
 async fn fetch_sessions(
     pool: &PgPool,
     library: &LibraryBundle,
+    documents: &[LibraryDocument],
     learner_id: &str,
     assignment_id: Option<&str>,
 ) -> anyhow::Result<Vec<SessionDetail>> {
+    let ordered_sessions = assignment_id.is_some();
     let rows = if let Some(assignment_id) = assignment_id {
         query_as::<_, SessionRow>(
             "select session_id, assignment_id, learner_id, title, scheduled_date, status, day_offset, notes, completed_at
@@ -1247,7 +1431,7 @@ async fn fetch_sessions(
     };
 
     let mut sessions = Vec::new();
-    for row in rows {
+    for (index, row) in rows.into_iter().enumerate() {
         let material_rows = query_as::<_, SessionMaterialRow>(
             "select session_material_id, session_id, title, skill_id, material_id, status
              from session_material
@@ -1263,8 +1447,10 @@ async fn fetch_sessions(
             title: row.title,
             scheduled_date: row.scheduled_date,
             status: row.status,
+            day_offset: row.day_offset,
+            sequence_number: ordered_sessions.then_some(index + 1),
             notes: row.notes,
-            materials: build_session_material_summaries(library, material_rows),
+            materials: build_session_material_summaries(library, documents, material_rows),
             latest_evidence,
         });
     }
@@ -1273,6 +1459,7 @@ async fn fetch_sessions(
 
 fn build_session_material_summaries(
     library: &LibraryBundle,
+    documents: &[LibraryDocument],
     rows: Vec<SessionMaterialRow>,
 ) -> Vec<SessionMaterialSummary> {
     let mut grouped: BTreeMap<String, Vec<SessionMaterialRow>> = BTreeMap::new();
@@ -1316,6 +1503,7 @@ fn build_session_material_summaries(
             estimated_minutes: material.map(|item| item.estimated_minutes).unwrap_or(0),
             skill_ids,
             status,
+            document_route_path: document_route_path_for_kind(documents, "material", &material_id),
             runtime: material.and_then(|item| {
                 item.runtime.as_ref().map(|runtime| SessionMaterialRuntimeSummary {
                     runtime_id: runtime::build_runtime_id(&runtime.engine_id, &runtime.template_id),
@@ -1666,6 +1854,8 @@ fn session_row_to_summary(row: SessionRow) -> SessionSummary {
         title: row.title,
         scheduled_date: row.scheduled_date,
         status: row.status,
+        day_offset: row.day_offset,
+        sequence_number: None,
     }
 }
 
