@@ -324,6 +324,99 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
   }
 }
 
+class _SessionWorkspaceAudiencePanel extends StatelessWidget {
+  const _SessionWorkspaceAudiencePanel({
+    required this.title,
+    required this.description,
+    required this.emptyState,
+    required this.icon,
+    required this.groups,
+    required this.session,
+    required this.viewerCanReadLibrary,
+    required this.showDocumentBodies,
+    required this.onOpenLibraryRoute,
+    required this.onStartActivity,
+  });
+
+  final String title;
+  final String description;
+  final String emptyState;
+  final IconData icon;
+  final List<SessionMaterialKindGroup> groups;
+  final SessionDetail session;
+  final bool viewerCanReadLibrary;
+  final bool showDocumentBodies;
+  final ValueChanged<String> onOpenLibraryRoute;
+  final Future<void> Function(SessionDetail session, SessionMaterial material)
+  onStartActivity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, size: 20, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (groups.isEmpty)
+            Text(
+              emptyState,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            ...groups.map(
+              (group) => _SessionMaterialGroupPanel(
+                group: group,
+                session: session,
+                viewerCanReadLibrary: viewerCanReadLibrary,
+                showDocumentBodies: showDocumentBodies,
+                onOpenLibraryRoute: onOpenLibraryRoute,
+                onStartActivity: onStartActivity,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OwnerWorkspaceView extends StatelessWidget {
   const _OwnerWorkspaceView({
     required this.viewer,
@@ -374,6 +467,22 @@ class _OwnerWorkspaceView extends StatelessWidget {
     final selectedDetail = detail;
     final journey = selectedDetail?.journey;
     final activeSession = currentActionSession;
+    final learnerFacingGroups = activeSession?.materialsByKind
+        .where((group) => group.audience == 'learner')
+        .toList(growable: false) ??
+      const <SessionMaterialKindGroup>[];
+    final adultFacingGroups = activeSession?.materialsByKind
+        .where((group) => group.audience == 'adult')
+        .toList(growable: false) ??
+      const <SessionMaterialKindGroup>[];
+    final currentStanding = activeSession?.sequenceNumber ??
+      (journey != null && journey.totalSessionCount > 0
+        ? journey.completedSessionCount + 1
+        : null);
+    final journeyProgress = journey == null || journey.totalSessionCount == 0
+      ? null
+      : (journey.completedSessionCount / journey.totalSessionCount)
+        .clamp(0.0, 1.0);
     final activeMaterials =
         activeSession?.materials
         .where((material) => material.isExecutable)
@@ -457,7 +566,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
           const SizedBox(height: 22),
           if (journey != null)
             _Band(
-              title: 'Current learning path',
+              title: 'Current learning workspace',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -487,6 +596,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      if (currentStanding != null)
+                        _PillBadge(
+                          text: 'Standing: session $currentStanding of ${journey.totalSessionCount}',
+                          color: theme.colorScheme.secondaryContainer,
+                          textColor: theme.colorScheme.onSecondaryContainer,
+                        ),
                       _PillBadge(
                         text: '${journey.pendingSessionCount} pending sessions',
                         color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -504,6 +619,24 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (journeyProgress != null) ...[
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 10,
+                        value: journeyProgress,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${journey.completedSessionCount} of ${journey.totalSessionCount} sessions completed',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 10,
@@ -550,7 +683,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
             _Band(
               title: activeMaterials.isEmpty
                   ? 'Record the current session'
-                  : 'Run the current session',
+                  : 'Current session workspace',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -570,15 +703,65 @@ class _OwnerWorkspaceView extends StatelessWidget {
                         textColor: theme.colorScheme.onTertiaryContainer,
                       ),
                     ),
-                  ...activeSession.materialsByKind.map(
-                    (group) => _SessionMaterialGroupPanel(
-                      group: group,
-                      session: activeSession,
-                      viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
-                      showDocumentBodies: true,
-                      onOpenLibraryRoute: onOpenLibraryRoute,
-                      onStartActivity: onStartActivity,
+                  Text(
+                    'Use this as the live session board: what the learner sees on one side and the guidance you coach from on the other.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final splitView = constraints.maxWidth > 980;
+                      final learnerPanel = _SessionWorkspaceAudiencePanel(
+                        title: 'Learner workspace',
+                        description:
+                            'This is the learner-facing material stack for this session.',
+                        emptyState:
+                            'No learner-facing materials are attached to this session yet.',
+                        icon: Icons.school_rounded,
+                        groups: learnerFacingGroups,
+                        session: activeSession,
+                        viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
+                        showDocumentBodies: true,
+                        onOpenLibraryRoute: onOpenLibraryRoute,
+                        onStartActivity: onStartActivity,
+                      );
+                      final teachingPanel = _SessionWorkspaceAudiencePanel(
+                        title: 'Teaching notes',
+                        description:
+                            'Guide the session from here while the learner works through the learner workspace.',
+                        emptyState:
+                            'No adult guidance notes are attached to this session.',
+                        icon: Icons.record_voice_over_rounded,
+                        groups: adultFacingGroups,
+                        session: activeSession,
+                        viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
+                        showDocumentBodies: true,
+                        onOpenLibraryRoute: onOpenLibraryRoute,
+                        onStartActivity: onStartActivity,
+                      );
+
+                      if (!splitView) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            learnerPanel,
+                            const SizedBox(height: 14),
+                            teachingPanel,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: learnerPanel),
+                          const SizedBox(width: 16),
+                          Expanded(child: teachingPanel),
+                        ],
+                      );
+                    },
                   ),
                   if (activeMaterials.isEmpty)
                     const SizedBox(height: 4)
@@ -732,12 +915,10 @@ class _OwnerWorkspaceView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
           children: [
             _PageHeroCard(
-              eyebrow: 'Parent / Teacher',
-              title: viewer == null
-                  ? 'Household workspace'
-                  : '${viewer!.displayName} dashboard',
+              eyebrow: 'Teaching workspace',
+              title: 'Household teaching workspace',
               description:
-                  'Choose a learner, inspect their current journey, and assign the next pathway with backend-shaped data instead of raw library blobs.',
+                  'Choose a learner, see where they stand in the pathway, and run the current session with learner materials and teaching notes side by side.',
               chips: [
                 _StatChip(
                   label: 'Learners',
@@ -918,6 +1099,14 @@ class _LearnerWorkspaceView extends StatelessWidget {
     final completedSessions = learnerDetail.sessions
         .where((session) => session.status == 'completed')
         .toList(growable: false);
+    final currentStanding = nextSession?.sequenceNumber ??
+      (journey != null && journey.totalSessionCount > 0
+        ? (journey.completedSessionCount + 1).clamp(1, journey.totalSessionCount)
+        : null);
+    final journeyProgress = journey == null || journey.totalSessionCount == 0
+      ? null
+      : (journey.completedSessionCount / journey.totalSessionCount)
+        .clamp(0.0, 1.0);
     final progressStatusCounts = <String, int>{};
     for (final state in learnerDetail.progress) {
       progressStatusCounts.update(
@@ -938,8 +1127,11 @@ class _LearnerWorkspaceView extends StatelessWidget {
         .toList(growable: false);
 
     Widget buildSessionSequenceCard(SessionDetail session, {required bool active}) {
-      final executableMaterials = session.materials
-          .where((material) => material.isExecutable)
+      final learnerGroups = session.materialsByKind
+          .where((group) => group.audience == 'learner')
+          .toList(growable: false);
+      final adultGroups = session.materialsByKind
+          .where((group) => group.audience == 'adult')
           .toList(growable: false);
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -955,10 +1147,13 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 : theme.colorScheme.outlineVariant,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(top: 14),
+            initiallyExpanded: active,
+            title: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
@@ -1004,6 +1199,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 _PillBadge(
                   text: session.status == 'completed'
                       ? 'Done'
@@ -1017,37 +1213,71 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: session.materialsByKind
-                  .map(
-                    (group) => _PillBadge(
-                      text: '${_humanizeLabel(group.kind)} · ${group.materialCount}',
-                      color: _materialKindBackgroundColor(theme, group.kind),
-                      textColor: _materialKindForegroundColor(theme, group.kind),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-            if (active && executableMaterials.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: executableMaterials
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: session.materialsByKind
                     .map(
-                      (material) => FilledButton.icon(
-                        onPressed: () => onStartActivity(session, material),
-                        icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
-                        label: Text('Start ${material.title}'),
+                      (group) => _PillBadge(
+                        text: '${_humanizeLabel(group.kind)} · ${group.materialCount}',
+                        color: _materialKindBackgroundColor(theme, group.kind),
+                        textColor: _materialKindForegroundColor(theme, group.kind),
                       ),
                     )
                     .toList(growable: false),
               ),
+            ),
+            children: [
+              _SessionWorkspaceAudiencePanel(
+                title: active ? 'Current session workspace' : 'Session workspace',
+                description:
+                    'Open this session to read the note, work through the practice, and launch live activity items.',
+                emptyState:
+                    'No learner-facing materials are attached to this session yet.',
+                icon: Icons.school_rounded,
+                groups: learnerGroups,
+                session: session,
+                viewerCanReadLibrary: viewerCanReadLibrary,
+                showDocumentBodies: true,
+                onOpenLibraryRoute: onOpenLibraryRoute,
+                onStartActivity: onStartActivity,
+              ),
+              if (adultGroups.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                if (viewer != null && viewer!.isLearner)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      'A parent or coach may have a teaching note to guide this session alongside your work.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                  )
+                else
+                  _SessionWorkspaceAudiencePanel(
+                    title: 'Teaching notes',
+                    description:
+                        'Adult guidance attached to this session appears here.',
+                    emptyState: 'No teaching note is attached to this session.',
+                    icon: Icons.record_voice_over_rounded,
+                    groups: adultGroups,
+                    session: session,
+                    viewerCanReadLibrary: viewerCanReadLibrary,
+                    showDocumentBodies: true,
+                    onOpenLibraryRoute: onOpenLibraryRoute,
+                    onStartActivity: onStartActivity,
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       );
     }
@@ -1056,16 +1286,20 @@ class _LearnerWorkspaceView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
-          eyebrow: nextSession == null ? 'Progress' : 'Continue',
-          title: nextSession?.title ?? 'No active session right now',
+          eyebrow: 'Learning workspace',
+          title: 'My learning workspace',
           description: journey == null
-              ? 'Move through the assigned sessions in order. Lesson notes, practice, and checks appear as each step becomes active.'
-              : 'Continue with the next assigned step, keep the journey in view, and use the right material kind for the job.',
+              ? 'This is where your pathway, your current standing, and your session workspaces appear.'
+              : currentStanding == null
+                  ? 'You are part of ${journey.playlistTitle}. Open the session workspaces below to see what you learn and practise.'
+                  : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Open the workspace below to learn, practise, and check your progress.',
           chips: [
             _StatChip(
-              label: 'Pending',
-              value: '${journey?.pendingSessionCount ?? pendingSessions.length}',
-              icon: Icons.pending_actions_rounded,
+              label: 'Standing',
+              value: currentStanding == null
+                  ? '--'
+                  : 'S$currentStanding/${journey?.totalSessionCount ?? learnerDetail.sessions.length}',
+              icon: Icons.place_rounded,
             ),
             _StatChip(
               label: 'Completed',
@@ -1073,9 +1307,9 @@ class _LearnerWorkspaceView extends StatelessWidget {
               icon: Icons.task_alt_rounded,
             ),
             _StatChip(
-              label: 'Live Activities',
-              value: '${journey?.liveMaterialCount ?? 0}',
-              icon: Icons.play_circle_fill_rounded,
+              label: 'Ready Now',
+              value: '${pendingSessions.length}',
+              icon: Icons.rocket_launch_rounded,
             ),
           ],
         ),
@@ -1085,7 +1319,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Assigned pathway', style: theme.textTheme.headlineSmall),
+                Text('My current pathway', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
                 Text(
                   journey.pathwayTitle ?? journey.playlistTitle,
@@ -1121,6 +1355,26 @@ class _LearnerWorkspaceView extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (journeyProgress != null) ...[
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 10,
+                      value: journeyProgress,
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    currentStanding == null
+                        ? '${journey.completedSessionCount} of ${journey.totalSessionCount} sessions completed'
+                        : 'You are standing at session $currentStanding of ${journey.totalSessionCount}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 if (viewerCanReadLibrary &&
                     (journey.pathwayRoutePath != null ||
                         journey.playlistRoutePath != null)) ...[
@@ -1152,10 +1406,10 @@ class _LearnerWorkspaceView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Continue', style: theme.textTheme.headlineSmall),
+                Text('Current session workspace', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
                 Text(
-                  'Lesson notes, practice, and checks stay separate here so the next step is obvious.',
+                  'This is the workspace for what you are learning right now. Read the note, do the practice, and launch the live step from here.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -1185,18 +1439,22 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ...nextSession.materialsByKind
-                    .where((group) => group.audience == 'learner')
-                    .map(
-                      (group) => _SessionMaterialGroupPanel(
-                        group: group,
-                        session: nextSession,
-                        viewerCanReadLibrary: viewerCanReadLibrary,
-                        showDocumentBodies: true,
-                        onOpenLibraryRoute: onOpenLibraryRoute,
-                        onStartActivity: onStartActivity,
-                      ),
-                    ),
+                  _SessionWorkspaceAudiencePanel(
+                    title: 'What I work on now',
+                    description:
+                        'The learner-facing materials for the current session stay together here.',
+                    emptyState:
+                        'No learner-facing materials are attached to this session yet.',
+                    icon: Icons.school_rounded,
+                    groups: nextSession.materialsByKind
+                        .where((group) => group.audience == 'learner')
+                        .toList(growable: false),
+                    session: nextSession,
+                    viewerCanReadLibrary: viewerCanReadLibrary,
+                    showDocumentBodies: true,
+                    onOpenLibraryRoute: onOpenLibraryRoute,
+                    onStartActivity: onStartActivity,
+                  ),
                 if (nextSession.materialsByKind.any(
                   (group) => group.audience == 'adult',
                 )) ...[
@@ -1210,25 +1468,28 @@ class _LearnerWorkspaceView extends StatelessWidget {
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
-                        'Ask your parent or coach to guide the teaching note before or alongside this step.',
+                        'A parent or coach may have a teaching note for this session and can guide you alongside this workspace.',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onTertiaryContainer,
                         ),
                       ),
                     )
                   else
-                    ...nextSession.materialsByKind
-                        .where((group) => group.audience == 'adult')
-                        .map(
-                          (group) => _SessionMaterialGroupPanel(
-                            group: group,
-                            session: nextSession,
-                            viewerCanReadLibrary: viewerCanReadLibrary,
-                            showDocumentBodies: true,
-                            onOpenLibraryRoute: onOpenLibraryRoute,
-                            onStartActivity: onStartActivity,
-                          ),
-                        ),
+                    _SessionWorkspaceAudiencePanel(
+                      title: 'Teaching notes',
+                      description:
+                          'Adult guidance attached to this session appears here.',
+                      emptyState: 'No teaching note is attached to this session.',
+                      icon: Icons.record_voice_over_rounded,
+                      groups: nextSession.materialsByKind
+                          .where((group) => group.audience == 'adult')
+                          .toList(growable: false),
+                      session: nextSession,
+                      viewerCanReadLibrary: viewerCanReadLibrary,
+                      showDocumentBodies: true,
+                      onOpenLibraryRoute: onOpenLibraryRoute,
+                      onStartActivity: onStartActivity,
+                    ),
                 ],
               ],
             ),
@@ -1242,7 +1503,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
               Text('Journey', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'Work moves forward session by session. The dominant kind tells you whether the step is teaching, practice, or checking.',
+                'Open any session workspace below to see where you stand and what that session asks you to do.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -1270,10 +1531,10 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Practice', style: theme.textTheme.headlineSmall),
+              Text('Practice workspace', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
-                'These are the learner-facing practice and check materials already in the assigned route.',
+                'Open the learner-facing practice and check materials that are already inside your assigned route.',
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -1337,7 +1598,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                             group: group,
                             session: session,
                             viewerCanReadLibrary: viewerCanReadLibrary,
-                            showDocumentBodies: false,
+                            showDocumentBodies: true,
                             onOpenLibraryRoute: onOpenLibraryRoute,
                             onStartActivity: onStartActivity,
                           ),

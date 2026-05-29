@@ -2,7 +2,7 @@ part of '../../main.dart';
 
 enum _ShellDestination {
   owner('Household', 'Track learners, assignments, and daily progress.', Icons.dashboard_rounded),
-  learner('Continue', 'Pick up the next lesson, practice, or check step.', Icons.school_rounded),
+  learner('Workspace', 'See where you stand in the pathway and open session workspaces.', Icons.school_rounded),
   library('Pathways', 'Review authored routes, playlists, and materials.', Icons.auto_stories_rounded),
   account('Profile', 'Profile, theme, and personal settings.', Icons.person_rounded);
 
@@ -809,13 +809,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   Widget _buildShellHeader(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
-    final shellEyebrow = _viewerCanManage ? 'WORKSPACE' : 'CONTINUE';
-    final shellTitle = _viewerCanManage ? 'Household workspace' : 'My learning';
+    final shellEyebrow = _viewerCanManage ? 'WORKSPACE' : 'LEARNING WORKSPACE';
+    final shellTitle = _viewerCanManage ? 'Household workspace' : 'My learning workspace';
     final shellDescription = _viewerCanManage
       ? _viewerCanReadLibrary
         ? 'Move between household progress, learner operations, the pathway library, and profile tools.'
         : 'Move between household progress, learner operations, and profile tools.'
-      : 'Stay with your next step, your progress, and your account settings.';
+      : 'See where you stand in the pathway, open session workspaces, and track your progress.';
 
     return Padding(
       padding: EdgeInsets.fromLTRB(_shellNavExpanded ? 16 : 10, 14, _shellNavExpanded ? 16 : 10, 8),
