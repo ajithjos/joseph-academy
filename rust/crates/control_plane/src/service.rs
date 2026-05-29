@@ -20,7 +20,9 @@ use crate::domain::{
     CompleteActivityResponse,
     DashboardResponse, EvidenceRow, EvidenceSummary, TeamMemberRow, TeamMemberSummary,
     LearnerDashboard, LearnerDetailResponse, LearnerJourneySummary, LearnerRow,
-    LearnerSummary, LibraryDocumentPayload, LibraryDocumentSummary,
+    LearnerContinueBlock, LearnerProgressSnapshot, LearnerRecentWinSummary,
+    LearnerSummary, LearnerWorkspaceSummary, LibraryDocumentPayload,
+    LibraryDocumentSummary,
     LibraryReloadResponse, LibraryWorkspaceResponse, MaterialWorkspaceSummary,
     PathwayEntryPointSummary, PathwayWorkspaceSummary, PlaylistSessionWorkspaceSummary,
     PlaylistWorkspaceSummary, PlaylistAssignmentTargetSummary, PlaylistDeliveryShapeSummary,
@@ -174,6 +176,117 @@ fn build_session_material_kind_groups(
     groups
 }
 
+fn session_estimated_minutes(materials: &[SessionMaterialSummary]) -> u32 {
+    materials
+        .iter()
+        .map(|material| u32::from(material.estimated_minutes))
+        .sum()
+}
+
+fn session_live_material_count(materials: &[SessionMaterialSummary]) -> usize {
+    materials
+        .iter()
+        .filter(|material| {
+            material
+                .runtime
+                .as_ref()
+                .map(|runtime| runtime.executable)
+                .unwrap_or(false)
+        })
+        .count()
+}
+
+fn session_material_count_for_audience(
+    materials: &[SessionMaterialSummary],
+    audience: &str,
+) -> usize {
+    materials
+        .iter()
+        .filter(|material| material.audience == audience)
+        .count()
+}
+
+fn session_action_label(session: &SessionDetail) -> String {
+    match session.dominant_kind.as_str() {
+        TEACHING_NOTE_KIND => "Begin with adult guidance".to_string(),
+        LESSON_NOTE_KIND => "Open lesson".to_string(),
+        WORKSHEET_KIND => "Open practice".to_string(),
+        DRILL_KIND => "Start live practice".to_string(),
+        QUICK_CHECK_KIND => "Take quick check".to_string(),
+        _ => "Open session".to_string(),
+    }
+}
+
+fn continue_block_title(session: &SessionDetail) -> String {
+    match session.dominant_kind.as_str() {
+        TEACHING_NOTE_KIND => format!("Begin with {}", session.title),
+        DRILL_KIND => format!("Start live practice: {}", session.title),
+        QUICK_CHECK_KIND => format!("Take the check: {}", session.title),
+        _ => format!("Continue with {}", session.title),
+    }
+}
+
+fn continue_block_description(session: &SessionDetail) -> String {
+    let minute_label = if session.estimated_minutes > 0 {
+        format!("about {} min", session.estimated_minutes)
+    } else {
+        "a short focused block".to_string()
+    };
+    if session.requires_adult_support {
+        format!(
+            "Start with the teaching note for this session, then move into the learner work. Plan {}.",
+            minute_label
+        )
+    } else if session.live_material_count > 0 {
+        format!(
+            "Open the learner materials and launch the live activity when ready. Plan {}.",
+            minute_label
+        )
+    } else {
+        format!(
+            "Open the learner materials for the next step in the journey. Plan {}.",
+            minute_label
+        )
+    }
+}
+
+fn dashboard_attention_summary(
+    active_assignment: Option<&AssignmentSummary>,
+    today_session: Option<&SessionSummary>,
+    review_item_count: i64,
+) -> (String, String, String) {
+    if let Some(session) = today_session {
+        return (
+            "ready_now".to_string(),
+            "Ready now".to_string(),
+            format!("Open {}", session.title),
+        );
+    }
+    if review_item_count > 0 {
+        return (
+            "review".to_string(),
+            "Review waiting".to_string(),
+            format!(
+                "{} review item{} pending",
+                review_item_count,
+                if review_item_count == 1 { "" } else { "s" }
+            ),
+        );
+    }
+    if let Some(assignment) = active_assignment {
+        return (
+            "in_journey".to_string(),
+            "On current pathway".to_string(),
+            format!("{} in progress", assignment.title),
+        );
+    }
+    (
+        "needs_assignment".to_string(),
+        "Needs assignment".to_string(),
+        "Choose a first playlist".to_string(),
+    )
+}
+
 fn build_playlist_delivery_shape(
     sessions: &[PlaylistSessionWorkspaceSummary],
 ) -> PlaylistDeliveryShapeSummary {
@@ -254,6 +367,7 @@ async fn resolve_viewer_member(
     state: &Arc<AppState>,
     username: &str,
 ) -> anyhow::Result<TeamMemberSummary> {
+    let team_id = resolve_primary_team_id(state).await?;
     let normalized = username.trim();
     if normalized.is_empty() {
         bail!("viewer username is required")
@@ -270,11 +384,12 @@ async fn resolve_viewer_member(
             lp.learner_id
          from team_membership tm
          join user_account ua on ua.user_id = tm.user_id
-         left join learner_profile lp on lp.user_id = ua.user_id
-         where lower(ua.username) = lower($1)
+         left join learner_profile lp on lp.user_id = ua.user_id and lp.team_id = tm.team_id
+         where tm.team_id = $1 and lower(ua.username) = lower($2)
          order by tm.team_id
          limit 1",
     )
+    .bind(&team_id)
     .bind(normalized)
     .fetch_optional(&state.pool)
     .await?
@@ -438,14 +553,17 @@ pub async fn fetch_library_workspace(
 ) -> anyhow::Result<LibraryWorkspaceResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
     ensure_viewer_can_manage_team(&viewer)?;
+    let team_id = resolve_primary_team_id(state).await?;
 
     let library = state.library.read().await.clone();
     let documents = state.library_documents.read().await.clone();
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
+         where team_id = $1
          order by display_name",
     )
+    .bind(&team_id)
     .fetch_all(&state.pool)
     .await?;
     let active_assignments = fetch_active_assignments_for_learners(&state.pool, &learners).await?;
@@ -552,11 +670,14 @@ pub async fn fetch_dashboard(
 ) -> anyhow::Result<DashboardResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
     let team = fetch_team_summary(state).await?;
+    let team_id = resolve_primary_team_id(state).await?;
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
+         where team_id = $1
          order by display_name",
     )
+    .bind(&team_id)
     .fetch_all(&state.pool)
     .await?;
 
@@ -590,11 +711,14 @@ pub async fn list_learners(
     viewer_username: &str,
 ) -> anyhow::Result<Vec<LearnerSummary>> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
+    let team_id = resolve_primary_team_id(state).await?;
     let learners = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
+         where team_id = $1
          order by display_name",
     )
+    .bind(&team_id)
     .fetch_all(&state.pool)
     .await?;
 
@@ -618,12 +742,14 @@ pub async fn fetch_learner_detail(
 ) -> anyhow::Result<LearnerDetailResponse> {
     let viewer = resolve_viewer_member(state, viewer_username).await?;
     ensure_viewer_can_access_learner(&viewer, learner_id)?;
+    let team_id = resolve_primary_team_id(state).await?;
 
     let learner = query_as::<_, LearnerRow>(
         "select learner_id, team_id, user_id, display_name, date_of_birth, sex, current_level, notes
          from learner_profile
-         where learner_id = $1",
+         where team_id = $1 and learner_id = $2",
     )
+    .bind(&team_id)
     .bind(learner_id)
     .fetch_optional(&state.pool)
     .await?
@@ -648,6 +774,14 @@ pub async fn fetch_learner_detail(
     let journey = active_assignment
         .as_ref()
         .map(|assignment| build_learner_journey(&library, &documents, assignment, &sessions));
+    let workspace = build_learner_workspace(
+        &library,
+        active_assignment.as_ref(),
+        journey.as_ref(),
+        &sessions,
+        &progress,
+        &review_items,
+    );
 
     Ok(LearnerDetailResponse {
         learner: LearnerSummary {
@@ -662,6 +796,7 @@ pub async fn fetch_learner_detail(
         sessions,
         progress,
         review_items,
+        workspace,
     })
 }
 
@@ -1330,7 +1465,15 @@ async fn fetch_team_summary(state: &Arc<AppState>) -> anyhow::Result<Option<Team
     }))
 }
 
+async fn resolve_primary_team_id(state: &Arc<AppState>) -> anyhow::Result<String> {
+    fetch_team_summary(state)
+        .await?
+        .map(|team| team.team_id)
+        .ok_or_else(|| anyhow!("no team is configured"))
+}
+
 async fn list_team_members(state: &Arc<AppState>) -> anyhow::Result<Vec<TeamMemberSummary>> {
+    let team_id = resolve_primary_team_id(state).await?;
     let members = query_as::<_, TeamMemberRow>(
         "select
             ua.user_id,
@@ -1342,9 +1485,11 @@ async fn list_team_members(state: &Arc<AppState>) -> anyhow::Result<Vec<TeamMemb
             lp.learner_id
          from team_membership tm
          join user_account ua on ua.user_id = tm.user_id
-         left join learner_profile lp on lp.user_id = ua.user_id
+         left join learner_profile lp on lp.user_id = ua.user_id and lp.team_id = tm.team_id
+         where tm.team_id = $1
          order by case when tm.role = 'owner' then 0 else 1 end, ua.display_name",
     )
+    .bind(&team_id)
     .fetch_all(&state.pool)
     .await?;
 
@@ -1392,6 +1537,11 @@ async fn build_dashboard_cards(
         let latest_evidence = fetch_latest_evidence_for_learner(&state.pool, &learner.learner_id).await?;
         let (progress_status_counts, stage_progress) =
             summarize_progress(library, active_assignment.as_ref(), &progress);
+        let (attention_state, attention_label, next_action_label) = dashboard_attention_summary(
+            active_assignment.as_ref(),
+            today_session.as_ref(),
+            review_item_count,
+        );
 
         dashboards.push(LearnerDashboard {
             learner_id: learner.learner_id.clone(),
@@ -1399,6 +1549,9 @@ async fn build_dashboard_cards(
             current_age: calculate_age(learner.date_of_birth),
             current_level: learner.current_level.clone(),
             notes: learner.notes.clone(),
+            attention_state,
+            attention_label,
+            next_action_label,
             active_assignment,
             today_session,
             review_item_count,
@@ -1466,6 +1619,110 @@ fn summarize_progress(
         .collect();
 
     (counts, stage_progress)
+}
+
+fn build_learner_workspace(
+    library: &LibraryBundle,
+    active_assignment: Option<&AssignmentSummary>,
+    journey: Option<&LearnerJourneySummary>,
+    sessions: &[SessionDetail],
+    progress: &[SkillProgressSummary],
+    review_items: &[ReviewItemSummary],
+) -> LearnerWorkspaceSummary {
+    let continue_session = journey
+        .and_then(|current_journey| {
+            current_journey.next_session_id.as_deref().and_then(|session_id| {
+                sessions.iter().find(|session| session.session_id == session_id)
+            })
+        })
+        .or_else(|| sessions.iter().find(|session| session.status != "completed"));
+
+    let continue_block = continue_session.cloned().map(|session| LearnerContinueBlock {
+        title: continue_block_title(&session),
+        description: continue_block_description(&session),
+        action_label: session_action_label(&session),
+        session,
+    });
+
+    let practice_lane = sessions
+        .iter()
+        .filter(|session| {
+            session.status != "completed"
+                && session.materials_by_kind.iter().any(|group| {
+                    matches!(
+                        group.kind.as_str(),
+                        WORKSHEET_KIND | DRILL_KIND | QUICK_CHECK_KIND
+                    )
+                })
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let (progress_counts, _) = summarize_progress(library, active_assignment, progress);
+    let completed_session_count = sessions
+        .iter()
+        .filter(|session| session.status == "completed")
+        .count();
+    let pending_session_count = sessions.len().saturating_sub(completed_session_count);
+    let progress_snapshot = LearnerProgressSnapshot {
+        secure_count: progress_counts.get("secure").copied().unwrap_or(0) as usize,
+        developing_count: progress_counts.get("developing").copied().unwrap_or(0) as usize,
+        not_started_count: progress_counts.get("not_started").copied().unwrap_or(0) as usize,
+        review_item_count: review_items.len(),
+        completed_session_count,
+        pending_session_count,
+    };
+
+    let mut recent_wins = sessions
+        .iter()
+        .filter_map(|session| {
+            session.latest_evidence.as_ref().map(|evidence| {
+                let accuracy = if evidence.max_score <= 0.0 {
+                    0.0
+                } else {
+                    (evidence.score / evidence.max_score) * 100.0
+                };
+                LearnerRecentWinSummary {
+                    session_id: session.session_id.clone(),
+                    session_title: session.title.clone(),
+                    score_label: format!(
+                        "{:.0}/{:.0} ({:.0}%)",
+                        evidence.score,
+                        evidence.max_score,
+                        accuracy
+                    ),
+                    notes: evidence.notes.clone(),
+                    recorded_at: evidence.recorded_at,
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+    recent_wins.sort_by(|left, right| right.recorded_at.cmp(&left.recorded_at));
+    recent_wins.truncate(3);
+
+    let attention_label = if let Some(session) = continue_session {
+        if session.requires_adult_support {
+            "Adult-guided step ready now".to_string()
+        } else if session.live_material_count > 0 {
+            "Live practice is ready now".to_string()
+        } else {
+            "Continue the current journey".to_string()
+        }
+    } else if !review_items.is_empty() {
+        "Review items are waiting".to_string()
+    } else if active_assignment.is_some() {
+        "Current playlist is complete".to_string()
+    } else {
+        "Choose the first pathway to begin".to_string()
+    };
+
+    LearnerWorkspaceSummary {
+        attention_label,
+        continue_block,
+        practice_lane,
+        progress_snapshot,
+        recent_wins,
+    }
 }
 
 async fn create_assignment_internal(
@@ -1677,6 +1934,12 @@ async fn fetch_sessions(
             .iter()
             .any(|material| material.audience == AUDIENCE_ADULT);
         let materials_by_kind = build_session_material_kind_groups(&materials);
+        let estimated_minutes = session_estimated_minutes(&materials);
+        let live_material_count = session_live_material_count(&materials);
+        let learner_material_count =
+            session_material_count_for_audience(&materials, AUDIENCE_LEARNER);
+        let adult_material_count =
+            session_material_count_for_audience(&materials, AUDIENCE_ADULT);
         sessions.push(SessionDetail {
             session_id: row.session_id,
             title: row.title,
@@ -1686,6 +1949,10 @@ async fn fetch_sessions(
             sequence_number: ordered_sessions.then_some(index + 1),
             dominant_kind,
             requires_adult_support,
+            estimated_minutes,
+            live_material_count,
+            learner_material_count,
+            adult_material_count,
             notes: row.notes,
             materials_by_kind,
             materials,

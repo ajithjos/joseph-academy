@@ -221,6 +221,9 @@ pub struct LearnerDashboard {
     pub current_age: i32,
     pub current_level: String,
     pub notes: String,
+    pub attention_state: String,
+    pub attention_label: String,
+    pub next_action_label: String,
     pub active_assignment: Option<AssignmentSummary>,
     pub today_session: Option<SessionSummary>,
     pub review_item_count: i64,
@@ -237,6 +240,43 @@ pub struct LearnerDetailResponse {
     pub sessions: Vec<SessionDetail>,
     pub progress: Vec<SkillProgressSummary>,
     pub review_items: Vec<ReviewItemSummary>,
+    pub workspace: LearnerWorkspaceSummary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerWorkspaceSummary {
+    pub attention_label: String,
+    pub continue_block: Option<LearnerContinueBlock>,
+    pub practice_lane: Vec<SessionDetail>,
+    pub progress_snapshot: LearnerProgressSnapshot,
+    pub recent_wins: Vec<LearnerRecentWinSummary>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerContinueBlock {
+    pub title: String,
+    pub description: String,
+    pub action_label: String,
+    pub session: SessionDetail,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerProgressSnapshot {
+    pub secure_count: usize,
+    pub developing_count: usize,
+    pub not_started_count: usize,
+    pub review_item_count: usize,
+    pub completed_session_count: usize,
+    pub pending_session_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerRecentWinSummary {
+    pub session_id: String,
+    pub session_title: String,
+    pub score_label: String,
+    pub notes: String,
+    pub recorded_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -302,6 +342,10 @@ pub struct SessionDetail {
     pub sequence_number: Option<usize>,
     pub dominant_kind: String,
     pub requires_adult_support: bool,
+    pub estimated_minutes: u32,
+    pub live_material_count: usize,
+    pub learner_material_count: usize,
+    pub adult_material_count: usize,
     pub notes: String,
     pub materials_by_kind: Vec<SessionMaterialKindGroupSummary>,
     pub materials: Vec<SessionMaterialSummary>,

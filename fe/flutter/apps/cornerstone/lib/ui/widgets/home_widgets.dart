@@ -258,6 +258,18 @@ class _LearnerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final attentionColor = switch (learner.attentionState) {
+      'needs_assignment' => theme.colorScheme.errorContainer,
+      'review' => theme.colorScheme.tertiaryContainer,
+      'ready_now' => theme.colorScheme.secondaryContainer,
+      _ => theme.colorScheme.primary.withValues(alpha: 0.12),
+    };
+    final attentionTextColor = switch (learner.attentionState) {
+      'needs_assignment' => theme.colorScheme.onErrorContainer,
+      'review' => theme.colorScheme.onTertiaryContainer,
+      'ready_now' => theme.colorScheme.onSecondaryContainer,
+      _ => theme.colorScheme.primary,
+    };
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
@@ -300,6 +312,24 @@ class _LearnerCard extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(learner.currentLevel, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PillBadge(
+                  text: learner.attentionLabel,
+                  color: attentionColor,
+                  textColor: attentionTextColor,
+                ),
+                if (learner.activeAssignment != null)
+                  _PillBadge(
+                    text: learner.activeAssignment!.title,
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    textColor: theme.colorScheme.onSurfaceVariant,
+                  ),
+              ],
+            ),
             if (learner.activeAssignment != null) ...[
               const SizedBox(height: 10),
               Row(
@@ -308,7 +338,22 @@ class _LearnerCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      learner.activeAssignment!.title,
+                      learner.nextActionLabel,
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.playlist_add_check_circle_rounded, size: 14, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      learner.nextActionLabel,
                       style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),

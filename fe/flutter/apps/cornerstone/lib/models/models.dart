@@ -696,6 +696,9 @@ class LearnerDashboard {
     required this.currentAge,
     required this.currentLevel,
     required this.notes,
+    required this.attentionState,
+    required this.attentionLabel,
+    required this.nextActionLabel,
     required this.reviewItemCount,
     required this.progressStatusCounts,
     required this.stageProgress,
@@ -711,6 +714,9 @@ class LearnerDashboard {
       currentAge: (json['current_age'] as num).toInt(),
       currentLevel: json['current_level'] as String,
       notes: json['notes'] as String,
+      attentionState: json['attention_state'] as String? ?? 'ready_now',
+      attentionLabel: json['attention_label'] as String? ?? '',
+      nextActionLabel: json['next_action_label'] as String? ?? '',
       reviewItemCount: (json['review_item_count'] as num).toInt(),
       progressStatusCounts:
           (json['progress_status_counts'] as Map<String, dynamic>).map(
@@ -742,6 +748,9 @@ class LearnerDashboard {
   final int currentAge;
   final String currentLevel;
   final String notes;
+  final String attentionState;
+  final String attentionLabel;
+  final String nextActionLabel;
   final int reviewItemCount;
   final Map<String, int> progressStatusCounts;
   final List<StageProgress> stageProgress;
@@ -756,6 +765,7 @@ class LearnerDetailPayload {
     required this.sessions,
     required this.progress,
     required this.reviewItems,
+    required this.workspace,
     this.activeAssignment,
     this.journey,
   });
@@ -784,6 +794,9 @@ class LearnerDetailPayload {
       reviewItems: (json['review_items'] as List<dynamic>)
           .map((item) => ReviewItem.fromJson(item as Map<String, dynamic>))
           .toList(),
+      workspace: LearnerWorkspace.fromJson(
+        json['workspace'] as Map<String, dynamic>,
+      ),
     );
   }
 
@@ -793,6 +806,123 @@ class LearnerDetailPayload {
   final List<SessionDetail> sessions;
   final List<SkillProgressSummary> progress;
   final List<ReviewItem> reviewItems;
+  final LearnerWorkspace workspace;
+}
+
+class LearnerWorkspace {
+  LearnerWorkspace({
+    required this.attentionLabel,
+    required this.practiceLane,
+    required this.progressSnapshot,
+    required this.recentWins,
+    this.continueBlock,
+  });
+
+  factory LearnerWorkspace.fromJson(Map<String, dynamic> json) {
+    return LearnerWorkspace(
+      attentionLabel: json['attention_label'] as String? ?? '',
+      continueBlock: json['continue_block'] == null
+          ? null
+          : LearnerContinueBlock.fromJson(
+              json['continue_block'] as Map<String, dynamic>,
+            ),
+      practiceLane: (json['practice_lane'] as List<dynamic>)
+          .map((item) => SessionDetail.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      progressSnapshot: LearnerProgressSnapshot.fromJson(
+        json['progress_snapshot'] as Map<String, dynamic>,
+      ),
+      recentWins: (json['recent_wins'] as List<dynamic>)
+          .map(
+            (item) => LearnerRecentWin.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+
+  final String attentionLabel;
+  final LearnerContinueBlock? continueBlock;
+  final List<SessionDetail> practiceLane;
+  final LearnerProgressSnapshot progressSnapshot;
+  final List<LearnerRecentWin> recentWins;
+}
+
+class LearnerContinueBlock {
+  LearnerContinueBlock({
+    required this.title,
+    required this.description,
+    required this.actionLabel,
+    required this.session,
+  });
+
+  factory LearnerContinueBlock.fromJson(Map<String, dynamic> json) {
+    return LearnerContinueBlock(
+      title: json['title'] as String,
+      description: json['description'] as String,
+      actionLabel: json['action_label'] as String,
+      session: SessionDetail.fromJson(json['session'] as Map<String, dynamic>),
+    );
+  }
+
+  final String title;
+  final String description;
+  final String actionLabel;
+  final SessionDetail session;
+}
+
+class LearnerProgressSnapshot {
+  LearnerProgressSnapshot({
+    required this.secureCount,
+    required this.developingCount,
+    required this.notStartedCount,
+    required this.reviewItemCount,
+    required this.completedSessionCount,
+    required this.pendingSessionCount,
+  });
+
+  factory LearnerProgressSnapshot.fromJson(Map<String, dynamic> json) {
+    return LearnerProgressSnapshot(
+      secureCount: (json['secure_count'] as num).toInt(),
+      developingCount: (json['developing_count'] as num).toInt(),
+      notStartedCount: (json['not_started_count'] as num).toInt(),
+      reviewItemCount: (json['review_item_count'] as num).toInt(),
+      completedSessionCount: (json['completed_session_count'] as num).toInt(),
+      pendingSessionCount: (json['pending_session_count'] as num).toInt(),
+    );
+  }
+
+  final int secureCount;
+  final int developingCount;
+  final int notStartedCount;
+  final int reviewItemCount;
+  final int completedSessionCount;
+  final int pendingSessionCount;
+}
+
+class LearnerRecentWin {
+  LearnerRecentWin({
+    required this.sessionId,
+    required this.sessionTitle,
+    required this.scoreLabel,
+    required this.notes,
+    required this.recordedAt,
+  });
+
+  factory LearnerRecentWin.fromJson(Map<String, dynamic> json) {
+    return LearnerRecentWin(
+      sessionId: json['session_id'] as String,
+      sessionTitle: json['session_title'] as String,
+      scoreLabel: json['score_label'] as String,
+      notes: json['notes'] as String? ?? '',
+      recordedAt: json['recorded_at'] as String,
+    );
+  }
+
+  final String sessionId;
+  final String sessionTitle;
+  final String scoreLabel;
+  final String notes;
+  final String recordedAt;
 }
 
 class LearnerJourney {
@@ -960,6 +1090,10 @@ class SessionDetail extends SessionSummary {
     super.sequenceNumber,
     required this.dominantKind,
     required this.requiresAdultSupport,
+    required this.estimatedMinutes,
+    required this.liveMaterialCount,
+    required this.learnerMaterialCount,
+    required this.adultMaterialCount,
     required this.notes,
     required this.materialsByKind,
     required this.materials,
@@ -976,6 +1110,12 @@ class SessionDetail extends SessionSummary {
       sequenceNumber: (json['sequence_number'] as num?)?.toInt(),
       dominantKind: json['dominant_kind'] as String,
       requiresAdultSupport: json['requires_adult_support'] as bool? ?? false,
+        estimatedMinutes: (json['estimated_minutes'] as num?)?.toInt() ?? 0,
+        liveMaterialCount: (json['live_material_count'] as num?)?.toInt() ?? 0,
+        learnerMaterialCount:
+          (json['learner_material_count'] as num?)?.toInt() ?? 0,
+        adultMaterialCount:
+          (json['adult_material_count'] as num?)?.toInt() ?? 0,
       notes: json['notes'] as String,
       materialsByKind: (json['materials_by_kind'] as List<dynamic>)
           .map(
@@ -997,6 +1137,10 @@ class SessionDetail extends SessionSummary {
 
   final String dominantKind;
   final bool requiresAdultSupport;
+  final int estimatedMinutes;
+  final int liveMaterialCount;
+  final int learnerMaterialCount;
+  final int adultMaterialCount;
   final String notes;
   final List<SessionMaterialKindGroup> materialsByKind;
   final List<SessionMaterial> materials;
