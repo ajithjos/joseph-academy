@@ -47,7 +47,7 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Use pathway as the contained authoring boundary for one whole route.
 - Use stages to group related skills in parent-facing language.
 - Use stages for learning progression, not for age bands.
-- Use materials as reusable teaching or practice artifacts.
+- Use materials as reusable learner or adult delivery artifacts.
 - Use playlists as ordered session plans that reference real materials.
 - Keep stage, skill, playlist, and material files inside `content/library/{subject_id}/{area_id}/{pathway_id}/`.
 - Do not hide curriculum structure inside playlists.
@@ -63,6 +63,20 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Keep material metadata in the material file itself. Do not duplicate it in a separate material index.
 - Make review and recap deliberate when the slice needs them; do not leave reinforcement to chance.
 
+## Required Material Kind Contract
+
+- Use canonical material kind names exactly in authored content and downstream APIs.
+- `lesson_note` is the learner-facing explanation or reference material for what is being learned.
+- `teaching_note` is adult-facing guidance for prompts, misconceptions, and delivery choices.
+- `worksheet` is learner practice for paper or offline work.
+- `drill` is repetitive or live learner practice.
+- `quick_check` is a short learner check or stop point.
+- Do not use `teaching_note` as a substitute for learner-facing instruction.
+- Do not use `drill` or `quick_check` as the learner's first exposure to a new skill cluster.
+- The default playlist contract is at least one `lesson_note`, at least one practice material (`worksheet` or `drill`), and at least one `quick_check`.
+- Include `teaching_note` when the playlist depends on adult mediation beyond the learner-facing `lesson_note`.
+- Review-only or diagnostic playlists are allowed, but that exception must be explicit in the brief.
+
 ## Validation Rules
 
 - Every active pathway must contain real downstream curriculum, not just a top-level pathway document.
@@ -70,6 +84,8 @@ Do not reintroduce old aliases such as `capability`, `milestone`, `resource`, `p
 - Every stage must be used by at least one material and one playlist.
 - Every material file inside a pathway must be used by at least one playlist session unless it is clearly marked as a reference note in the pathway.
 - Session materials must match the session skills and stay within the playlist's pathway and stages.
+- Every non-diagnostic playlist must include at least one `lesson_note`, at least one practice material (`worksheet` or `drill`), and at least one `quick_check`.
+- Skills checked in a `quick_check` or practised in a standalone `drill` must already appear in a prior `lesson_note` or guided instruction step.
 - Entry guidance must point to real playlists.
 
 ## Validation Commands

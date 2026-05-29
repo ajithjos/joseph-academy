@@ -41,10 +41,14 @@ For each skill, describe:
 
 ## Materials And Delivery
 
-- likely material types
+- required canonical material kinds for each playlist
+- which skills need a learner-facing `lesson_note`
+- whether an adult-facing `teaching_note` is required and at what boundary
+- expected session shape by dominant material kind
 - expected session length
 - expected cadence or number of sessions
 - where review or recap should appear
+- how practice and checks should connect back to the teaching material
 - notes that a parent, teacher, or coach will need during delivery
 
 ## Existing Repo Context

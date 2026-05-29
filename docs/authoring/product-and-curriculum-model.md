@@ -79,7 +79,9 @@ Good skills are specific enough to practise, assess, and revisit.
 
 ### Material
 
-A material is one reusable artifact such as a worksheet, prompt sheet, teaching note, drill, or quick check.
+A material is one reusable artifact such as a `lesson_note`, `teaching_note`, `worksheet`, `drill`, or `quick_check`.
+
+Use `lesson_note` for learner-facing explanation or reference, and use `teaching_note` for adult-facing delivery guidance.
 
 Each material should point back to real `skill_ids` and `stage_ids`.
 
@@ -88,6 +90,8 @@ Each material should point back to real `skill_ids` and `stage_ids`.
 A playlist is an ordered set of sessions that references real materials.
 
 Use playlists for repeatable delivery. Do not hide stage or skill structure inside them.
+
+The default playlist contract is at least one `lesson_note`, at least one practice material (`worksheet` or `drill`), and at least one `quick_check`, unless the brief explicitly marks the playlist as review-only or diagnostic.
 
 ## Supporting Runtime Context
 

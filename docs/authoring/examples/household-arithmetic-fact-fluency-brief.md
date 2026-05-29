@@ -146,11 +146,13 @@ The goal is not to cover all of maths. The goal is to get two young learners int
 ## Materials And Delivery
 
 - likely material types:
-  - `teaching_note` for the parent
+  - `lesson_note` for learner-facing explanation, worked examples, and facts to revisit
+  - `teaching_note` for parent cues when adult guidance matters
   - `worksheet` for paper practice
   - short review sheets for mixed recall
-  - one short check sheet per stage
-  - later, one computer-based drill or quick check for randomised practice
+  - one `quick_check` stop point per playlist or stage boundary
+  - later, one computer-based `drill` for randomised practice
+  - every playlist should include at least one `lesson_note`, one practice step, and one `quick_check`
 - expected session length: 10 to 15 minutes
 - expected cadence or number of sessions:
   - 4 to 5 sessions per week
@@ -164,7 +166,7 @@ The goal is not to cover all of maths. The goal is to get two young learners int
   - stop a session before frustration climbs too high
   - prefer speed after accuracy, not before it
   - keep oral recall, paper practice, and quick checks separate enough that the learner knows the purpose of each
-  - use the computer for short random drills only after the underlying fact set has been taught clearly
+  - use the computer for short random drills only after the underlying fact set has been taught clearly in a `lesson_note` or guided session
 
 ## Existing Repo Context
 
@@ -196,4 +198,4 @@ The goal is not to cover all of maths. The goal is to get two young learners int
 - unresolved questions that need answers before authoring continues:
   - should the seven-year-old and nine-year-old share one sequence with different entry points, or have separate playlists from day one?
   - which facts are already secure for each child?
-  - do you want one shared parent-teaching note per stage or one per playlist?
+  - do you want one shared learner `lesson_note` per stage or one per playlist, and where is a separate `teaching_note` actually needed?
