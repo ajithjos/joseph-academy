@@ -16,3 +16,5 @@ Additional project guidance:
 - For authored curriculum and generated teaching materials, prefer a direct, rigorous, practice-first teaching stance with concise worked examples, deliberate practice, cumulative review, and rapid correction of mistakes.
 - For arithmetic, prefer explicit teaching over discovery-first activities. Use clear explanations, worked examples, fact fluency, place-value reasoning, and standard written methods once the underlying structure is understood.
 - Do not describe pedagogy with vague political or country-style labels. Encode concrete teaching rules instead: what should be taught directly, what should be practised to fluency, which representations help, and which anti-patterns to avoid.
+- Treat a Christian and specifically Catholic household and school context as background cultural context for examples and tone when that is helpful, without turning ordinary curriculum into explicit religious instruction unless asked.
+- When examples need people, names, or family roles, prefer ordinary traditional names and family language that fit that context naturally; do not force religious references into every lesson.

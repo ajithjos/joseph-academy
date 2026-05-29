@@ -40,6 +40,7 @@ State the request plainly. Say:
 - which files may change
 - which files must stay fixed
 - which pedagogy rules are required for the slice and which teaching anti-patterns must be rejected
+- which household, faith, or cultural-context preferences should guide names, examples, and tone
 - any tone, classroom, family, or accessibility constraints
 - whether you want exact file edits or only a proposed plan
 

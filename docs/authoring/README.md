@@ -10,6 +10,7 @@ Share it with whoever is doing the work: a teacher, subject expert, contractor, 
 - the stable curriculum model and file ownership
 - authoring rules for tone, vocabulary, naming, reuse, and validation
 - arithmetic teaching guidance for pathway design and material generation
+- household cultural-context guidance for names, examples, and tone
 - the practical workflow for creating, revising, or reviewing curriculum
 - a fillable brief template for one curriculum slice
 - worked example briefs under `examples/`
