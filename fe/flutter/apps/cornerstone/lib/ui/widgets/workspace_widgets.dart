@@ -684,7 +684,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
               FilledButton.tonalIcon(
                 onPressed: onOpenLibraryWorkspace,
                 icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                label: const Text('Browse pathways'),
+                label: const Text('Open pathway planning'),
               ),
             ],
           ),
@@ -1198,81 +1198,109 @@ class _OwnerWorkspaceView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth > 1120;
+        final rosterPanel = _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Learner roster', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                'Select a learner to inspect pathway, playlist, and session actions.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _GoldAccentDivider(),
+              const SizedBox(height: 14),
+              if (learners.isEmpty)
+                Text(
+                  'No learners are visible in this workspace yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                ...learners.map(
+                  (learner) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _LearnerCard(
+                      learner: learner,
+                      selected: learner.learnerId == selectedLearnerId,
+                      onTap: () => onSelectLearner(learner.learnerId),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+
         return ListView(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
           children: [
-            _PageHeroCard(
-              eyebrow: 'Teaching workspace',
-              title: 'Team teaching workspace',
-              description:
-                  'Choose a learner, see where they stand in the pathway, and run the current session with learner materials and teaching notes side by side.',
-              chips: [
-                _StatChip(
-                  label: 'Learners',
-                  value: '${learners.length}',
-                  icon: Icons.groups_rounded,
-                ),
-                _StatChip(
-                  label: 'Active Today',
-                  value: '$activeSessionCount',
-                  icon: Icons.today_rounded,
-                ),
-                _StatChip(
-                  label: 'Review Queue',
-                  value: '$totalReviewItems',
-                  icon: Icons.pending_actions_rounded,
-                ),
-              ],
+            _SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _PillBadge(
+                        text: 'team',
+                        color: theme.colorScheme.secondaryContainer,
+                        textColor: theme.colorScheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Team teaching workspace',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                      FilledButton.tonalIcon(
+                        onPressed: onOpenLibraryWorkspace,
+                        icon: const Icon(Icons.auto_stories_rounded, size: 18),
+                        label: const Text('Open pathway planning'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Run learner sessions, assignments, and progress from one team surface.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _ContractChipRow(
+                    children: [
+                      _PillBadge(
+                        text: 'learners:${learners.length}',
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        textColor: theme.colorScheme.primary,
+                      ),
+                      _PillBadge(
+                        text: 'active_today:$activeSessionCount',
+                        color: theme.colorScheme.secondaryContainer,
+                        textColor: theme.colorScheme.onSecondaryContainer,
+                      ),
+                      _PillBadge(
+                        text: 'review_queue:$totalReviewItems',
+                        color: theme.colorScheme.tertiaryContainer,
+                        textColor: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             if (wide)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 4,
-                    child: _SurfaceCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Learner roster',
-                            style: theme.textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Pick a learner to inspect the assignment journey and what can be started right now.',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          _GoldAccentDivider(),
-                          const SizedBox(height: 18),
-                          if (learners.isEmpty)
-                            Text(
-                              'No learners are visible in this workspace yet.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            )
-                          else
-                            ...learners.map(
-                              (learner) => Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: _LearnerCard(
-                                  learner: learner,
-                                  selected:
-                                      learner.learnerId == selectedLearnerId,
-                                  onTap: () =>
-                                      onSelectLearner(learner.learnerId),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  Expanded(flex: 4, child: rosterPanel),
                   const SizedBox(width: 20),
                   Expanded(
                     flex: 6,
@@ -1281,43 +1309,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 ],
               )
             else ...[
-              _SurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Learner roster',
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Pick a learner to inspect the assignment journey and what can be started right now.',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    if (learners.isEmpty)
-                      Text(
-                        'No learners are visible in this workspace yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      )
-                    else
-                      ...learners.map(
-                        (learner) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _LearnerCard(
-                            learner: learner,
-                            selected: learner.learnerId == selectedLearnerId,
-                            onTap: () => onSelectLearner(learner.learnerId),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              rosterPanel,
               const SizedBox(height: 20),
               _SurfaceCard(child: buildSelectionPanel()),
             ],
@@ -2804,10 +2796,10 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Workspace map', style: theme.textTheme.headlineSmall),
+          Text('Learning flow', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
           Text(
-            'Move between the current step, practice, the full route, and progress without drilling into nested cards.',
+            'Select the section and session to open learner materials directly.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -3291,44 +3283,76 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
-        _PageHeroCard(
-          eyebrow: 'Learning workspace',
-          title: 'My learning workspace',
-          description: _workspace.attentionLabel.isNotEmpty
-              ? _workspace.attentionLabel
-              : 'Move through the current step, the practice lane, the full route, and progress from one workspace.',
-          chips: [
-            _StatChip(
-              label: 'Standing',
-              value: journey == null
-                  ? '--'
-                  : 'S${journey.completedSessionCount + 1}/${journey.totalSessionCount}',
-              icon: Icons.place_rounded,
-            ),
-            _StatChip(
-              label: 'Completed',
-              value: '${snapshot.completedSessionCount}',
-              icon: Icons.task_alt_rounded,
-            ),
-            _StatChip(
-              label: 'Ready Now',
-              value: '${snapshot.pendingSessionCount}',
-              icon: Icons.rocket_launch_rounded,
-            ),
-          ],
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _PillBadge(
+                    text: 'workspace',
+                    color: theme.colorScheme.secondaryContainer,
+                    textColor: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Learner workspace',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                  if (_workspace.attentionLabel.isNotEmpty)
+                    _PillBadge(
+                      text: _workspace.attentionLabel,
+                      color: theme.colorScheme.tertiaryContainer,
+                      textColor: theme.colorScheme.onTertiaryContainer,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Follow the learning flow: Continue, Practice, Journey, and Progress.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _ContractChipRow(
+                children: [
+                  _PillBadge(
+                    text: journey == null
+                        ? 'standing:--'
+                        : 'standing:S${journey.completedSessionCount + 1}/${journey.totalSessionCount}',
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    textColor: theme.colorScheme.primary,
+                  ),
+                  _PillBadge(
+                    text: 'completed:${snapshot.completedSessionCount}',
+                    color: theme.colorScheme.secondaryContainer,
+                    textColor: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  _PillBadge(
+                    text: 'ready_now:${snapshot.pendingSessionCount}',
+                    color: theme.colorScheme.tertiaryContainer,
+                    textColor: theme.colorScheme.onTertiaryContainer,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         SizedBox(
           height: _desktopStudioHeight(
             context,
-            subtract: 220,
+            subtract: 210,
             minHeight: 720,
-            maxHeight: 940,
+            maxHeight: 980,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 320, child: _buildSidebar(theme)),
+              SizedBox(width: 300, child: _buildSidebar(theme)),
               const SizedBox(width: 20),
               Expanded(child: mainPanel),
             ],
@@ -3597,6 +3621,13 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     final session = _selectedSession;
     final material = _selectedMaterial;
 
+    Widget boundedDropdown(Widget child) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+        child: child,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3620,10 +3651,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           },
         ),
         const SizedBox(height: 10),
-        Row(
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
           children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
+            boundedDropdown(
+              DropdownButtonFormField<String>(
                 initialValue: _selectedPathwayId,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Pathway'),
@@ -3648,9 +3681,8 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                 },
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: DropdownButtonFormField<String>(
+            boundedDropdown(
+              DropdownButtonFormField<String>(
                 initialValue: _selectedPlaylistId,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Playlist'),
@@ -3678,10 +3710,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           ],
         ),
         const SizedBox(height: 10),
-        Row(
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
           children: [
-            Expanded(
-              child: DropdownButtonFormField<int>(
+            boundedDropdown(
+              DropdownButtonFormField<int>(
                 initialValue: session == null ? null : _selectedSessionIndex,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Session'),
@@ -3705,9 +3739,8 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                 },
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: DropdownButtonFormField<String>(
+            boundedDropdown(
+              DropdownButtonFormField<String>(
                 initialValue: material?.materialId,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Material'),
@@ -4164,29 +4197,32 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
             _buildStickySelectors(theme, pathway, playlist),
           ] else ...[
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedPathwayId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Pathway'),
-              items: pathways
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item.pathwayId,
-                      child: Text(item.title),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                for (final item in pathways) {
-                  if (item.pathwayId == value) {
-                    _selectPathway(item);
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedPathwayId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Pathway'),
+                items: pathways
+                    .map(
+                      (item) => DropdownMenuItem<String>(
+                        value: item.pathwayId,
+                        child: Text(item.title),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) {
                     return;
                   }
-                }
-              },
+                  for (final item in pathways) {
+                    if (item.pathwayId == value) {
+                      _selectPathway(item);
+                      return;
+                    }
+                  }
+                },
+              ),
             ),
           ],
         ],
@@ -4388,7 +4424,14 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
 
     return Column(
       children: [
-        _SurfaceCard(child: _buildFocusDetail(theme, pathway, playlist)),
+        _SurfaceCard(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            constraints: const BoxConstraints(minHeight: 164),
+            alignment: Alignment.topLeft,
+            child: _buildFocusDetail(theme, pathway, playlist),
+          ),
+        ),
         const SizedBox(height: 12),
         Expanded(
           child: _SurfaceCard(
