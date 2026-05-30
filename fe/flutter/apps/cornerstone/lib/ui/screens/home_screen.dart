@@ -1,10 +1,26 @@
 part of '../../main.dart';
 
 enum _ShellDestination {
-  owner('Team', 'Track learners, assignments, and daily progress.', Icons.dashboard_rounded),
-  learner('Workspace', 'See where you stand in the pathway and open session workspaces.', Icons.school_rounded),
-  library('Pathways', 'Review authored routes, playlists, and materials.', Icons.auto_stories_rounded),
-  account('Profile', 'Profile, theme, and personal settings.', Icons.person_rounded);
+  owner(
+    'Team',
+    'Track learners, assignments, and daily progress.',
+    Icons.dashboard_rounded,
+  ),
+  learner(
+    'Workspace',
+    'See where you stand in the pathway and open session workspaces.',
+    Icons.school_rounded,
+  ),
+  library(
+    'Pathways',
+    'Review authored routes, playlists, and materials.',
+    Icons.auto_stories_rounded,
+  ),
+  account(
+    'Profile',
+    'Profile, theme, and personal settings.',
+    Icons.person_rounded,
+  );
 
   const _ShellDestination(this.label, this.subtitle, this.icon);
   final String label;
@@ -26,10 +42,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   final CornerstoneApiClient _apiClient = CornerstoneApiClient();
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _scoreController = TextEditingController(text: '8');
-  final TextEditingController _maxScoreController = TextEditingController(text: '10');
-  final TextEditingController _durationController = TextEditingController(text: '15');
-  final TextEditingController _notesController = TextEditingController(text: 'Completed well with one or two slow facts.');
+  final TextEditingController _scoreController = TextEditingController(
+    text: '8',
+  );
+  final TextEditingController _maxScoreController = TextEditingController(
+    text: '10',
+  );
+  final TextEditingController _durationController = TextEditingController(
+    text: '15',
+  );
+  final TextEditingController _notesController = TextEditingController(
+    text: 'Completed well with one or two slow facts.',
+  );
 
   ViewerSessionPayload? _viewerSession;
   DashboardPayload? _dashboard;
@@ -93,7 +117,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final dashboard = _dashboard;
     final viewer = _currentViewer;
     if (dashboard == null) return const <LearnerDashboard>[];
-    if (viewer == null || viewer.canViewAllLearners || viewer.learnerId == null) {
+    if (viewer == null ||
+        viewer.canViewAllLearners ||
+        viewer.learnerId == null) {
       return dashboard.learners;
     }
     return dashboard.learners
@@ -150,7 +176,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         return learnerId;
       }
     }
-    return dashboard.learners.isNotEmpty ? dashboard.learners.first.learnerId : null;
+    return dashboard.learners.isNotEmpty
+        ? dashboard.learners.first.learnerId
+        : null;
   }
 
   Future<void> _restoreViewerSession() async {
@@ -164,9 +192,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         username: storedUsername,
       );
       if (!mounted) return;
-      final suggestedUsername = viewerSession.currentUser?.username ??
-          storedUsername ??
-          '';
+      final suggestedUsername =
+          viewerSession.currentUser?.username ?? storedUsername ?? '';
       _setUsernameInput(suggestedUsername);
 
       if (viewerSession.currentUser == null && storedUsername != null) {
@@ -373,29 +400,32 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final availableRoutes = documents.documents
         .map((document) => document.routePath)
         .toSet();
-    if (
-        preserveSelection &&
+    if (preserveSelection &&
         _selectedLibraryRoutePath != null &&
         availableRoutes.contains(_selectedLibraryRoutePath)) {
       return _selectedLibraryRoutePath;
     }
 
     final featuredRoutePath = libraryWorkspace.featuredRoutePath;
-    if (featuredRoutePath != null && availableRoutes.contains(featuredRoutePath)) {
+    if (featuredRoutePath != null &&
+        availableRoutes.contains(featuredRoutePath)) {
       return featuredRoutePath;
     }
 
     for (final pathway in libraryWorkspace.pathways) {
-      if (pathway.routePath != null && availableRoutes.contains(pathway.routePath)) {
+      if (pathway.routePath != null &&
+          availableRoutes.contains(pathway.routePath)) {
         return pathway.routePath;
       }
       for (final playlist in pathway.playlists) {
-        if (playlist.routePath != null && availableRoutes.contains(playlist.routePath)) {
+        if (playlist.routePath != null &&
+            availableRoutes.contains(playlist.routePath)) {
           return playlist.routePath;
         }
         for (final session in playlist.sessions) {
           for (final material in session.materials) {
-            if (material.routePath != null && availableRoutes.contains(material.routePath)) {
+            if (material.routePath != null &&
+                availableRoutes.contains(material.routePath)) {
               return material.routePath;
             }
           }
@@ -403,19 +433,23 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       }
     }
 
-    return documents.documents.isNotEmpty ? documents.documents.first.routePath : null;
+    return documents.documents.isNotEmpty
+        ? documents.documents.first.routePath
+        : null;
   }
 
   Future<void> _selectLibraryDocument(String routePath) async {
     if (!_viewerCanReadLibrary) {
       return;
     }
-    final normalizedRoutePath = routePath.trim().replaceAll(RegExp(r'^/+|/+$'), '');
+    final normalizedRoutePath = routePath.trim().replaceAll(
+      RegExp(r'^/+|/+$'),
+      '',
+    );
     if (normalizedRoutePath.isEmpty) {
       return;
     }
-    if (
-        normalizedRoutePath == _selectedLibraryRoutePath &&
+    if (normalizedRoutePath == _selectedLibraryRoutePath &&
         _selectedLibraryDocument != null) {
       _setDestination(_ShellDestination.library);
       return;
@@ -428,7 +462,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     });
 
     try {
-      final document = await _apiClient.fetchLibraryDocument(normalizedRoutePath);
+      final document = await _apiClient.fetchLibraryDocument(
+        normalizedRoutePath,
+      );
       if (!mounted) return;
       setState(() {
         _selectedLibraryDocument = document;
@@ -604,10 +640,13 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     setState(() => _selectedDestination = d);
   }
 
-  void _toggleShellNavigation() => setState(() => _shellNavExpanded = !_shellNavExpanded);
+  void _toggleShellNavigation() =>
+      setState(() => _shellNavExpanded = !_shellNavExpanded);
 
   String _shellUsername() =>
-      _currentViewer?.displayName ?? _viewerSession?.team?.displayName ?? 'Cornerstone';
+      _currentViewer?.displayName ??
+      _viewerSession?.team?.displayName ??
+      'Cornerstone';
 
   String _viewerRoleLabel(ViewerUser? viewer) {
     if (viewer == null) return 'Signed out';
@@ -639,14 +678,20 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth ?? _contentMaxWidthFor(_selectedDestination)),
+        constraints: BoxConstraints(
+          maxWidth: maxWidth ?? _contentMaxWidthFor(_selectedDestination),
+        ),
         child: SizedBox(width: double.infinity, child: child),
       ),
     );
   }
 
   String _identityInitials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return 'CO';
     if (parts.length == 1) {
       final w = parts.first;
@@ -660,7 +705,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final docsUri = rawUrl == null ? null : Uri.tryParse(rawUrl);
     if (docsUri == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Developer docs are not configured for this environment.')),
+        const SnackBar(
+          content: Text(
+            'Developer docs are not configured for this environment.',
+          ),
+        ),
       );
       return;
     }
@@ -674,7 +723,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   List<Widget> _buildProfileMenuChildren(BuildContext context) {
     final children = <Widget>[
-      MenuItemButton(leadingIcon: const Icon(Icons.person_rounded), onPressed: () => _setDestination(_ShellDestination.account), child: const Text('My Account')),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.person_rounded),
+        onPressed: () => _setDestination(_ShellDestination.account),
+        child: const Text('My Account'),
+      ),
     ];
     if (_viewerCanReadLibrary && !_viewerCanOpenDeveloperDocs) {
       children.add(
@@ -685,7 +738,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         ),
       );
     }
-    if (_viewerCanOpenDeveloperDocs && (_developerDocsUrl?.isNotEmpty ?? false)) {
+    if (_viewerCanOpenDeveloperDocs &&
+        (_developerDocsUrl?.isNotEmpty ?? false)) {
       children.add(
         MenuItemButton(
           leadingIcon: const Icon(Icons.developer_mode_rounded),
@@ -695,9 +749,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       );
     }
     children.addAll([
-      MenuItemButton(leadingIcon: const Icon(Icons.logout_rounded), onPressed: _authBusy ? null : () => _logoutViewer(), child: const Text('Log out')),
-      const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Divider(height: 18)),
-      SizedBox(width: 284, child: _AppearancePanel(controller: widget.themeController)),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.logout_rounded),
+        onPressed: _authBusy ? null : () => _logoutViewer(),
+        child: const Text('Log out'),
+      ),
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: Divider(height: 18),
+      ),
+      SizedBox(
+        width: 284,
+        child: _AppearancePanel(
+          controller: widget.themeController,
+          compact: true,
+        ),
+      ),
     ]);
     return children;
   }
@@ -714,18 +781,29 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: selected
-            ? const LinearGradient(colors: [_BrandPalette.goldBright, _BrandPalette.goldDeep], begin: Alignment.topLeft, end: Alignment.bottomRight)
+            ? const LinearGradient(
+                colors: [_BrandPalette.goldBright, _BrandPalette.goldDeep],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
             : null,
         color: selected ? null : theme.colorScheme.surfaceContainerHigh,
         border: Border.all(
-          color: selected ? theme.colorScheme.primary.withValues(alpha: 0.30) : theme.colorScheme.outlineVariant.withValues(alpha: 0.50),
+          color: selected
+              ? theme.colorScheme.primary.withValues(alpha: 0.30)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.50),
           width: selected ? 1.5 : 1,
         ),
       ),
       alignment: Alignment.center,
       child: Text(
         _identityInitials(username),
-        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: selected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant),
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: selected
+              ? theme.colorScheme.onPrimary
+              : theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
 
@@ -735,7 +813,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         if (compact) {
           return Tooltip(
             message: username,
-            child: IconButton(tooltip: 'Profile menu', onPressed: () => controller.isOpen ? controller.close() : controller.open(), icon: avatar),
+            child: IconButton(
+              tooltip: 'Profile menu',
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+              icon: avatar,
+            ),
           );
         }
         return Container(
@@ -744,13 +827,19 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: theme.brightness == Brightness.dark ? [_BrandPalette.slateRaised, _BrandPalette.slateCard] : [Colors.white, _BrandPalette.warmPaper],
+              colors: theme.brightness == Brightness.dark
+                  ? [_BrandPalette.slateRaised, _BrandPalette.slateCard]
+                  : [Colors.white, _BrandPalette.warmPaper],
             ),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.44)),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.44),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: theme.brightness == Brightness.dark ? 0.16 : 0.05),
+                color: Colors.black.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.16 : 0.05,
+                ),
                 blurRadius: 14,
                 offset: const Offset(0, 8),
               ),
@@ -774,9 +863,15 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                           Text(
                             username,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          Text(_shellWorkspaceLabel(), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                          Text(
+                            _shellWorkspaceLabel(),
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ],
                       ),
                     ),
@@ -785,7 +880,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               ],
               IconButton(
                 tooltip: 'Profile menu',
-                onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+                onPressed: () =>
+                    controller.isOpen ? controller.close() : controller.open(),
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.more_horiz_rounded),
               ),
@@ -802,7 +898,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       child: IconButton(
         onPressed: _toggleShellNavigation,
         visualDensity: VisualDensity.compact,
-        icon: Icon(_shellNavExpanded ? Icons.keyboard_double_arrow_left_rounded : Icons.keyboard_double_arrow_right_rounded, color: theme.colorScheme.primary),
+        icon: Icon(
+          _shellNavExpanded
+              ? Icons.keyboard_double_arrow_left_rounded
+              : Icons.keyboard_double_arrow_right_rounded,
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }
@@ -810,27 +911,43 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildShellHeader(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     final shellEyebrow = _viewerCanManage ? 'WORKSPACE' : 'LEARNING WORKSPACE';
-    final shellTitle = _viewerCanManage ? 'Team workspace' : 'My learning workspace';
+    final shellTitle = _viewerCanManage
+        ? 'Team workspace'
+        : 'My learning workspace';
     final shellDescription = _viewerCanManage
-      ? _viewerCanReadLibrary
-        ? 'Move between team progress, learner operations, the pathway library, and profile tools.'
-        : 'Move between team progress, learner operations, and profile tools.'
-      : 'See where you stand in the pathway, open session workspaces, and track your progress.';
+        ? _viewerCanReadLibrary
+              ? 'Move between team progress, learner operations, the pathway library, and profile tools.'
+              : 'Move between team progress, learner operations, and profile tools.'
+        : 'See where you stand in the pathway, open session workspaces, and track your progress.';
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(_shellNavExpanded ? 16 : 10, 14, _shellNavExpanded ? 16 : 10, 8),
+      padding: EdgeInsets.fromLTRB(
+        _shellNavExpanded ? 16 : 10,
+        14,
+        _shellNavExpanded ? 16 : 10,
+        8,
+      ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: EdgeInsets.fromLTRB(_shellNavExpanded ? 16 : 8, 14, _shellNavExpanded ? 16 : 8, 14),
+        padding: EdgeInsets.fromLTRB(
+          _shellNavExpanded ? 16 : 8,
+          14,
+          _shellNavExpanded ? 16 : 8,
+          14,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDark ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised] : [Colors.white, _BrandPalette.warmPaper],
+            colors: isDark
+                ? [_BrandPalette.slateHigh, _BrandPalette.slateRaised]
+                : [Colors.white, _BrandPalette.warmPaper],
           ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.46)),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.46),
+          ),
         ),
         child: _shellNavExpanded
             ? Column(
@@ -838,13 +955,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 children: [
                   Text(
                     shellEyebrow,
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: Text(shellTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                        child: Text(
+                          shellTitle,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                       _buildShellRailToggle(theme),
                     ],
@@ -858,7 +984,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     );
   }
 
-  Widget _buildDesktopNavItem(BuildContext context, _ShellDestination destination) {
+  Widget _buildDesktopNavItem(
+    BuildContext context,
+    _ShellDestination destination,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final selected = _selectedDestination == destination;
@@ -871,24 +1000,45 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(horizontal: _shellNavExpanded ? 12 : 10, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: _shellNavExpanded ? 12 : 10,
+            vertical: 12,
+          ),
           decoration: BoxDecoration(
             gradient: selected
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isDark
-                        ? [Color.alphaBlend(_BrandPalette.goldBright.withValues(alpha: 0.14), _BrandPalette.slateRaised), _BrandPalette.slateCard]
-                        : [Color.alphaBlend(theme.colorScheme.primary.withValues(alpha: 0.14), Colors.white), _BrandPalette.warmPaper],
+                        ? [
+                            Color.alphaBlend(
+                              _BrandPalette.goldBright.withValues(alpha: 0.14),
+                              _BrandPalette.slateRaised,
+                            ),
+                            _BrandPalette.slateCard,
+                          ]
+                        : [
+                            Color.alphaBlend(
+                              theme.colorScheme.primary.withValues(alpha: 0.14),
+                              Colors.white,
+                            ),
+                            _BrandPalette.warmPaper,
+                          ],
                   )
                 : null,
             color: selected ? null : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? theme.colorScheme.primary.withValues(alpha: 0.34) : theme.colorScheme.outlineVariant.withValues(alpha: 0.46)),
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.34)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.46),
+            ),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.08),
+                      color: theme.colorScheme.primary.withValues(
+                        alpha: isDark ? 0.14 : 0.08,
+                      ),
                       blurRadius: 18,
                       offset: const Offset(0, 10),
                     ),
@@ -901,12 +1051,28 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: selected ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.14) : theme.colorScheme.surface.withValues(alpha: 0.72),
+                  color: selected
+                      ? theme.colorScheme.primary.withValues(
+                          alpha: isDark ? 0.16 : 0.14,
+                        )
+                      : theme.colorScheme.surface.withValues(alpha: 0.72),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: selected ? theme.colorScheme.primary.withValues(alpha: 0.24) : theme.colorScheme.outlineVariant.withValues(alpha: 0.46)),
+                  border: Border.all(
+                    color: selected
+                        ? theme.colorScheme.primary.withValues(alpha: 0.24)
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.46,
+                          ),
+                  ),
                 ),
                 alignment: Alignment.center,
-                child: Icon(destination.icon, color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant, size: 20),
+                child: Icon(
+                  destination.icon,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
               ),
               if (_shellNavExpanded) ...[
                 const SizedBox(width: 12),
@@ -918,7 +1084,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         destination.label,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: selected ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+                          color: selected
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -926,7 +1094,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         destination.subtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(color: selected ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: selected
+                              ? theme.colorScheme.onSurfaceVariant
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -942,7 +1114,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildDesktopShell(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final panelColor = Color.alphaBlend(isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.72), theme.colorScheme.surfaceContainerLow);
+    final panelColor = Color.alphaBlend(
+      isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : Colors.white.withValues(alpha: 0.72),
+      theme.colorScheme.surfaceContainerLow,
+    );
 
     return SafeArea(
       right: false,
@@ -955,7 +1132,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           decoration: BoxDecoration(
             color: panelColor,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: isDark ? _BrandPalette.slateBorder : theme.colorScheme.primary.withValues(alpha: 0.14)),
+            border: Border.all(
+              color: isDark
+                  ? _BrandPalette.slateBorder
+                  : theme.colorScheme.primary.withValues(alpha: 0.14),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
@@ -974,7 +1155,12 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     padding: const EdgeInsets.fromLTRB(10, 2, 10, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: _availableDestinations.map((destination) => _buildDesktopNavItem(context, destination)).toList(growable: false),
+                      children: _availableDestinations
+                          .map(
+                            (destination) =>
+                                _buildDesktopNavItem(context, destination),
+                          )
+                          .toList(growable: false),
                     ),
                   ),
                 ),
@@ -995,7 +1181,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     final isDark = theme.brightness == Brightness.dark;
     final username = _shellUsername();
     return Drawer(
-      backgroundColor: isDark ? _BrandPalette.slatePanel : _BrandPalette.warmPaper,
+      backgroundColor: isDark
+          ? _BrandPalette.slatePanel
+          : _BrandPalette.warmPaper,
       child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
@@ -1006,10 +1194,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isDark ? [_BrandPalette.slateRaised, _BrandPalette.slateCard] : [Colors.white, _BrandPalette.warmPaper],
+                  colors: isDark
+                      ? [_BrandPalette.slateRaised, _BrandPalette.slateCard]
+                      : [Colors.white, _BrandPalette.warmPaper],
                 ),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                ),
               ),
               child: Row(
                 children: [
@@ -1017,13 +1209,23 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     width: 48,
                     height: 48,
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(colors: [_BrandPalette.goldBright, _BrandPalette.goldDeep], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      gradient: LinearGradient(
+                        colors: [
+                          _BrandPalette.goldBright,
+                          _BrandPalette.goldDeep,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       _identityInitials(username),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: _BrandPalette.navy),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: _BrandPalette.navy,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1033,12 +1235,24 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                       children: [
                         Text(
                           'WORKSPACE',
-                          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                          ),
                         ),
                         const SizedBox(height: 4),
-                        Text(username, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(
+                          username,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(_shellWorkspaceLabel(), style: theme.textTheme.bodySmall),
+                        Text(
+                          _shellWorkspaceLabel(),
+                          style: theme.textTheme.bodySmall,
+                        ),
                       ],
                     ),
                   ),
@@ -1048,28 +1262,43 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             const SizedBox(height: 18),
             Text(
               'VIEWS',
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, letterSpacing: 1.0),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.0,
+              ),
             ),
             const SizedBox(height: 8),
             ..._availableDestinations.map(
               (d) => ListTile(
                 leading: Icon(d.icon),
                 title: Text(d.label),
-                subtitle: Text(d.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  d.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 selected: _selectedDestination == d,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _setDestination(d);
                 },
               ),
             ),
-            if (_viewerCanOpenDeveloperDocs && (_developerDocsUrl?.isNotEmpty ?? false))
+            if (_viewerCanOpenDeveloperDocs &&
+                (_developerDocsUrl?.isNotEmpty ?? false))
               ListTile(
                 leading: const Icon(Icons.developer_mode_rounded),
                 title: const Text('Developer Docs'),
-                subtitle: const Text('Open the standalone developer documentation site.'),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                subtitle: const Text(
+                  'Open the standalone developer documentation site.',
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _openDeveloperDocs();
@@ -1078,7 +1307,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
             ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: const Text('Log out'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               onTap: _authBusy
                   ? null
                   : () {
@@ -1118,15 +1349,25 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           foregroundColor: theme.colorScheme.primary,
           child: Text(
             _identityInitials(user.displayName),
-            style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
-        title: Text(user.displayName, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        title: Text(
+          user.displayName,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         subtitle: Text(
           '${_viewerRoleLabel(user)} · @${user.username}',
           style: theme.textTheme.bodySmall,
         ),
-        trailing: Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.primary),
+        trailing: Icon(
+          Icons.arrow_forward_rounded,
+          color: theme.colorScheme.primary,
+        ),
         onTap: _authBusy ? null : () => _loginWithUsername(user.username),
       ),
     );
@@ -1135,7 +1376,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildSignedOutScaffold(BuildContext context) {
     final session = _viewerSession;
     final availableUsers = session?.availableUsers ?? const <ViewerUser>[];
-    final ownerCount = availableUsers.where((user) => user.canManageTeam).length;
+    final ownerCount = availableUsers
+        .where((user) => user.canManageTeam)
+        .length;
     final learnerCount = availableUsers.where((user) => user.isLearner).length;
 
     return Scaffold(
@@ -1178,16 +1421,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         trailing: Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surface
-                                .withValues(alpha: 0.34),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surface.withValues(alpha: 0.34),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.16),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.16),
                             ),
                           ),
                           child: Column(
@@ -1195,8 +1436,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                             children: [
                               Text(
                                 'USERNAME ONLY',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.primary,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 1.0,
                                     ),
@@ -1217,14 +1461,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Continue with username', style: Theme.of(context).textTheme.headlineSmall),
+                        Text(
+                          'Continue with username',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Pick a team profile below or type the username directly.',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                         if (_sessionErrorMessage != null) ...[
@@ -1232,18 +1480,18 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .errorContainer,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.errorContainer,
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.warning_amber_rounded,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -1253,9 +1501,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onErrorContainer,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onErrorContainer,
                                         ),
                                   ),
                                 ),
@@ -1267,7 +1515,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                         TextField(
                           controller: _usernameController,
                           textInputAction: TextInputAction.go,
-                          onSubmitted: _authBusy ? null : (_) => _loginWithUsername(),
+                          onSubmitted: _authBusy
+                              ? null
+                              : (_) => _loginWithUsername(),
                           decoration: const InputDecoration(
                             labelText: 'Username',
                             prefixIcon: Icon(Icons.alternate_email_rounded),
@@ -1278,7 +1528,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                           children: [
                             Expanded(
                               child: FilledButton.icon(
-                                onPressed: _authBusy ? null : () => _loginWithUsername(),
+                                onPressed: _authBusy
+                                    ? null
+                                    : () => _loginWithUsername(),
                                 icon: _authBusy
                                     ? const SizedBox(
                                         width: 18,
@@ -1294,7 +1546,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                           ],
                         ),
                         const SizedBox(height: 22),
-                        Text('Quick sign-in', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(
+                          'Quick sign-in',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
                         const SizedBox(height: 12),
                         if (availableUsers.isEmpty)
                           Text(
@@ -1331,11 +1587,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      hero,
-                      const SizedBox(height: 20),
-                      loginCard,
-                    ],
+                    children: [hero, const SizedBox(height: 20), loginCard],
                   );
                 },
               ),
@@ -1349,22 +1601,33 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildContentBody(BuildContext context) {
     final dashboard = _dashboard;
     final libraryWorkspace = _libraryWorkspace;
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_errorMessage != null) return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
-    if (dashboard == null) return const Center(child: Text('No data loaded'));
-    final activeDestination = _availableDestinations.contains(_selectedDestination)
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_errorMessage != null) {
+      return _ErrorState(message: _errorMessage!, onRetry: () => _loadAll());
+    }
+    if (dashboard == null) {
+      return const Center(child: Text('No data loaded'));
+    }
+    final activeDestination =
+        _availableDestinations.contains(_selectedDestination)
         ? _selectedDestination
         : (_availableDestinations.isNotEmpty
               ? _availableDestinations.first
               : _ShellDestination.account);
     final content = switch (activeDestination) {
-        _ShellDestination.owner => libraryWorkspace == null
-          ? const Center(child: Text('Team planning data is unavailable.'))
-        : _buildOwnerView(context, dashboard, libraryWorkspace),
+      _ShellDestination.owner =>
+        libraryWorkspace == null
+            ? const Center(child: Text('Team planning data is unavailable.'))
+            : _buildOwnerView(context, dashboard, libraryWorkspace),
       _ShellDestination.learner => _buildLearnerView(context),
-      _ShellDestination.library => libraryWorkspace == null
-          ? const Center(child: Text('Library access is unavailable for this viewer.'))
-        : _buildLibraryView(context, libraryWorkspace),
+      _ShellDestination.library =>
+        libraryWorkspace == null
+            ? const Center(
+                child: Text('Library access is unavailable for this viewer.'),
+              )
+            : _buildLibraryView(context, libraryWorkspace),
       _ShellDestination.account => _buildAccountView(context, dashboard),
     };
     return _wrapMainContent(
@@ -1384,16 +1647,19 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           eyebrow: 'Account',
           title: username,
           description: viewer == null
-              ? (dashboard.team?.description ?? 'Manage your profile and theme in one place.')
+              ? (dashboard.team?.description ??
+                    'Manage your profile and theme in one place.')
               : viewer.canManageTeam
-                ? 'Manage your profile, theme, and team learning space in one place.'
-                : 'Keep your profile, theme, and learner space settings in one place.',
+              ? 'Manage your profile, theme, and team learning space in one place.'
+              : 'Keep your profile, theme, and learner space settings in one place.',
           trailing: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface.withValues(alpha: 0.34),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.16)),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.16),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1402,19 +1668,35 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                   width: 60,
                   height: 60,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(colors: [_BrandPalette.goldBright, _BrandPalette.goldDeep], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    gradient: LinearGradient(
+                      colors: [
+                        _BrandPalette.goldBright,
+                        _BrandPalette.goldDeep,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _identityInitials(username),
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: _BrandPalette.navy),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: _BrandPalette.navy,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text(_viewerRoleLabel(viewer), style: theme.textTheme.titleSmall),
+                Text(
+                  _viewerRoleLabel(viewer),
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 4),
-                Text(viewer == null ? 'Signed out' : '@${viewer.username}', style: theme.textTheme.bodySmall),
+                Text(
+                  viewer == null ? 'Signed out' : '@${viewer.username}',
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -1428,7 +1710,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 Text('Session', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 8),
                 Text(
-                    viewer.canManageTeam
+                  viewer.canManageTeam
                       ? 'This account can manage every learner, assignments, and progress updates.'
                       : 'This account stays focused on the learner view, progress, and pending work.',
                   style: theme.textTheme.bodyLarge?.copyWith(
@@ -1439,15 +1721,22 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.14,
+                    ),
                     foregroundColor: theme.colorScheme.primary,
                     child: Text(
                       _identityInitials(viewer.displayName),
-                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   title: Text(viewer.displayName),
-                  subtitle: Text('@${viewer.username}', style: theme.textTheme.bodySmall),
+                  subtitle: Text(
+                    '@${viewer.username}',
+                    style: theme.textTheme.bodySmall,
+                  ),
                   trailing: _PillBadge(
                     text: _viewerRoleLabel(viewer),
                     color: viewer.canManageTeam
@@ -1493,7 +1782,9 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               const SizedBox(height: 8),
               Text(
                 'Switch between warm daylight and stone-dark workspace styling.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 18),
               _AppearancePanel(controller: widget.themeController),
@@ -1518,7 +1809,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 14,
-        title: _BrandLockup(compact: isMobile, toolbarVariant: true, onTap: () => _setDestination(_ShellDestination.owner)),
+        title: _BrandLockup(
+          compact: isMobile,
+          toolbarVariant: true,
+          onTap: () => _setDestination(_ShellDestination.owner),
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
@@ -1538,7 +1833,11 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
           if (_busy || _authBusy)
             const Padding(
               padding: EdgeInsets.all(16),
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           if (isMobile) _buildProfileMenuAnchor(compact: true),
           const SizedBox(width: 8),
@@ -1554,13 +1853,25 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               transitionBuilder: (child, animation) {
-                final offset = Tween<Offset>(begin: const Offset(0.03, 0), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+                final offset =
+                    Tween<Offset>(
+                      begin: const Offset(0.03, 0),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      ),
+                    );
                 return FadeTransition(
                   opacity: animation,
                   child: SlideTransition(position: offset, child: child),
                 );
               },
-              child: KeyedSubtree(key: ValueKey(_selectedDestination), child: _buildContentBody(context)),
+              child: KeyedSubtree(
+                key: ValueKey(_selectedDestination),
+                child: _buildContentBody(context),
+              ),
             ),
           ),
         ],
