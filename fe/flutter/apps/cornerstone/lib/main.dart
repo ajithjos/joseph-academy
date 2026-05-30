@@ -14,7 +14,10 @@ part 'ui/screens/home_screen.dart';
 part 'ui/widgets/markdown_widgets.dart';
 part 'ui/widgets/home_widgets.dart';
 part 'ui/widgets/contract_chip_widgets.dart';
-part 'ui/widgets/workspace_widgets.dart';
+part 'ui/widgets/workspace/shared_widgets.dart';
+part 'ui/widgets/workspace/owner_workspace_view.dart';
+part 'ui/widgets/workspace/learner_workspace_view.dart';
+part 'ui/widgets/workspace/library_workspace_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
