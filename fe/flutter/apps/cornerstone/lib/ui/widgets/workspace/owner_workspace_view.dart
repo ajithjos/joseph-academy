@@ -33,17 +33,24 @@ class _OwnerWorkspaceView extends StatelessWidget {
   final TextEditingController durationController;
   final TextEditingController notesController;
   final ValueChanged<String> onSelectLearner;
-  final Future<void> Function(String learnerId, String playlistId) onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId)
+  onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
   final VoidCallback onOpenLibraryWorkspace;
   final VoidCallback onRecordSession;
-  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material)
+  onStartActivity;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final totalReviewItems = learners.fold<int>(0, (count, learner) => count + learner.reviewItemCount);
-    final activeSessionCount = learners.where((learner) => learner.todaySession != null).length;
+    final totalReviewItems = learners.fold<int>(
+      0,
+      (count, learner) => count + learner.reviewItemCount,
+    );
+    final activeSessionCount = learners
+        .where((learner) => learner.todaySession != null)
+        .length;
     final selectedDetail = detail;
     final journey = selectedDetail?.journey;
     final workspace = selectedDetail?.workspace;
@@ -60,15 +67,39 @@ class _OwnerWorkspaceView extends StatelessWidget {
     }
     activeSession ??= currentActionSession;
     final learnerFacingGroups =
-        activeSession?.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false) ?? const <SessionMaterialKindGroup>[];
-    final adultFacingGroups = activeSession?.materialsByKind.where((group) => group.audience == 'adult').toList(growable: false) ?? const <SessionMaterialKindGroup>[];
-    final currentStanding = activeSession?.sequenceNumber ?? (journey != null && journey.totalSessionCount > 0 ? journey.completedSessionCount + 1 : null);
-    final journeyProgress = journey == null || journey.totalSessionCount == 0 ? null : (journey.completedSessionCount / journey.totalSessionCount).clamp(0.0, 1.0);
-    final activeMaterials = activeSession?.materials.where((material) => material.isExecutable).toList(growable: false) ?? const <SessionMaterial>[];
+        activeSession?.materialsByKind
+            .where((group) => group.audience == 'learner')
+            .toList(growable: false) ??
+        const <SessionMaterialKindGroup>[];
+    final adultFacingGroups =
+        activeSession?.materialsByKind
+            .where((group) => group.audience == 'adult')
+            .toList(growable: false) ??
+        const <SessionMaterialKindGroup>[];
+    final currentStanding =
+        activeSession?.sequenceNumber ??
+        (journey != null && journey.totalSessionCount > 0
+            ? journey.completedSessionCount + 1
+            : null);
+    final journeyProgress = journey == null || journey.totalSessionCount == 0
+        ? null
+        : (journey.completedSessionCount / journey.totalSessionCount).clamp(
+            0.0,
+            1.0,
+          );
+    final activeMaterials =
+        activeSession?.materials
+            .where((material) => material.isExecutable)
+            .toList(growable: false) ??
+        const <SessionMaterial>[];
     final selectedProgressCounts = <String, int>{};
     if (selectedDetail != null) {
       for (final state in selectedDetail.progress) {
-        selectedProgressCounts.update(state.status, (count) => count + 1, ifAbsent: () => 1);
+        selectedProgressCounts.update(
+          state.status,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
       }
     }
     final selectedSecureCount = selectedProgressCounts['secure'] ?? 0;
@@ -84,12 +115,20 @@ class _OwnerWorkspaceView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.person_search_rounded, size: 54, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                Icon(
+                  Icons.person_search_rounded,
+                  size: 54,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.4,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Choose a learner from the roster.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -115,7 +154,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(selectedDetail.learner.displayName, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      selectedDetail.learner.displayName,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -128,14 +172,21 @@ class _OwnerWorkspaceView extends StatelessWidget {
                         ),
                         _PillBadge(
                           text: 'Age ${selectedDetail.learner.currentAge}',
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.12,
+                          ),
                           textColor: theme.colorScheme.primary,
                         ),
                         if ((workspace?.attentionLabel ?? '').isNotEmpty)
-                          _PillBadge(text: workspace!.attentionLabel, color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
+                          _PillBadge(
+                            text: workspace!.attentionLabel,
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            textColor: theme.colorScheme.onSurfaceVariant,
+                          ),
                         if (selectedDetail.activeAssignment != null)
                           _PillBadge(
-                            text: '${selectedDetail.activeAssignment!.completedSessions}/${selectedDetail.activeAssignment!.totalSessions} completed',
+                            text:
+                                '${selectedDetail.activeAssignment!.completedSessions}/${selectedDetail.activeAssignment!.totalSessions} completed',
                             color: theme.colorScheme.tertiaryContainer,
                             textColor: theme.colorScheme.onTertiaryContainer,
                           ),
@@ -153,21 +204,43 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('No pathway is assigned to this learner yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        'No pathway is assigned to this learner yet.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (journey.pathwayTitle != null) Text(journey.pathwayTitle!, style: theme.textTheme.titleLarge),
+                      if (journey.pathwayTitle != null)
+                        Text(
+                          journey.pathwayTitle!,
+                          style: theme.textTheme.titleLarge,
+                        ),
                       if ((journey.pathwayDescription ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(journey.pathwayDescription!, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          journey.pathwayDescription!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 10),
-                      Text(journey.playlistTitle, style: theme.textTheme.titleMedium),
+                      Text(
+                        journey.playlistTitle,
+                        style: theme.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 4),
-                      Text(journey.playlistDescription, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        journey.playlistDescription,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -175,13 +248,16 @@ class _OwnerWorkspaceView extends StatelessWidget {
                         children: [
                           if (currentStanding != null)
                             _PillBadge(
-                              text: 'Current session: $currentStanding/${journey.totalSessionCount}',
+                              text:
+                                  'Current session: $currentStanding/${journey.totalSessionCount}',
                               color: theme.colorScheme.secondaryContainer,
                               textColor: theme.colorScheme.onSecondaryContainer,
                             ),
                           _PillBadge(
                             text: 'Completed: ${journey.completedSessionCount}',
-                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.12,
+                            ),
                             textColor: theme.colorScheme.primary,
                           ),
                           _PillBadge(
@@ -195,7 +271,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                         const SizedBox(height: 12),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(minHeight: 10, value: journeyProgress, backgroundColor: theme.colorScheme.surfaceContainerHighest),
+                          child: LinearProgressIndicator(
+                            minHeight: 10,
+                            value: journeyProgress,
+                            backgroundColor:
+                                theme.colorScheme.surfaceContainerHighest,
+                          ),
                         ),
                       ],
                     ],
@@ -210,7 +291,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 if (continueBlock != null) ...[
                   Text(continueBlock.title, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 4),
-                  Text(continueBlock.description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    continueBlock.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                 ],
                 if (activeSession != null) ...[
@@ -228,11 +314,17 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       if (activeSession.estimatedMinutes > 0)
                         _PillBadge(
                           text: '${activeSession.estimatedMinutes} min',
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.12,
+                          ),
                           textColor: theme.colorScheme.primary,
                         ),
                       if (activeSession.requiresAdultSupport)
-                        _PillBadge(text: 'Adult-guided', color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
+                        _PillBadge(
+                          text: 'Adult-guided',
+                          color: theme.colorScheme.tertiaryContainer,
+                          textColor: theme.colorScheme.onTertiaryContainer,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -245,8 +337,14 @@ class _OwnerWorkspaceView extends StatelessWidget {
                           isScrollable: true,
                           tabAlignment: TabAlignment.start,
                           tabs: [
-                            Tab(text: 'Learner items (${learnerFacingGroups.length})'),
-                            Tab(text: 'Teacher notes (${adultFacingGroups.length})'),
+                            Tab(
+                              text:
+                                  'Learner items (${learnerFacingGroups.length})',
+                            ),
+                            Tab(
+                              text:
+                                  'Teacher notes (${adultFacingGroups.length})',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -258,44 +356,64 @@ class _OwnerWorkspaceView extends StatelessWidget {
                                   ? SingleChildScrollView(
                                       child: _SessionWorkspaceAudiencePanel(
                                         title: 'Learner items',
-                                        description: 'Everything the learner needs for this session.',
-                                        emptyState: 'No learner-facing materials are attached to this session yet.',
+                                        description:
+                                            'Everything the learner needs for this session.',
+                                        emptyState:
+                                            'No learner-facing materials are attached to this session yet.',
                                         icon: Icons.school_rounded,
                                         groups: learnerFacingGroups,
                                         session: activeSession,
-                                        viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
+                                        viewerCanReadLibrary:
+                                            viewer?.canReadLibrary ?? false,
                                         showDocumentBodies: true,
                                         onOpenLibraryRoute: onOpenLibraryRoute,
                                         onStartActivity: onStartActivity,
                                       ),
                                     )
                                   : Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
                                       child: Text(
                                         'No learner item content in this session.',
-                                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
                                       ),
                                     ),
                               hasTeacherNotes
                                   ? SingleChildScrollView(
                                       child: _SessionWorkspaceAudiencePanel(
                                         title: 'Teacher notes',
-                                        description: 'Teaching guidance for running this session.',
-                                        emptyState: 'No adult guidance notes are attached to this session.',
+                                        description:
+                                            'Teaching guidance for running this session.',
+                                        emptyState:
+                                            'No adult guidance notes are attached to this session.',
                                         icon: Icons.record_voice_over_rounded,
                                         groups: adultFacingGroups,
                                         session: activeSession,
-                                        viewerCanReadLibrary: viewer?.canReadLibrary ?? false,
+                                        viewerCanReadLibrary:
+                                            viewer?.canReadLibrary ?? false,
                                         showDocumentBodies: true,
                                         onOpenLibraryRoute: onOpenLibraryRoute,
                                         onStartActivity: onStartActivity,
                                       ),
                                     )
                                   : Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 6,
+                                      ),
                                       child: Text(
                                         'No adult guidance or note content in this session.',
-                                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
                                       ),
                                     ),
                             ],
@@ -312,8 +430,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       children: activeMaterials
                           .map(
                             (material) => FilledButton.icon(
-                              onPressed: () => onStartActivity(activeSession!, material),
-                              icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
+                              onPressed: () =>
+                                  onStartActivity(activeSession!, material),
+                              icon: const Icon(
+                                Icons.play_circle_fill_rounded,
+                                size: 18,
+                              ),
                               label: Text('Start ${material.title}'),
                             ),
                           )
@@ -324,9 +446,18 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        _CompactField(label: 'Score', controller: scoreController),
-                        _CompactField(label: 'Max score', controller: maxScoreController),
-                        _CompactField(label: 'Minutes', controller: durationController),
+                        _CompactField(
+                          label: 'Score',
+                          controller: scoreController,
+                        ),
+                        _CompactField(
+                          label: 'Max score',
+                          controller: maxScoreController,
+                        ),
+                        _CompactField(
+                          label: 'Minutes',
+                          controller: durationController,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -334,13 +465,24 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       controller: notesController,
                       minLines: 2,
                       maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Session notes'),
+                      decoration: const InputDecoration(
+                        labelText: 'Session notes',
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    FilledButton.icon(onPressed: onRecordSession, icon: const Icon(Icons.check_circle_rounded, size: 18), label: const Text('Record session')),
+                    FilledButton.icon(
+                      onPressed: onRecordSession,
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text('Record session'),
+                    ),
                   ],
                 ] else
-                  Text('No active session for this learner right now.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    'No active session for this learner right now.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -361,17 +503,28 @@ class _OwnerWorkspaceView extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(win.sessionTitle, style: theme.textTheme.titleSmall),
+                                  Text(
+                                    win.sessionTitle,
+                                    style: theme.textTheme.titleSmall,
+                                  ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    win.notes.isEmpty ? 'Recorded session evidence.' : win.notes,
-                                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                    win.notes.isEmpty
+                                        ? 'Recorded session evidence.'
+                                        : win.notes,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 10),
-                            _PillBadge(text: win.scoreLabel, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                            _PillBadge(
+                              text: win.scoreLabel,
+                              color: theme.colorScheme.secondaryContainer,
+                              textColor: theme.colorScheme.onSecondaryContainer,
+                            ),
                           ],
                         ),
                       ),
@@ -410,17 +563,28 @@ class _OwnerWorkspaceView extends StatelessWidget {
                   child: TabBarView(
                     children: [
                       learners.isEmpty
-                          ? Text('No learners are visible in this workspace yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+                          ? Text(
+                              'No learners are visible in this workspace yet.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            )
                           : SingleChildScrollView(
                               child: Column(
                                 children: learners
                                     .map(
                                       (learner) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
                                         child: _LearnerCard(
                                           learner: learner,
-                                          selected: learner.learnerId == selectedLearnerId,
-                                          onTap: () => onSelectLearner(learner.learnerId),
+                                          selected:
+                                              learner.learnerId ==
+                                              selectedLearnerId,
+                                          onTap: () => onSelectLearner(
+                                            learner.learnerId,
+                                          ),
                                         ),
                                       ),
                                     )
@@ -428,26 +592,53 @@ class _OwnerWorkspaceView extends StatelessWidget {
                               ),
                             ),
                       owners.isEmpty
-                          ? Text('No owners are visible in this workspace yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+                          ? Text(
+                              'No owners are visible in this workspace yet.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            )
                           : SingleChildScrollView(
                               child: Column(
                                 children: owners
                                     .map(
                                       (owner) => Container(
                                         width: double.infinity,
-                                        margin: const EdgeInsets.only(bottom: 10),
+                                        margin: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: theme.colorScheme.surface.withValues(alpha: 0.58),
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: theme.colorScheme.outlineVariant),
+                                          color: theme.colorScheme.surface
+                                              .withValues(alpha: 0.58),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          border: Border.all(
+                                            color: theme
+                                                .colorScheme
+                                                .outlineVariant,
+                                          ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Text(owner.displayName, style: theme.textTheme.titleMedium),
+                                            Text(
+                                              owner.displayName,
+                                              style:
+                                                  theme.textTheme.titleMedium,
+                                            ),
                                             const SizedBox(height: 4),
-                                            Text('@${owner.username}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                                            Text(
+                                              '@${owner.username}',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                            ),
                                             const SizedBox(height: 8),
                                             Wrap(
                                               spacing: 8,
@@ -455,20 +646,35 @@ class _OwnerWorkspaceView extends StatelessWidget {
                                               children: [
                                                 _PillBadge(
                                                   text: owner.role,
-                                                  color: theme.colorScheme.secondaryContainer,
-                                                  textColor: theme.colorScheme.onSecondaryContainer,
+                                                  color: theme
+                                                      .colorScheme
+                                                      .secondaryContainer,
+                                                  textColor: theme
+                                                      .colorScheme
+                                                      .onSecondaryContainer,
                                                 ),
                                                 if (owner.canReadLibrary)
                                                   _PillBadge(
                                                     text: 'Library',
-                                                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                                    textColor: theme.colorScheme.primary,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary
+                                                        .withValues(
+                                                          alpha: 0.12,
+                                                        ),
+                                                    textColor: theme
+                                                        .colorScheme
+                                                        .primary,
                                                   ),
                                                 if (owner.canViewAllLearners)
                                                   _PillBadge(
                                                     text: 'All learners',
-                                                    color: theme.colorScheme.tertiaryContainer,
-                                                    textColor: theme.colorScheme.onTertiaryContainer,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .tertiaryContainer,
+                                                    textColor: theme
+                                                        .colorScheme
+                                                        .onTertiaryContainer,
                                                   ),
                                               ],
                                             ),
@@ -496,22 +702,44 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _PillBadge(text: 'team', color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                      _PillBadge(
+                        text: 'team',
+                        color: theme.colorScheme.secondaryContainer,
+                        textColor: theme.colorScheme.onSecondaryContainer,
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: Text('Team teaching workspace', style: theme.textTheme.titleLarge)),
-                      TextButton(onPressed: onOpenLibraryWorkspace, child: const Text('Pathway planning')),
+                      Expanded(
+                        child: Text(
+                          'Team teaching workspace',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: onOpenLibraryWorkspace,
+                        child: const Text('Pathway planning'),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   _ContractChipRow(
                     children: [
-                      _PillBadge(text: '${learners.length} learners', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+                      _PillBadge(
+                        text: '${learners.length} learners',
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        textColor: theme.colorScheme.primary,
+                      ),
                       _PillBadge(
                         text: '$activeSessionCount active today',
                         color: theme.colorScheme.secondaryContainer,
                         textColor: theme.colorScheme.onSecondaryContainer,
                       ),
-                      _PillBadge(text: '$totalReviewItems review items', color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
+                      _PillBadge(
+                        text: '$totalReviewItems review items',
+                        color: theme.colorScheme.tertiaryContainer,
+                        textColor: theme.colorScheme.onTertiaryContainer,
+                      ),
                       if (selectedDetail != null)
                         _PillBadge(
                           text:
@@ -531,7 +759,10 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 children: [
                   Expanded(flex: 4, child: rosterPanel),
                   const SizedBox(width: 20),
-                  Expanded(flex: 6, child: _SurfaceCard(child: buildSelectionPanel())),
+                  Expanded(
+                    flex: 6,
+                    child: _SurfaceCard(child: buildSelectionPanel()),
+                  ),
                 ],
               )
             else ...[

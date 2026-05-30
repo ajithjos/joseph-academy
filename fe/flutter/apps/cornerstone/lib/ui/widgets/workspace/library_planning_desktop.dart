@@ -35,6 +35,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
   int _selectedSessionIndex = 0;
   String? _selectedMaterialId;
   _PlanningFocus _focus = _PlanningFocus.pathway;
+  bool _navigatorExpanded = true;
 
   @override
   void initState() {
@@ -804,6 +805,22 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                       'Pathway planning studio',
                       style: theme.textTheme.titleLarge,
                     ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: _navigatorExpanded
+                          ? 'Hide navigator'
+                          : 'Show navigator',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => setState(
+                        () => _navigatorExpanded = !_navigatorExpanded,
+                      ),
+                      icon: Icon(
+                        _navigatorExpanded
+                            ? Icons.menu_open_rounded
+                            : Icons.menu_rounded,
+                        size: 20,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1104,9 +1121,13 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(flex: 4, child: _buildHierarchyNavigator(theme)),
-              const SizedBox(width: 20),
-              Expanded(flex: 7, child: _buildContentWorkspace(theme)),
+              if (_navigatorExpanded)
+                Expanded(flex: 4, child: _buildHierarchyNavigator(theme)),
+              if (_navigatorExpanded) const SizedBox(width: 20),
+              Expanded(
+                flex: _navigatorExpanded ? 7 : 11,
+                child: _buildContentWorkspace(theme),
+              ),
             ],
           ),
         ),
