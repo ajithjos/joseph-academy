@@ -13,6 +13,7 @@ part 'app/cornerstone_app.dart';
 part 'ui/screens/home_screen.dart';
 part 'ui/widgets/markdown_widgets.dart';
 part 'ui/widgets/home_widgets.dart';
+part 'ui/widgets/contract_chip_widgets.dart';
 part 'ui/widgets/workspace_widgets.dart';
 
 Future<void> main() async {

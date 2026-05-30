@@ -54,17 +54,17 @@ IconData _materialKindIcon(String kind) {
 String _materialActionLabel(String kind) {
   switch (kind) {
     case 'lesson_note':
-      return 'Open lesson note';
+      return 'Open lesson_note material';
     case 'teaching_note':
-      return 'Open teaching note';
+      return 'Open teaching_note material';
     case 'worksheet':
-      return 'Open worksheet';
+      return 'Open worksheet material';
     case 'drill':
-      return 'Start drill';
+      return 'Start drill material';
     case 'quick_check':
-      return 'Start quick check';
+      return 'Start quick_check material';
     default:
-      return 'Open material';
+      return 'Open session_material';
   }
 }
 
@@ -78,12 +78,7 @@ Color _markdownCodeBackgroundColor(ThemeData theme) {
       : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.92);
 }
 
-double _desktopStudioHeight(
-  BuildContext context, {
-  double subtract = 240,
-  double minHeight = 680,
-  double maxHeight = 960,
-}) {
+double _desktopStudioHeight(BuildContext context, {double subtract = 240, double minHeight = 680, double maxHeight = 960}) {
   final height = MediaQuery.sizeOf(context).height - subtract;
   if (height < minHeight) {
     return minHeight;
@@ -100,23 +95,14 @@ MarkdownStyleSheet _workspaceMarkdownStyle(ThemeData theme) {
     h1: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
     h2: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
     h3: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-    code: theme.textTheme.bodyMedium?.copyWith(
-      fontFamily: 'SF Mono',
-      color: _markdownCodeForegroundColor(theme),
-      backgroundColor: _markdownCodeBackgroundColor(theme),
-    ),
-    blockquote: theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      fontStyle: FontStyle.italic,
-    ),
+    code: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'SF Mono', color: _markdownCodeForegroundColor(theme), backgroundColor: _markdownCodeBackgroundColor(theme)),
+    blockquote: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic),
     blockquotePadding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
     codeblockPadding: const EdgeInsets.all(14),
     codeblockDecoration: BoxDecoration(
       color: _markdownCodeBackgroundColor(theme),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.82),
-      ),
+      border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.82)),
     ),
   );
 }
@@ -136,8 +122,7 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
   final bool viewerCanReadLibrary;
   final bool showDocumentBodies;
   final ValueChanged<String>? onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)?
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material)? onStartActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +146,7 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(14)),
                 child: Icon(_materialKindIcon(group.kind), size: 20, color: foregroundColor),
               ),
               const SizedBox(width: 12),
@@ -172,13 +154,14 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_humanizeLabel(group.kind), style: theme.textTheme.titleMedium),
+                    Text(_contractTermLabel(group.kind), style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
-                    Text(
-                      '${group.materialCount} item${group.materialCount == 1 ? '' : 's'} · ${_humanizeLabel(group.audience)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                    _ContractChipRow(
+                      children: [
+                        _ContractChip(domain: 'material_kind', value: group.kind),
+                        _ContractChip(domain: 'audience', value: group.audience),
+                        _PillBadge(text: 'count:${group.materialCount}', color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
+                      ],
                     ),
                   ],
                 ),
@@ -188,38 +171,23 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
           const SizedBox(height: 14),
           ...group.materials.map((material) {
             final hasDocumentBody = (material.documentBody ?? '').trim().isNotEmpty;
-            final canOpenDocument =
-                viewerCanReadLibrary &&
-                onOpenLibraryRoute != null &&
-                material.documentRoutePath != null;
+            final canOpenDocument = viewerCanReadLibrary && onOpenLibraryRoute != null && material.documentRoutePath != null;
             final canStart = session != null && onStartActivity != null && material.isExecutable;
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: backgroundColor.withValues(alpha: 0.28),
-                borderRadius: BorderRadius.circular(16),
-              ),
+              decoration: BoxDecoration(color: backgroundColor.withValues(alpha: 0.28), borderRadius: BorderRadius.circular(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(material.title, style: theme.textTheme.titleSmall),
                   const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  _ContractChipRow(
                     children: [
-                      _PillBadge(
-                        text: '${material.estimatedMinutes} min',
-                        color: backgroundColor,
-                        textColor: foregroundColor,
-                      ),
-                      if (material.isExecutable)
-                        _PillBadge(
-                          text: 'Live',
-                          color: theme.colorScheme.tertiaryContainer,
-                          textColor: theme.colorScheme.onTertiaryContainer,
-                        ),
+                      _ContractChip(domain: 'entity', value: 'session_material'),
+                      _ContractChip(domain: 'material_kind', value: material.kind),
+                      _PillBadge(text: '${material.estimatedMinutes} min', color: backgroundColor, textColor: foregroundColor),
+                      if (material.isExecutable) _ContractChip(domain: 'status', value: 'live'),
                     ],
                   ),
                   if (showDocumentBodies && hasDocumentBody) ...[
@@ -227,16 +195,9 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(16)),
                       child: SelectionArea(
-                        child: MarkdownBody(
-                          data: material.documentBody!,
-                          selectable: true,
-                          styleSheet: _workspaceMarkdownStyle(theme),
-                        ),
+                        child: MarkdownBody(data: material.documentBody!, selectable: true, styleSheet: _workspaceMarkdownStyle(theme)),
                       ),
                     ),
                   ],
@@ -272,10 +233,7 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
 }
 
 class _WorkspaceMaterialGroupPanel extends StatelessWidget {
-  const _WorkspaceMaterialGroupPanel({
-    required this.group,
-    required this.onOpenLibraryRoute,
-  });
+  const _WorkspaceMaterialGroupPanel({required this.group, required this.onOpenLibraryRoute});
 
   final WorkspaceMaterialKindGroup group;
   final ValueChanged<String> onOpenLibraryRoute;
@@ -283,8 +241,6 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final backgroundColor = _materialKindBackgroundColor(theme, group.kind);
-    final foregroundColor = _materialKindForegroundColor(theme, group.kind);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -297,20 +253,10 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          _ContractChipRow(
             children: [
-              _PillBadge(
-                text: _humanizeLabel(group.kind),
-                color: backgroundColor,
-                textColor: foregroundColor,
-              ),
-              _PillBadge(
-                text: '${group.materialCount} item${group.materialCount == 1 ? '' : 's'}',
-                color: theme.colorScheme.surfaceContainerHighest,
-                textColor: theme.colorScheme.onSurfaceVariant,
-              ),
+              _ContractChip(domain: 'material_kind', value: group.kind),
+              _PillBadge(text: 'count:${group.materialCount}', color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 12),
@@ -326,20 +272,22 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
                       children: [
                         Text(material.title, style: theme.textTheme.titleSmall),
                         const SizedBox(height: 4),
-                        Text(
-                          '${material.estimatedMinutes} min${material.executable ? ' · Live' : ''}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        _ContractChipRow(
+                          children: [
+                            _ContractChip(domain: 'entity', value: 'session_material'),
+                            _ContractChip(domain: 'material_kind', value: material.kind),
+                            _PillBadge(
+                              text: '${material.estimatedMinutes} min',
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              textColor: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            if (material.executable) _ContractChip(domain: 'status', value: 'live'),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  if (material.routePath != null)
-                    TextButton(
-                      onPressed: () => onOpenLibraryRoute(material.routePath!),
-                      child: const Text('Open'),
-                    ),
+                  if (material.routePath != null) TextButton(onPressed: () => onOpenLibraryRoute(material.routePath!), child: const Text('Open')),
                 ],
               ),
             ),
@@ -373,8 +321,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
   final bool viewerCanReadLibrary;
   final bool showDocumentBodies;
   final ValueChanged<String> onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -394,10 +341,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
                 child: Icon(icon, size: 20, color: theme.colorScheme.primary),
               ),
               const SizedBox(width: 12),
@@ -407,12 +351,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
                   children: [
                     Text(title, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    Text(description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -420,12 +359,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (groups.isEmpty)
-            Text(
-              emptyState,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
+            Text(emptyState, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
           else
             ...groups.map(
               (group) => _SessionMaterialGroupPanel(
@@ -460,18 +394,11 @@ class _MissingLearnerContentNotice extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'This session is missing learner content.',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
-            ),
-          ),
+          Text('This session is missing learner content.', style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onErrorContainer)),
           const SizedBox(height: 6),
           Text(
             'Ask your parent or teacher to add learner-facing material for this step before you continue.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
           ),
         ],
       ),
@@ -510,21 +437,16 @@ class _OwnerWorkspaceView extends StatelessWidget {
   final TextEditingController durationController;
   final TextEditingController notesController;
   final ValueChanged<String> onSelectLearner;
-  final Future<void> Function(String learnerId, String playlistId)
-  onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId) onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
   final VoidCallback onOpenLibraryWorkspace;
   final VoidCallback onRecordSession;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final totalReviewItems = learners.fold<int>(
-      0,
-      (count, learner) => count + learner.reviewItemCount,
-    );
+    final totalReviewItems = learners.fold<int>(0, (count, learner) => count + learner.reviewItemCount);
     final activeSessionCount = learners.where((learner) => learner.todaySession != null).length;
     final selectedDetail = detail;
     final journey = selectedDetail?.journey;
@@ -532,27 +454,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
     final continueBlock = workspace?.continueBlock;
     final recentWins = workspace?.recentWins ?? const <LearnerRecentWin>[];
     final activeSession = currentActionSession;
-    final learnerFacingGroups = activeSession?.materialsByKind
-        .where((group) => group.audience == 'learner')
-        .toList(growable: false) ??
-      const <SessionMaterialKindGroup>[];
-    final adultFacingGroups = activeSession?.materialsByKind
-        .where((group) => group.audience == 'adult')
-        .toList(growable: false) ??
-      const <SessionMaterialKindGroup>[];
-    final currentStanding = activeSession?.sequenceNumber ??
-      (journey != null && journey.totalSessionCount > 0
-        ? journey.completedSessionCount + 1
-        : null);
-    final journeyProgress = journey == null || journey.totalSessionCount == 0
-      ? null
-      : (journey.completedSessionCount / journey.totalSessionCount)
-        .clamp(0.0, 1.0);
-    final activeMaterials =
-        activeSession?.materials
-        .where((material) => material.isExecutable)
-            .toList(growable: false) ??
-        const <SessionMaterial>[];
+    final learnerFacingGroups =
+        activeSession?.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false) ?? const <SessionMaterialKindGroup>[];
+    final adultFacingGroups = activeSession?.materialsByKind.where((group) => group.audience == 'adult').toList(growable: false) ?? const <SessionMaterialKindGroup>[];
+    final currentStanding = activeSession?.sequenceNumber ?? (journey != null && journey.totalSessionCount > 0 ? journey.completedSessionCount + 1 : null);
+    final journeyProgress = journey == null || journey.totalSessionCount == 0 ? null : (journey.completedSessionCount / journey.totalSessionCount).clamp(0.0, 1.0);
+    final activeMaterials = activeSession?.materials.where((material) => material.isExecutable).toList(growable: false) ?? const <SessionMaterial>[];
 
     Widget buildSelectionPanel() {
       if (selectedDetail == null) {
@@ -562,18 +469,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.person_search_rounded,
-                  size: 54,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                ),
+                Icon(Icons.person_search_rounded, size: 54, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
                 const SizedBox(height: 16),
                 Text(
                   'Select a learner to inspect their current plan and next actions.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -591,10 +492,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      selectedDetail.learner.displayName,
-                      style: theme.textTheme.headlineSmall,
-                    ),
+                    Text(selectedDetail.learner.displayName, style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -611,11 +509,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                           textColor: theme.colorScheme.primary,
                         ),
                         if ((workspace?.attentionLabel ?? '').isNotEmpty)
-                          _PillBadge(
-                            text: workspace!.attentionLabel,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            textColor: theme.colorScheme.onSurfaceVariant,
-                          ),
+                          _PillBadge(text: workspace!.attentionLabel, color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
                         if (selectedDetail.activeAssignment != null)
                           _PillBadge(
                             text: '${selectedDetail.activeAssignment!.completedSessions}/${selectedDetail.activeAssignment!.totalSessions} complete',
@@ -627,41 +521,36 @@ class _OwnerWorkspaceView extends StatelessWidget {
                   ],
                 ),
               ),
-              FilledButton.tonalIcon(
-                onPressed: onOpenLibraryWorkspace,
-                icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                label: const Text('Browse pathways'),
-              ),
+              FilledButton.tonalIcon(onPressed: onOpenLibraryWorkspace, icon: const Icon(Icons.auto_stories_rounded, size: 18), label: const Text('Browse pathways')),
             ],
           ),
           const SizedBox(height: 22),
           if (journey != null)
             _Band(
-              title: 'Current learning workspace',
+              title: 'Assigned pathway and playlist',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: const [
+                      _ContractChip(domain: 'entity', value: 'pathway'),
+                      _ContractChip(domain: 'entity', value: 'playlist'),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   if (journey.pathwayTitle != null) ...[
                     Text(journey.pathwayTitle!, style: theme.textTheme.titleLarge),
                     if ((journey.pathwayDescription ?? '').isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Text(
-                        journey.pathwayDescription!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      Text(journey.pathwayDescription!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     ],
                     const SizedBox(height: 14),
                   ],
                   Text(journey.playlistTitle, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 6),
-                  Text(
-                    journey.playlistDescription,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(journey.playlistDescription, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,
@@ -694,18 +583,12 @@ class _OwnerWorkspaceView extends StatelessWidget {
                     const SizedBox(height: 14),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 10,
-                        value: journeyProgress,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                      ),
+                      child: LinearProgressIndicator(minHeight: 10, value: journeyProgress, backgroundColor: theme.colorScheme.surfaceContainerHighest),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${journey.completedSessionCount} of ${journey.totalSessionCount} sessions completed',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                   const SizedBox(height: 14),
@@ -714,15 +597,9 @@ class _OwnerWorkspaceView extends StatelessWidget {
                     runSpacing: 10,
                     children: [
                       if (journey.pathwayRoutePath != null)
-                        TextButton(
-                          onPressed: () => onOpenLibraryRoute(journey.pathwayRoutePath!),
-                          child: const Text('Open pathway brief'),
-                        ),
+                        TextButton(onPressed: () => onOpenLibraryRoute(journey.pathwayRoutePath!), child: const Text('Open pathway brief')),
                       if (journey.playlistRoutePath != null)
-                        TextButton(
-                          onPressed: () => onOpenLibraryRoute(journey.playlistRoutePath!),
-                          child: const Text('Open playlist brief'),
-                        ),
+                        TextButton(onPressed: () => onOpenLibraryRoute(journey.playlistRoutePath!), child: const Text('Open playlist brief')),
                     ],
                   ),
                 ],
@@ -736,16 +613,10 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 children: [
                   Text(
                     'This learner does not have an active pathway yet. Open the pathway workspace and assign the first playlist you want them to start.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: onOpenLibraryWorkspace,
-                    icon: const Icon(Icons.playlist_add_rounded, size: 18),
-                    label: const Text('Choose a pathway'),
-                  ),
+                  FilledButton.icon(onPressed: onOpenLibraryWorkspace, icon: const Icon(Icons.playlist_add_rounded, size: 18), label: const Text('Choose a pathway')),
                 ],
               ),
             ),
@@ -758,22 +629,13 @@ class _OwnerWorkspaceView extends StatelessWidget {
                 children: [
                   Text(continueBlock.title, style: theme.textTheme.titleLarge),
                   const SizedBox(height: 6),
-                  Text(
-                    continueBlock.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(continueBlock.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _PillBadge(
-                        text: continueBlock.actionLabel,
-                        color: theme.colorScheme.secondaryContainer,
-                        textColor: theme.colorScheme.onSecondaryContainer,
-                      ),
+                      _PillBadge(text: continueBlock.actionLabel, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
                       if (continueBlock.session.estimatedMinutes > 0)
                         _PillBadge(
                           text: '${continueBlock.session.estimatedMinutes} min',
@@ -781,11 +643,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                           textColor: theme.colorScheme.primary,
                         ),
                       if (continueBlock.session.requiresAdultSupport)
-                        _PillBadge(
-                          text: 'Adult-guided',
-                          color: theme.colorScheme.tertiaryContainer,
-                          textColor: theme.colorScheme.onTertiaryContainer,
-                        ),
+                        _PillBadge(text: 'Adult-guided', color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
                       if (continueBlock.session.liveMaterialCount > 0)
                         _PillBadge(
                           text: '${continueBlock.session.liveMaterialCount} live',
@@ -801,16 +659,14 @@ class _OwnerWorkspaceView extends StatelessWidget {
           const SizedBox(height: 20),
           if (activeSession != null)
             _Band(
-              title: activeMaterials.isEmpty
-                  ? 'Record the current session'
-                  : 'Current session workspace',
+              title: activeMaterials.isEmpty ? 'Record the current session' : 'Current session workspace',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(activeSession.title, style: theme.textTheme.titleLarge),
                   const SizedBox(height: 6),
                   Text(
-                    'Session ${activeSession.sequenceNumber ?? '-'} · ${_humanizeLabel(activeSession.dominantKind)} lead',
+                    'Session ${activeSession.sequenceNumber ?? '-'} · dominant_kind:${_contractTermLabel(activeSession.dominantKind)}',
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 14),
@@ -825,9 +681,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                     ),
                   Text(
                     'Use this as the live session board: what the learner sees on one side and the guidance you coach from on the other.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
                   LayoutBuilder(
@@ -835,10 +689,8 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       final splitView = constraints.maxWidth > 980;
                       final learnerPanel = _SessionWorkspaceAudiencePanel(
                         title: 'Learner workspace',
-                        description:
-                            'This is the learner-facing material stack for this session.',
-                        emptyState:
-                            'No learner-facing materials are attached to this session yet.',
+                        description: 'This is the learner-facing material stack for this session.',
+                        emptyState: 'No learner-facing materials are attached to this session yet.',
                         icon: Icons.school_rounded,
                         groups: learnerFacingGroups,
                         session: activeSession,
@@ -849,10 +701,8 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       );
                       final teachingPanel = _SessionWorkspaceAudiencePanel(
                         title: 'Teaching notes',
-                        description:
-                            'Guide the session from here while the learner works through the learner workspace.',
-                        emptyState:
-                            'No adult guidance notes are attached to this session.',
+                        description: 'Guide the session from here while the learner works through the learner workspace.',
+                        emptyState: 'No adult guidance notes are attached to this session.',
                         icon: Icons.record_voice_over_rounded,
                         groups: adultFacingGroups,
                         session: activeSession,
@@ -863,14 +713,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       );
 
                       if (!splitView) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            learnerPanel,
-                            const SizedBox(height: 14),
-                            teachingPanel,
-                          ],
-                        );
+                        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [learnerPanel, const SizedBox(height: 14), teachingPanel]);
                       }
 
                       return Row(
@@ -883,10 +726,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       );
                     },
                   ),
-                  if (activeMaterials.isEmpty)
-                    const SizedBox(height: 4)
-                  else
-                    const SizedBox(height: 8),
+                  if (activeMaterials.isEmpty) const SizedBox(height: 4) else const SizedBox(height: 8),
                   if (activeMaterials.isNotEmpty)
                     Wrap(
                       spacing: 10,
@@ -919,11 +759,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       decoration: const InputDecoration(labelText: 'Session notes'),
                     ),
                     const SizedBox(height: 14),
-                    FilledButton.icon(
-                      onPressed: onRecordSession,
-                      icon: const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Record session'),
-                    ),
+                    FilledButton.icon(onPressed: onRecordSession, icon: const Icon(Icons.check_circle_rounded, size: 18), label: const Text('Record session')),
                   ],
                 ],
               ),
@@ -944,16 +780,9 @@ class _OwnerWorkspaceView extends StatelessWidget {
                             Container(
                               width: 40,
                               height: 40,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                              decoration: BoxDecoration(color: theme.colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(14)),
                               alignment: Alignment.center,
-                              child: Icon(
-                                Icons.workspace_premium_rounded,
-                                size: 18,
-                                color: theme.colorScheme.onSecondaryContainer,
-                              ),
+                              child: Icon(Icons.workspace_premium_rounded, size: 18, color: theme.colorScheme.onSecondaryContainer),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -964,19 +793,13 @@ class _OwnerWorkspaceView extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     win.notes.isEmpty ? 'Recorded evidence from the latest completed session.' : win.notes,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
-                            _PillBadge(
-                              text: win.scoreLabel,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                              textColor: theme.colorScheme.primary,
-                            ),
+                            _PillBadge(text: win.scoreLabel, color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
                           ],
                         ),
                       ),
@@ -993,9 +816,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
               children: [
                 Text(
                   'These are explicit first-playlist suggestions from the pathway workspace. Use them when this learner needs a fresh start or a better-fit route.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 16),
                 ...libraryWorkspace.pathways.take(3).map((pathway) {
@@ -1008,8 +829,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       }
                     }
                   }
-                  starterPlaylist ??=
-                      pathway.playlists.isNotEmpty ? pathway.playlists.first : null;
+                  starterPlaylist ??= pathway.playlists.isNotEmpty ? pathway.playlists.first : null;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
@@ -1023,12 +843,7 @@ class _OwnerWorkspaceView extends StatelessWidget {
                       children: [
                         Text(pathway.title, style: theme.textTheme.titleMedium),
                         const SizedBox(height: 6),
-                        Text(
-                          pathway.description,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                        Text(pathway.description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -1051,27 +866,19 @@ class _OwnerWorkspaceView extends StatelessWidget {
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            if (pathway.routePath != null)
-                              TextButton(
-                                onPressed: () => onOpenLibraryRoute(pathway.routePath!),
-                                child: const Text('Open route'),
+                            if (pathway.routePath != null) TextButton(onPressed: () => onOpenLibraryRoute(pathway.routePath!), child: const Text('Open route')),
+                            if (starterPlaylist != null) ...[
+                              Builder(
+                                builder: (context) {
+                                  final playlist = starterPlaylist!;
+                                  return FilledButton.tonalIcon(
+                                    onPressed: () => onCreateAssignment(selectedDetail.learner.learnerId, playlist.playlistId),
+                                    icon: const Icon(Icons.playlist_add_check_circle_rounded, size: 18),
+                                    label: Text('Assign ${playlist.title}'),
+                                  );
+                                },
                               ),
-                            if (starterPlaylist != null)
-                              ...[
-                                Builder(
-                                  builder: (context) {
-                                    final playlist = starterPlaylist!;
-                                    return FilledButton.tonalIcon(
-                                              onPressed: () => onCreateAssignment(
-                                                selectedDetail.learner.learnerId,
-                                                playlist.playlistId,
-                                              ),
-                                      icon: const Icon(Icons.playlist_add_check_circle_rounded, size: 18),
-                                      label: Text('Assign ${playlist.title}'),
-                                    );
-                                  },
-                                ),
-                              ],
+                            ],
                           ],
                         ),
                       ],
@@ -1094,24 +901,11 @@ class _OwnerWorkspaceView extends StatelessWidget {
             _PageHeroCard(
               eyebrow: 'Teaching workspace',
               title: 'Team teaching workspace',
-              description:
-                  'Choose a learner, see where they stand in the pathway, and run the current session with learner materials and teaching notes side by side.',
+              description: 'Choose a learner, see where they stand in the pathway, and run the current session with learner materials and teaching notes side by side.',
               chips: [
-                _StatChip(
-                  label: 'Learners',
-                  value: '${learners.length}',
-                  icon: Icons.groups_rounded,
-                ),
-                _StatChip(
-                  label: 'Active Today',
-                  value: '$activeSessionCount',
-                  icon: Icons.today_rounded,
-                ),
-                _StatChip(
-                  label: 'Review Queue',
-                  value: '$totalReviewItems',
-                  icon: Icons.pending_actions_rounded,
-                ),
+                _StatChip(label: 'Learners', value: '${learners.length}', icon: Icons.groups_rounded),
+                _StatChip(label: 'Active Today', value: '$activeSessionCount', icon: Icons.today_rounded),
+                _StatChip(label: 'Review Queue', value: '$totalReviewItems', icon: Icons.pending_actions_rounded),
               ],
             ),
             const SizedBox(height: 20),
@@ -1129,29 +923,18 @@ class _OwnerWorkspaceView extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             'Pick a learner to inspect the assignment journey and what can be started right now.',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                           ),
                           const SizedBox(height: 18),
                           _GoldAccentDivider(),
                           const SizedBox(height: 18),
                           if (learners.isEmpty)
-                            Text(
-                              'No learners are visible in this workspace yet.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            )
+                            Text('No learners are visible in this workspace yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
                           else
                             ...learners.map(
                               (learner) => Padding(
                                 padding: const EdgeInsets.only(bottom: 14),
-                                child: _LearnerCard(
-                                  learner: learner,
-                                  selected: learner.learnerId == selectedLearnerId,
-                                  onTap: () => onSelectLearner(learner.learnerId),
-                                ),
+                                child: _LearnerCard(learner: learner, selected: learner.learnerId == selectedLearnerId, onTap: () => onSelectLearner(learner.learnerId)),
                               ),
                             ),
                         ],
@@ -1171,27 +954,16 @@ class _OwnerWorkspaceView extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       'Pick a learner to inspect the assignment journey and what can be started right now.',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 18),
                     if (learners.isEmpty)
-                      Text(
-                        'No learners are visible in this workspace yet.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      )
+                      Text('No learners are visible in this workspace yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
                     else
                       ...learners.map(
                         (learner) => Padding(
                           padding: const EdgeInsets.only(bottom: 14),
-                          child: _LearnerCard(
-                            learner: learner,
-                            selected: learner.learnerId == selectedLearnerId,
-                            onTap: () => onSelectLearner(learner.learnerId),
-                          ),
+                          child: _LearnerCard(learner: learner, selected: learner.learnerId == selectedLearnerId, onTap: () => onSelectLearner(learner.learnerId)),
                         ),
                       ),
                   ],
@@ -1220,8 +992,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
   final LearnerDetailPayload? detail;
   final bool viewerCanReadLibrary;
   final ValueChanged<String> onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -1234,20 +1005,12 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.school_rounded,
-                size: 56,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              ),
+              Icon(Icons.school_rounded, size: 56, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
               const SizedBox(height: 20),
               Text(
-                viewer != null && viewer!.isLearner
-                    ? 'This username is not linked to a learner profile yet.'
-                    : 'Select a learner to open the learner workspace.',
+                viewer != null && viewer!.isLearner ? 'This username is not linked to a learner profile yet.' : 'Select a learner to open the learner workspace.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1256,37 +1019,22 @@ class _LearnerWorkspaceView extends StatelessWidget {
     }
 
     final journey = learnerDetail.journey;
-  final workspace = learnerDetail.workspace;
-  final continueBlock = workspace.continueBlock;
-  final nextSession = continueBlock?.session ??
-    learnerDetail.sessions
-      .where((session) => session.status != 'completed')
-      .cast<SessionDetail?>()
-      .firstWhere(
-        (session) =>
-          session?.sessionId == journey?.nextSessionId ||
-          journey?.nextSessionId == null,
-        orElse: () => null,
-      ) ??
-    learnerDetail.sessions
-      .where((session) => session.status != 'completed')
-      .cast<SessionDetail?>()
-      .firstWhere((_) => true, orElse: () => null);
-    final currentStanding = nextSession?.sequenceNumber ??
-      (journey != null && journey.totalSessionCount > 0
-        ? (journey.completedSessionCount + 1).clamp(1, journey.totalSessionCount)
-        : null);
-    final journeyProgress = journey == null || journey.totalSessionCount == 0
-      ? null
-      : (journey.completedSessionCount / journey.totalSessionCount)
-        .clamp(0.0, 1.0);
+    final workspace = learnerDetail.workspace;
+    final continueBlock = workspace.continueBlock;
+    final nextSession =
+        continueBlock?.session ??
+        learnerDetail.sessions
+            .where((session) => session.status != 'completed')
+            .cast<SessionDetail?>()
+            .firstWhere((session) => session?.sessionId == journey?.nextSessionId || journey?.nextSessionId == null, orElse: () => null) ??
+        learnerDetail.sessions.where((session) => session.status != 'completed').cast<SessionDetail?>().firstWhere((_) => true, orElse: () => null);
+    final currentStanding =
+        nextSession?.sequenceNumber ??
+        (journey != null && journey.totalSessionCount > 0 ? (journey.completedSessionCount + 1).clamp(1, journey.totalSessionCount) : null);
+    final journeyProgress = journey == null || journey.totalSessionCount == 0 ? null : (journey.completedSessionCount / journey.totalSessionCount).clamp(0.0, 1.0);
     final progressStatusCounts = <String, int>{};
     for (final state in learnerDetail.progress) {
-      progressStatusCounts.update(
-        state.status,
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
+      progressStatusCounts.update(state.status, (count) => count + 1, ifAbsent: () => 1);
     }
     final practiceSessions = workspace.practiceLane;
     final progressSnapshot = workspace.progressSnapshot;
@@ -1303,22 +1051,14 @@ class _LearnerWorkspaceView extends StatelessWidget {
     }
 
     Widget buildSessionSequenceCard(SessionDetail session, {required bool active}) {
-      final learnerGroups = session.materialsByKind
-          .where((group) => group.audience == 'learner')
-          .toList(growable: false);
+      final learnerGroups = session.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false);
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: active
-              ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.55)
-              : theme.colorScheme.surface.withValues(alpha: 0.6),
+          color: active ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.55) : theme.colorScheme.surface.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: active
-                ? theme.colorScheme.secondary.withValues(alpha: 0.26)
-                : theme.colorScheme.outlineVariant,
-          ),
+          border: Border.all(color: active ? theme.colorScheme.secondary.withValues(alpha: 0.26) : theme.colorScheme.outlineVariant),
         ),
         child: Theme(
           data: theme.copyWith(dividerColor: Colors.transparent),
@@ -1331,12 +1071,8 @@ class _LearnerWorkspaceView extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: active
-                      ? theme.colorScheme.secondary
-                      : theme.colorScheme.primary.withValues(alpha: 0.12),
-                  foregroundColor: active
-                      ? theme.colorScheme.onSecondary
-                      : theme.colorScheme.primary,
+                  backgroundColor: active ? theme.colorScheme.secondary : theme.colorScheme.primary.withValues(alpha: 0.12),
+                  foregroundColor: active ? theme.colorScheme.onSecondary : theme.colorScheme.primary,
                   child: Text('${session.sequenceNumber ?? '?'}'),
                 ),
                 const SizedBox(width: 12),
@@ -1350,23 +1086,9 @@ class _LearnerWorkspaceView extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _PillBadge(
-                            text: _humanizeLabel(session.dominantKind),
-                            color: _materialKindBackgroundColor(
-                              theme,
-                              session.dominantKind,
-                            ),
-                            textColor: _materialKindForegroundColor(
-                              theme,
-                              session.dominantKind,
-                            ),
-                          ),
+                          _ContractChip(domain: 'material_kind', value: session.dominantKind),
                           if (session.requiresAdultSupport)
-                            _PillBadge(
-                              text: 'Adult support',
-                              color: theme.colorScheme.tertiaryContainer,
-                              textColor: theme.colorScheme.onTertiaryContainer,
-                            ),
+                            _PillBadge(text: 'Adult support', color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
                         ],
                       ),
                     ],
@@ -1374,15 +1096,9 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _PillBadge(
-                  text: session.status == 'completed'
-                      ? 'Done'
-                      : session.scheduledDate,
-                  color: active
-                      ? theme.colorScheme.tertiaryContainer
-                      : theme.colorScheme.primary.withValues(alpha: 0.12),
-                  textColor: active
-                      ? theme.colorScheme.onTertiaryContainer
-                      : theme.colorScheme.primary,
+                  text: session.status == 'completed' ? 'Done' : session.scheduledDate,
+                  color: active ? theme.colorScheme.tertiaryContainer : theme.colorScheme.primary.withValues(alpha: 0.12),
+                  textColor: active ? theme.colorScheme.onTertiaryContainer : theme.colorScheme.primary,
                 ),
               ],
             ),
@@ -1394,7 +1110,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 children: session.materialsByKind
                     .map(
                       (group) => _PillBadge(
-                        text: '${_humanizeLabel(group.kind)} · ${group.materialCount}',
+                        text: 'material_kind:${_contractTermLabel(group.kind)} · count:${group.materialCount}',
                         color: _materialKindBackgroundColor(theme, group.kind),
                         textColor: _materialKindForegroundColor(theme, group.kind),
                       ),
@@ -1408,10 +1124,8 @@ class _LearnerWorkspaceView extends StatelessWidget {
               else
                 _SessionWorkspaceAudiencePanel(
                   title: active ? 'Current session workspace' : 'Session workspace',
-                  description:
-                      'Open this session to read the note, work through the practice, and launch live activity items.',
-                  emptyState:
-                      'No learner-facing materials are attached to this session yet.',
+                  description: 'Open this session to read the note, work through the practice, and launch live activity items.',
+                  emptyState: 'No learner-facing materials are attached to this session yet.',
                   icon: Icons.school_rounded,
                   groups: learnerGroups,
                   session: session,
@@ -1435,28 +1149,18 @@ class _LearnerWorkspaceView extends StatelessWidget {
           description: journey == null
               ? 'This is where your pathway, your current standing, and your session workspaces appear.'
               : workspace.attentionLabel.isNotEmpty
-                  ? workspace.attentionLabel
-                  : currentStanding == null
-                      ? 'You are part of ${journey.playlistTitle}. Open the session workspaces below to see what you learn and practise.'
-                      : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Open the workspace below to learn, practise, and check your progress.',
+              ? workspace.attentionLabel
+              : currentStanding == null
+              ? 'You are part of ${journey.playlistTitle}. Open the session workspaces below to see what you learn and practise.'
+              : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Open the workspace below to learn, practise, and check your progress.',
           chips: [
             _StatChip(
               label: 'Standing',
-              value: currentStanding == null
-                  ? '--'
-                  : 'S$currentStanding/${journey?.totalSessionCount ?? learnerDetail.sessions.length}',
+              value: currentStanding == null ? '--' : 'S$currentStanding/${journey?.totalSessionCount ?? learnerDetail.sessions.length}',
               icon: Icons.place_rounded,
             ),
-            _StatChip(
-              label: 'Completed',
-              value: '${progressSnapshot.completedSessionCount}',
-              icon: Icons.task_alt_rounded,
-            ),
-            _StatChip(
-              label: 'Ready Now',
-              value: '${progressSnapshot.pendingSessionCount}',
-              icon: Icons.rocket_launch_rounded,
-            ),
+            _StatChip(label: 'Completed', value: '${progressSnapshot.completedSessionCount}', icon: Icons.task_alt_rounded),
+            _StatChip(label: 'Ready Now', value: '${progressSnapshot.pendingSessionCount}', icon: Icons.rocket_launch_rounded),
           ],
         ),
         if (journey != null) ...[
@@ -1467,17 +1171,16 @@ class _LearnerWorkspaceView extends StatelessWidget {
               children: [
                 Text('My current pathway', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
-                Text(
-                  journey.pathwayTitle ?? journey.playlistTitle,
-                  style: theme.textTheme.titleLarge,
+                Text(journey.pathwayTitle ?? journey.playlistTitle, style: theme.textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const _ContractChipRow(
+                  children: [
+                    _ContractChip(domain: 'entity', value: 'pathway'),
+                    _ContractChip(domain: 'entity', value: 'playlist'),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  journey.pathwayDescription ?? journey.playlistDescription,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                Text(journey.pathwayDescription ?? journey.playlistDescription, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 const SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
@@ -1494,51 +1197,33 @@ class _LearnerWorkspaceView extends StatelessWidget {
                       textColor: theme.colorScheme.onSecondaryContainer,
                     ),
                     if (journey.recommendedLevel.isNotEmpty)
-                      _PillBadge(
-                        text: journey.recommendedLevel,
-                        color: theme.colorScheme.tertiaryContainer,
-                        textColor: theme.colorScheme.onTertiaryContainer,
-                      ),
+                      _PillBadge(text: journey.recommendedLevel, color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
                   ],
                 ),
                 if (journeyProgress != null) ...[
                   const SizedBox(height: 14),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      minHeight: 10,
-                      value: journeyProgress,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    ),
+                    child: LinearProgressIndicator(minHeight: 10, value: journeyProgress, backgroundColor: theme.colorScheme.surfaceContainerHighest),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     currentStanding == null
                         ? '${journey.completedSessionCount} of ${journey.totalSessionCount} sessions completed'
                         : 'You are standing at session $currentStanding of ${journey.totalSessionCount}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ],
-                if (viewerCanReadLibrary &&
-                    (journey.pathwayRoutePath != null ||
-                        journey.playlistRoutePath != null)) ...[
+                if (viewerCanReadLibrary && (journey.pathwayRoutePath != null || journey.playlistRoutePath != null)) ...[
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
                       if (journey.pathwayRoutePath != null)
-                        TextButton(
-                          onPressed: () => onOpenLibraryRoute(journey.pathwayRoutePath!),
-                          child: const Text('Open pathway brief'),
-                        ),
+                        TextButton(onPressed: () => onOpenLibraryRoute(journey.pathwayRoutePath!), child: const Text('Open pathway brief')),
                       if (journey.playlistRoutePath != null)
-                        TextButton(
-                          onPressed: () => onOpenLibraryRoute(journey.playlistRoutePath!),
-                          child: const Text('Open playlist brief'),
-                        ),
+                        TextButton(onPressed: () => onOpenLibraryRoute(journey.playlistRoutePath!), child: const Text('Open playlist brief')),
                     ],
                   ),
                 ],
@@ -1557,42 +1242,17 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 Text(
                   continueBlock?.description ??
                       'This is the workspace for what you are learning right now. Read the note, do the practice, and launch the live step from here.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 18),
-                if (continueBlock != null) ...[
-                  Text(continueBlock.title, style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                ],
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                if (continueBlock != null) ...[Text(continueBlock.title, style: theme.textTheme.titleLarge), const SizedBox(height: 10)],
+                _ContractChipRow(
                   children: [
                     if (continueBlock != null)
-                      _PillBadge(
-                        text: continueBlock.actionLabel,
-                        color: theme.colorScheme.secondaryContainer,
-                        textColor: theme.colorScheme.onSecondaryContainer,
-                      ),
-                    _PillBadge(
-                      text: _humanizeLabel(nextSession.dominantKind),
-                      color: _materialKindBackgroundColor(
-                        theme,
-                        nextSession.dominantKind,
-                      ),
-                      textColor: _materialKindForegroundColor(
-                        theme,
-                        nextSession.dominantKind,
-                      ),
-                    ),
-                    if (nextSession.requiresAdultSupport)
-                      _PillBadge(
-                        text: 'Adult support first',
-                        color: theme.colorScheme.tertiaryContainer,
-                        textColor: theme.colorScheme.onTertiaryContainer,
-                      ),
+                      _PillBadge(text: continueBlock.actionLabel, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                    const _ContractChip(domain: 'entity', value: 'session'),
+                    _ContractChip(domain: 'material_kind', value: nextSession.dominantKind),
+                    if (nextSession.requiresAdultSupport) const _ContractChip(domain: 'status', value: 'adult_guided'),
                     if (nextSession.estimatedMinutes > 0)
                       _PillBadge(
                         text: '${nextSession.estimatedMinutes} min',
@@ -1604,18 +1264,14 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 const SizedBox(height: 16),
                 Builder(
                   builder: (context) {
-                    final learnerGroups = nextSession.materialsByKind
-                        .where((group) => group.audience == 'learner')
-                        .toList(growable: false);
+                    final learnerGroups = nextSession.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false);
                     if (learnerGroups.isEmpty) {
                       return const _MissingLearnerContentNotice();
                     }
                     return _SessionWorkspaceAudiencePanel(
                       title: 'What I work on now',
-                      description:
-                          'The learner-facing materials for the current session stay together here.',
-                      emptyState:
-                          'No learner-facing materials are attached to this session yet.',
+                      description: 'The learner-facing materials for the current session stay together here.',
+                      emptyState: 'No learner-facing materials are attached to this session yet.',
                       icon: Icons.school_rounded,
                       groups: learnerGroups,
                       session: nextSession,
@@ -1640,9 +1296,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Completed work that has already been recorded for this learner.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 18),
                 ...recentWins.map(
@@ -1661,28 +1315,17 @@ class _LearnerWorkspaceView extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                win.sessionTitle,
-                                style: theme.textTheme.titleMedium,
-                              ),
+                              Text(win.sessionTitle, style: theme.textTheme.titleMedium),
                               const SizedBox(height: 4),
                               Text(
-                                win.notes.isEmpty
-                                    ? 'Completed and recorded in the learner history.'
-                                    : win.notes,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+                                win.notes.isEmpty ? 'Completed and recorded in the learner history.' : win.notes,
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 12),
-                        _PillBadge(
-                          text: win.scoreLabel,
-                          color: theme.colorScheme.secondaryContainer,
-                          textColor: theme.colorScheme.onSecondaryContainer,
-                        ),
+                        _PillBadge(text: win.scoreLabel, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
                       ],
                     ),
                   ),
@@ -1700,25 +1343,13 @@ class _LearnerWorkspaceView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Open any session workspace below to see where you stand and what that session asks you to do.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
               if (learnerDetail.sessions.isEmpty)
-                Text(
-                  'No sessions are available yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                )
+                Text('No sessions are available yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
               else
-                ...learnerDetail.sessions.map(
-                  (session) => buildSessionSequenceCard(
-                    session,
-                    active: session.sessionId == nextSession?.sessionId,
-                  ),
-                ),
+                ...learnerDetail.sessions.map((session) => buildSessionSequenceCard(session, active: session.sessionId == nextSession?.sessionId)),
             ],
           ),
         ),
@@ -1731,27 +1362,15 @@ class _LearnerWorkspaceView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Open the learner-facing practice and check materials that are already inside your assigned route.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
               if (practiceSessions.isEmpty)
-                Text(
-                  'No practice items are available yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                )
+                Text('No practice items are available yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
               else
                 ...practiceSessions.map((session) {
                   final practiceGroups = session.materialsByKind
-                      .where(
-                        (group) =>
-                            group.kind == 'worksheet' ||
-                            group.kind == 'drill' ||
-                            group.kind == 'quick_check',
-                      )
+                      .where((group) => group.kind == 'worksheet' || group.kind == 'drill' || group.kind == 'quick_check')
                       .toList(growable: false);
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
@@ -1770,17 +1389,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _PillBadge(
-                              text: _humanizeLabel(session.dominantKind),
-                              color: _materialKindBackgroundColor(
-                                theme,
-                                session.dominantKind,
-                              ),
-                              textColor: _materialKindForegroundColor(
-                                theme,
-                                session.dominantKind,
-                              ),
-                            ),
+                            _ContractChip(domain: 'material_kind', value: session.dominantKind),
                             _PillBadge(
                               text: 'Session ${session.sequenceNumber ?? '?'}',
                               color: theme.colorScheme.surfaceContainerHighest,
@@ -1815,21 +1424,11 @@ class _LearnerWorkspaceView extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'A simple snapshot of where this learner is secure, still developing, and not started yet.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 18),
-              if (progressStatusCounts.isEmpty &&
-                  progressSnapshot.secureCount == 0 &&
-                  progressSnapshot.developingCount == 0 &&
-                  progressSnapshot.notStartedCount == 0)
-                Text(
-                  'No progress has been recorded yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                )
+              if (progressStatusCounts.isEmpty && progressSnapshot.secureCount == 0 && progressSnapshot.developingCount == 0 && progressSnapshot.notStartedCount == 0)
+                Text('No progress has been recorded yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
               else
                 Wrap(
                   spacing: 10,
@@ -1867,21 +1466,12 @@ class _LearnerWorkspaceView extends StatelessWidget {
             children: [
               Text('Review items', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
-              Text(
-                'These are the skills that still need another pass.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              Text('These are the skills that still need another pass.', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(height: 18),
               if (learnerDetail.reviewItems.isEmpty)
                 Row(
                   children: [
-                    Icon(
-                      Icons.check_circle_rounded,
-                      size: 18,
-                      color: Colors.green.shade600,
-                    ),
+                    Icon(Icons.check_circle_rounded, size: 18, color: Colors.green.shade600),
                     const SizedBox(width: 8),
                     const Text('No pending review items.'),
                   ],
@@ -1891,12 +1481,8 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   (item) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(item.reason),
-                    subtitle: Text(_humanizeLabel(item.skillId)),
-                    trailing: _PillBadge(
-                      text: item.dueDate,
-                      color: theme.colorScheme.errorContainer,
-                      textColor: theme.colorScheme.onErrorContainer,
-                    ),
+                    subtitle: Text(_contractTermLabel(item.skillId)),
+                    trailing: _PillBadge(text: item.dueDate, color: theme.colorScheme.errorContainer, textColor: theme.colorScheme.onErrorContainer),
                   ),
                 ),
             ],
@@ -1923,25 +1509,16 @@ class _LibraryWorkspaceView extends StatelessWidget {
   final LibraryDocumentData? activeDocument;
   final bool libraryDocumentBusy;
   final bool viewerCanManage;
-  final Future<void> Function(String learnerId, String playlistId)
-  onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId) onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final routeBySourcePath = {
-      for (final document in documents?.documents ?? const <LibraryDocumentSummary>[])
-        document.sourcePath: document.routePath,
-    };
+    final routeBySourcePath = {for (final document in documents?.documents ?? const <LibraryDocumentSummary>[]) document.sourcePath: document.routePath};
     final totalMaterials = libraryWorkspace.pathways.fold<int>(
       0,
-      (count, pathway) =>
-          count +
-          pathway.playlists.fold<int>(
-            0,
-            (playlistCount, playlist) => playlistCount + playlist.materialCount,
-          ),
+      (count, pathway) => count + pathway.playlists.fold<int>(0, (playlistCount, playlist) => playlistCount + playlist.materialCount),
     );
 
     if (MediaQuery.sizeOf(context).width > 1180) {
@@ -1966,18 +1543,11 @@ class _LibraryWorkspaceView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Browse the backend-owned pathway contract, inspect delivery shape by canonical material kind, and assign the right playlist directly from each learner target.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 18),
             if (libraryWorkspace.pathways.isEmpty)
-              Text(
-                'No pathways are available yet.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
+              Text('No pathways are available yet.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
             else
               ...libraryWorkspace.pathways.map((pathway) {
                 return Padding(
@@ -1987,31 +1557,20 @@ class _LibraryWorkspaceView extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                      ),
+                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.14)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(pathway.title, style: theme.textTheme.titleLarge),
                         const SizedBox(height: 8),
-                        Text(
-                          pathway.description,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                        Text(pathway.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _PillBadge(
-                              text: pathway.areaTitle,
-                              color: theme.colorScheme.secondaryContainer,
-                              textColor: theme.colorScheme.onSecondaryContainer,
-                            ),
+                            _PillBadge(text: pathway.areaTitle, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
                             _PillBadge(
                               text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
                               color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -2064,27 +1623,13 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              playlist.title,
-                                              style: theme.textTheme.titleMedium,
-                                            ),
+                                            Text(playlist.title, style: theme.textTheme.titleMedium),
                                             const SizedBox(height: 4),
-                                            Text(
-                                              playlist.description,
-                                              style: theme.textTheme.bodySmall,
-                                            ),
+                                            Text(playlist.description, style: theme.textTheme.bodySmall),
                                           ],
                                         ),
                                       ),
-                                      _PillBadge(
-                                        text: _humanizeLabel(playlist.deliveryShape.requiresAdultSupport ? 'adult_guided' : 'learner_ready'),
-                                        color: playlist.deliveryShape.requiresAdultSupport
-                                            ? theme.colorScheme.tertiaryContainer
-                                            : theme.colorScheme.secondaryContainer,
-                                        textColor: playlist.deliveryShape.requiresAdultSupport
-                                            ? theme.colorScheme.onTertiaryContainer
-                                            : theme.colorScheme.onSecondaryContainer,
-                                      ),
+                                      _ContractChip(domain: 'status', value: playlist.deliveryShape.requiresAdultSupport ? 'adult_guided' : 'learner_ready'),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
@@ -2146,93 +1691,70 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                   ),
                                   if (playlist.assignmentTargets.isNotEmpty) ...[
                                     const SizedBox(height: 14),
-                                    Text(
-                                      'Assignment targets',
-                                      style: theme.textTheme.titleSmall,
-                                    ),
+                                    Text('Assignment targets', style: theme.textTheme.titleSmall),
                                     const SizedBox(height: 10),
                                     Wrap(
                                       spacing: 10,
                                       runSpacing: 10,
-                                      children: playlist.assignmentTargets.map((target) {
-                                        return ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            minWidth: 220,
-                                            maxWidth: 320,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(14),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
-                                              borderRadius: BorderRadius.circular(16),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
+                                      children: playlist.assignmentTargets
+                                          .map((target) {
+                                            return ConstrainedBox(
+                                              constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(14),
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
+                                                  borderRadius: BorderRadius.circular(16),
+                                                ),
+                                                child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            target.displayName,
-                                                            style: theme.textTheme.titleSmall,
+                                                    Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text(target.displayName, style: theme.textTheme.titleSmall),
+                                                              const SizedBox(height: 4),
+                                                              Text(
+                                                                'Age ${target.currentAge} · ${target.currentLevel}',
+                                                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                                              ),
+                                                            ],
                                                           ),
-                                                          const SizedBox(height: 4),
-                                                          Text(
-                                                            'Age ${target.currentAge} · ${target.currentLevel}',
-                                                            style: theme.textTheme.bodySmall?.copyWith(
-                                                              color: theme.colorScheme.onSurfaceVariant,
-                                                            ),
+                                                        ),
+                                                        if (target.recommended)
+                                                          _PillBadge(
+                                                            text: 'Recommended',
+                                                            color: theme.colorScheme.secondaryContainer,
+                                                            textColor: theme.colorScheme.onSecondaryContainer,
                                                           ),
-                                                        ],
-                                                      ),
+                                                      ],
                                                     ),
-                                                    if (target.recommended)
-                                                      _PillBadge(
-                                                        text: 'Recommended',
-                                                        color: theme.colorScheme.secondaryContainer,
-                                                        textColor: theme.colorScheme.onSecondaryContainer,
+                                                    const SizedBox(height: 10),
+                                                    Text(target.statusLabel, style: theme.textTheme.bodyMedium),
+                                                    if (target.activeAssignmentTitle != null) ...[
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        'Current: ${target.activeAssignmentTitle}',
+                                                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                                                       ),
+                                                    ],
+                                                    if (viewerCanManage) ...[
+                                                      const SizedBox(height: 12),
+                                                      FilledButton.tonal(
+                                                        onPressed: target.assignedHere ? null : () => onCreateAssignment(target.learnerId, playlist.playlistId),
+                                                        child: Text(target.assignedHere ? 'Already assigned here' : 'Assign to ${target.displayName}'),
+                                                      ),
+                                                    ],
                                                   ],
                                                 ),
-                                                const SizedBox(height: 10),
-                                                Text(
-                                                  target.statusLabel,
-                                                  style: theme.textTheme.bodyMedium,
-                                                ),
-                                                if (target.activeAssignmentTitle != null) ...[
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    'Current: ${target.activeAssignmentTitle}',
-                                                    style: theme.textTheme.bodySmall?.copyWith(
-                                                      color: theme.colorScheme.onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                                if (viewerCanManage) ...[
-                                                  const SizedBox(height: 12),
-                                                  FilledButton.tonal(
-                                                    onPressed: target.assignedHere
-                                                        ? null
-                                                        : () => onCreateAssignment(
-                                                              target.learnerId,
-                                                              playlist.playlistId,
-                                                            ),
-                                                    child: Text(
-                                                      target.assignedHere
-                                                          ? 'Already assigned here'
-                                                          : 'Assign to ${target.displayName}',
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(growable: false),
+                                              ),
+                                            );
+                                          })
+                                          .toList(growable: false),
                                     ),
                                   ],
                                   const SizedBox(height: 12),
@@ -2248,26 +1770,13 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              '${session.sessionIndex}. ${session.title}',
-                                              style: theme.textTheme.titleSmall,
-                                            ),
+                                            Text('${session.sessionIndex}. ${session.title}', style: theme.textTheme.titleSmall),
                                             const SizedBox(height: 6),
                                             Wrap(
                                               spacing: 8,
                                               runSpacing: 8,
                                               children: [
-                                                _PillBadge(
-                                                  text: _humanizeLabel(session.dominantKind),
-                                                  color: _materialKindBackgroundColor(
-                                                    theme,
-                                                    session.dominantKind,
-                                                  ),
-                                                  textColor: _materialKindForegroundColor(
-                                                    theme,
-                                                    session.dominantKind,
-                                                  ),
-                                                ),
+                                                _ContractChip(domain: 'material_kind', value: session.dominantKind),
                                                 _PillBadge(
                                                   text: '${session.estimatedMinutes} min',
                                                   color: theme.colorScheme.surfaceContainerHighest,
@@ -2282,12 +1791,7 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                               ],
                                             ),
                                             const SizedBox(height: 10),
-                                            ...session.materialsByKind.map(
-                                              (group) => _WorkspaceMaterialGroupPanel(
-                                                group: group,
-                                                onOpenLibraryRoute: onOpenLibraryRoute,
-                                              ),
-                                            ),
+                                            ...session.materialsByKind.map((group) => _WorkspaceMaterialGroupPanel(group: group, onOpenLibraryRoute: onOpenLibraryRoute)),
                                           ],
                                         ),
                                       ),
@@ -2298,16 +1802,11 @@ class _LibraryWorkspaceView extends StatelessWidget {
                                     runSpacing: 10,
                                     children: [
                                       if (playlist.routePath != null)
-                                        TextButton(
-                                          onPressed: () => onOpenLibraryRoute(playlist.routePath!),
-                                          child: const Text('Open playlist'),
-                                        ),
+                                        TextButton(onPressed: () => onOpenLibraryRoute(playlist.routePath!), child: const Text('Open playlist')),
                                       if (playlist.assignmentTargets.isEmpty)
                                         Text(
                                           'No learner targets are available for this playlist yet.',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
+                                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                                         ),
                                     ],
                                   ),
@@ -2328,12 +1827,7 @@ class _LibraryWorkspaceView extends StatelessWidget {
 
     Widget buildReaderPanel() {
       return _SurfaceCard(
-        child: _LibraryDocumentReader(
-          document: activeDocument,
-          busy: libraryDocumentBusy,
-          routeBySourcePath: routeBySourcePath,
-          onOpenLibraryRoute: onOpenLibraryRoute,
-        ),
+        child: _LibraryDocumentReader(document: activeDocument, busy: libraryDocumentBusy, routeBySourcePath: routeBySourcePath, onOpenLibraryRoute: onOpenLibraryRoute),
       );
     }
 
@@ -2349,21 +1843,9 @@ class _LibraryWorkspaceView extends StatelessWidget {
               description:
                   'Browse the backend-derived pathway catalog, inspect delivery shape and assignment targets, then read the authored markdown without leaving the app.',
               chips: [
-                _StatChip(
-                  label: 'Pathways',
-                  value: '${libraryWorkspace.pathways.length}',
-                  icon: Icons.route_rounded,
-                ),
-                _StatChip(
-                  label: 'Documents',
-                  value: '${documents?.documents.length ?? 0}',
-                  icon: Icons.description_rounded,
-                ),
-                _StatChip(
-                  label: 'Materials',
-                  value: '$totalMaterials',
-                  icon: Icons.menu_book_rounded,
-                ),
+                _StatChip(label: 'Pathways', value: '${libraryWorkspace.pathways.length}', icon: Icons.route_rounded),
+                _StatChip(label: 'Documents', value: '${documents?.documents.length ?? 0}', icon: Icons.description_rounded),
+                _StatChip(label: 'Materials', value: '$totalMaterials', icon: Icons.menu_book_rounded),
               ],
             ),
             const SizedBox(height: 20),
@@ -2403,12 +1885,10 @@ class _LearnerWorkspaceDesktop extends StatefulWidget {
   final LearnerDetailPayload detail;
   final bool viewerCanReadLibrary;
   final ValueChanged<String> onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
 
   @override
-  State<_LearnerWorkspaceDesktop> createState() =>
-      _LearnerWorkspaceDesktopState();
+  State<_LearnerWorkspaceDesktop> createState() => _LearnerWorkspaceDesktopState();
 }
 
 class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
@@ -2523,9 +2003,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
           const SizedBox(height: 6),
           Text(
             'Move between the current step, practice, the full route, and progress without drilling into nested cards.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -2534,8 +2012,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
             children: [
               if (journey != null)
                 _PillBadge(
-                  text:
-                      '${journey.completedSessionCount} complete · ${journey.pendingSessionCount} ahead',
+                  text: '${journey.completedSessionCount} complete · ${journey.pendingSessionCount} ahead',
                   color: theme.colorScheme.secondaryContainer,
                   textColor: theme.colorScheme.onSecondaryContainer,
                 ),
@@ -2561,10 +2038,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.38),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
+                      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.38), borderRadius: BorderRadius.circular(18)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2572,9 +2046,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                           const SizedBox(height: 6),
                           Text(
                             'Route: ${journey.totalSessionCount} sessions · ${journey.totalMaterialCount} materials',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -2602,9 +2074,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                         child: _DesktopSessionNavTile(
                           title: session.title,
                           subtitle: 'Session ${session.sequenceNumber ?? '?'}',
-                          statusLabel: session.status == 'completed'
-                              ? 'Done'
-                              : _humanizeLabel(session.dominantKind),
+                          statusLabel: session.status == 'completed' ? 'Done' : _contractTermLabel(session.dominantKind),
                           selected: session.sessionId == _selectedSessionId,
                           onTap: () => setState(() => _selectedSessionId = session.sessionId),
                         ),
@@ -2620,20 +2090,13 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     );
   }
 
-  Widget _buildSessionStudio(
-    ThemeData theme, {
-    required String eyebrow,
-    required String description,
-    required SessionDetail session,
-  }) {
-    final learnerGroups = session.materialsByKind
-        .where((group) => group.audience == 'learner')
-        .toList(growable: false);
-    final availableRoutes = session.materials
-        .map((material) => material.documentRoutePath)
-        .whereType<String>()
-        .toSet()
-        .toList(growable: false);
+  Widget _buildSessionStudio(ThemeData theme, {required String eyebrow, required String description, required SessionDetail session}) {
+    final learnerGroups = session.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false);
+    final availableRoutes = session.materials.map((material) => material.documentRoutePath).whereType<String>().toSet().toList(growable: false);
+    final materialKinds = <String, int>{};
+    for (final material in session.materials) {
+      materialKinds.update(material.kind, (count) => count + 1, ifAbsent: () => 1);
+    }
 
     return _SurfaceCard(
       child: Column(
@@ -2641,125 +2104,122 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
         children: [
           Text(eyebrow, style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
-          Text(
-            description,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          Text(description, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 18),
           Text(session.title, style: theme.textTheme.titleLarge),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          _ContractChipRow(
             children: [
-              _PillBadge(
-                text: _humanizeLabel(session.dominantKind),
-                color: _materialKindBackgroundColor(theme, session.dominantKind),
-                textColor: _materialKindForegroundColor(theme, session.dominantKind),
-              ),
+              const _ContractChip(domain: 'entity', value: 'session'),
+              _ContractChip(domain: 'material_kind', value: session.dominantKind),
               if (session.estimatedMinutes > 0)
-                _PillBadge(
-                  text: '${session.estimatedMinutes} min',
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                  textColor: theme.colorScheme.primary,
-                ),
-              if (session.requiresAdultSupport)
-                _PillBadge(
-                  text: 'Begin with your parent or teacher',
-                  color: theme.colorScheme.tertiaryContainer,
-                  textColor: theme.colorScheme.onTertiaryContainer,
-                ),
+                _PillBadge(text: '${session.estimatedMinutes} min', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+              if (session.requiresAdultSupport) _ContractChip(domain: 'status', value: 'adult_guided'),
             ],
           ),
           const SizedBox(height: 18),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final split = constraints.maxWidth > 900;
-                  final summary = SingleChildScrollView(
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: theme.colorScheme.outlineVariant),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Session summary', style: theme.textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          Text(
-                            '${session.learnerMaterialCount} learner item${session.learnerMaterialCount == 1 ? '' : 's'} ready now',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            session.liveMaterialCount > 0
-                                ? '${session.liveMaterialCount} live activity item${session.liveMaterialCount == 1 ? '' : 's'} available'
-                                : 'No live activity in this step',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                          if (widget.viewerCanReadLibrary && availableRoutes.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            Text('References', style: theme.textTheme.titleSmall),
-                            const SizedBox(height: 8),
-                            ...availableRoutes.take(2).map(
-                              (route) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: TextButton(
-                                  onPressed: () => widget.onOpenLibraryRoute(route),
-                                  child: const Text('Open linked material'),
-                                ),
-                              ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final split = constraints.maxWidth > 900;
+                final summary = SingleChildScrollView(
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Session summary', style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 12),
+                        _ContractChipRow(
+                          children: [
+                            _PillBadge(
+                              text: 'learner_count:${session.learnerMaterialCount}',
+                              color: _contractChipBackgroundColor(theme, domain: 'audience', value: 'learner'),
+                              textColor: _contractChipForegroundColor(theme, domain: 'audience', value: 'learner'),
+                            ),
+                            _PillBadge(
+                              text: 'live_count:${session.liveMaterialCount}',
+                              color: _contractChipBackgroundColor(theme, domain: 'status', value: 'live'),
+                              textColor: _contractChipForegroundColor(theme, domain: 'status', value: 'live'),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                  );
-                  final content = SingleChildScrollView(
-                    child: learnerGroups.isEmpty
-                        ? const _MissingLearnerContentNotice()
-                        : Column(
-                            children: learnerGroups
+                        ),
+                        if (materialKinds.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _ContractChipRow(
+                            children: materialKinds.entries
                                 .map(
-                                  (group) => _SessionMaterialGroupPanel(
-                                    group: group,
-                                    session: session,
-                                    viewerCanReadLibrary: widget.viewerCanReadLibrary,
-                                    showDocumentBodies: true,
-                                    onOpenLibraryRoute: widget.onOpenLibraryRoute,
-                                    onStartActivity: widget.onStartActivity,
+                                  (entry) => _PillBadge(
+                                    text: '${_contractTermLabel(entry.key)}:${entry.value}',
+                                    color: _materialKindBackgroundColor(theme, entry.key),
+                                    textColor: _materialKindForegroundColor(theme, entry.key),
                                   ),
                                 )
                                 .toList(growable: false),
                           ),
-                  );
-
-                  if (!split) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        summary,
-                        const SizedBox(height: 16),
-                        Expanded(child: content),
+                        ],
+                        if (widget.viewerCanReadLibrary && availableRoutes.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Text('References', style: theme.textTheme.titleSmall),
+                          const SizedBox(height: 8),
+                          ...availableRoutes
+                              .take(2)
+                              .map(
+                                (route) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: TextButton(onPressed: () => widget.onOpenLibraryRoute(route), child: const Text('Open linked material')),
+                                ),
+                              ),
+                        ],
                       ],
-                    );
-                  }
-                  return Row(
+                    ),
+                  ),
+                );
+                final content = SingleChildScrollView(
+                  child: learnerGroups.isEmpty
+                      ? const _MissingLearnerContentNotice()
+                      : Column(
+                          children: learnerGroups
+                              .map(
+                                (group) => _SessionMaterialGroupPanel(
+                                  group: group,
+                                  session: session,
+                                  viewerCanReadLibrary: widget.viewerCanReadLibrary,
+                                  showDocumentBodies: true,
+                                  onOpenLibraryRoute: widget.onOpenLibraryRoute,
+                                  onStartActivity: widget.onStartActivity,
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                );
+
+                if (!split) {
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(width: 280, child: summary),
-                      const SizedBox(width: 18),
+                      summary,
+                      const SizedBox(height: 16),
                       Expanded(child: content),
                     ],
                   );
-                },
-              ),
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: 280, child: summary),
+                    const SizedBox(width: 18),
+                    Expanded(child: content),
+                  ],
+                );
+              },
             ),
+          ),
         ],
       ),
     );
@@ -2778,9 +2238,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
           const SizedBox(height: 6),
           Text(
             'See what is secure, what still needs practice, and what should be reviewed next.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 18),
           Expanded(
@@ -2792,26 +2250,10 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      _StatChip(
-                        label: 'Secure',
-                        value: '${snapshot.secureCount}',
-                        icon: Icons.verified_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Developing',
-                        value: '${snapshot.developingCount}',
-                        icon: Icons.construction_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Not Started',
-                        value: '${snapshot.notStartedCount}',
-                        icon: Icons.hourglass_bottom_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Review',
-                        value: '${snapshot.reviewItemCount}',
-                        icon: Icons.pending_actions_rounded,
-                      ),
+                      _StatChip(label: 'Secure', value: '${snapshot.secureCount}', icon: Icons.verified_rounded),
+                      _StatChip(label: 'Developing', value: '${snapshot.developingCount}', icon: Icons.construction_rounded),
+                      _StatChip(label: 'Not Started', value: '${snapshot.notStartedCount}', icon: Icons.hourglass_bottom_rounded),
+                      _StatChip(label: 'Review', value: '${snapshot.reviewItemCount}', icon: Icons.pending_actions_rounded),
                     ],
                   ),
                   const SizedBox(height: 22),
@@ -2820,9 +2262,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                   if (recentWins.isEmpty)
                     Text(
                       'Completed work will appear here once this learner has recorded evidence.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     )
                   else
                     ...recentWins.map(
@@ -2831,16 +2271,8 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(win.sessionTitle),
-                          subtitle: Text(
-                            win.notes.isEmpty
-                                ? 'Completed and recorded in the learner history.'
-                                : win.notes,
-                          ),
-                          trailing: _PillBadge(
-                            text: win.scoreLabel,
-                            color: theme.colorScheme.secondaryContainer,
-                            textColor: theme.colorScheme.onSecondaryContainer,
-                          ),
+                          subtitle: Text(win.notes.isEmpty ? 'Completed and recorded in the learner history.' : win.notes),
+                          trailing: _PillBadge(text: win.scoreLabel, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
                         ),
                       ),
                     ),
@@ -2848,23 +2280,14 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                   Text('Review queue', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 10),
                   if (reviewItems.isEmpty)
-                    Text(
-                      'No review items are waiting.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    )
+                    Text('No review items are waiting.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
                   else
                     ...reviewItems.map(
                       (item) => ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.reason),
-                        subtitle: Text(_humanizeLabel(item.skillId)),
-                        trailing: _PillBadge(
-                          text: item.dueDate,
-                          color: theme.colorScheme.errorContainer,
-                          textColor: theme.colorScheme.onErrorContainer,
-                        ),
+                        subtitle: Text(_contractTermLabel(item.skillId)),
+                        trailing: _PillBadge(text: item.dueDate, color: theme.colorScheme.errorContainer, textColor: theme.colorScheme.onErrorContainer),
                       ),
                     ),
                 ],
@@ -2887,52 +2310,34 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     switch (_section) {
       case _LearnerWorkspaceSection.continueFlow:
         if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'There is no active learner step yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
+          mainPanel = _SurfaceCard(child: Text('There is no active learner step yet.', style: theme.textTheme.bodyLarge));
         } else {
           mainPanel = _buildSessionStudio(
             theme,
             eyebrow: 'Continue',
-            description: _workspace.continueBlock?.description ??
-                'Open the current step and go straight into the learner material.',
+            description: _workspace.continueBlock?.description ?? 'Open the current step and go straight into the learner material.',
             session: selectedSession,
           );
         }
       case _LearnerWorkspaceSection.practice:
         if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'No practice steps are ready yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
+          mainPanel = _SurfaceCard(child: Text('No practice steps are ready yet.', style: theme.textTheme.bodyLarge));
         } else {
           mainPanel = _buildSessionStudio(
             theme,
             eyebrow: 'Practice',
-            description:
-                'Choose a practice or check step from the left and work through the learner material directly.',
+            description: 'Choose a practice or check step from the left and work through the learner material directly.',
             session: selectedSession,
           );
         }
       case _LearnerWorkspaceSection.journey:
         if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'No journey steps are available yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
+          mainPanel = _SurfaceCard(child: Text('No journey steps are available yet.', style: theme.textTheme.bodyLarge));
         } else {
           mainPanel = _buildSessionStudio(
             theme,
             eyebrow: 'Journey',
-            description:
-                'Inspect any step in the route without opening and collapsing a stack of nested cards.',
+            description: 'Inspect any step in the route without opening and collapsing a stack of nested cards.',
             session: selectedSession,
           );
         }
@@ -2950,33 +2355,14 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
               ? _workspace.attentionLabel
               : 'Move through the current step, the practice lane, the full route, and progress from one workspace.',
           chips: [
-            _StatChip(
-              label: 'Standing',
-              value: journey == null
-                  ? '--'
-                  : 'S${journey.completedSessionCount + 1}/${journey.totalSessionCount}',
-              icon: Icons.place_rounded,
-            ),
-            _StatChip(
-              label: 'Completed',
-              value: '${snapshot.completedSessionCount}',
-              icon: Icons.task_alt_rounded,
-            ),
-            _StatChip(
-              label: 'Ready Now',
-              value: '${snapshot.pendingSessionCount}',
-              icon: Icons.rocket_launch_rounded,
-            ),
+            _StatChip(label: 'Standing', value: journey == null ? '--' : 'S${journey.completedSessionCount + 1}/${journey.totalSessionCount}', icon: Icons.place_rounded),
+            _StatChip(label: 'Completed', value: '${snapshot.completedSessionCount}', icon: Icons.task_alt_rounded),
+            _StatChip(label: 'Ready Now', value: '${snapshot.pendingSessionCount}', icon: Icons.rocket_launch_rounded),
           ],
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: _desktopStudioHeight(
-            context,
-            subtract: 220,
-            minHeight: 720,
-            maxHeight: 940,
-          ),
+          height: _desktopStudioHeight(context, subtract: 220, minHeight: 720, maxHeight: 940),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3008,8 +2394,7 @@ class _LibraryPlanningDesktop extends StatefulWidget {
   final LibraryDocumentData? activeDocument;
   final bool libraryDocumentBusy;
   final bool viewerCanManage;
-  final Future<void> Function(String learnerId, String playlistId)
-  onCreateAssignment;
+  final Future<void> Function(String learnerId, String playlistId) onCreateAssignment;
   final ValueChanged<String> onOpenLibraryRoute;
   final int totalMaterials;
 
@@ -3042,20 +2427,14 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
       _selectedSessionIndex = 0;
       return;
     }
-    final pathway = pathways.firstWhere(
-      (item) => item.pathwayId == _selectedPathwayId,
-      orElse: () => pathways.first,
-    );
+    final pathway = pathways.firstWhere((item) => item.pathwayId == _selectedPathwayId, orElse: () => pathways.first);
     _selectedPathwayId = pathway.pathwayId;
     if (pathway.playlists.isEmpty) {
       _selectedPlaylistId = null;
       _selectedSessionIndex = 0;
       return;
     }
-    final playlist = pathway.playlists.firstWhere(
-      (item) => item.playlistId == _selectedPlaylistId,
-      orElse: () => pathway.playlists.first,
-    );
+    final playlist = pathway.playlists.firstWhere((item) => item.playlistId == _selectedPlaylistId, orElse: () => pathway.playlists.first);
     _selectedPlaylistId = playlist.playlistId;
     if (playlist.sessions.isEmpty) {
       _selectedSessionIndex = 0;
@@ -3072,9 +2451,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
         return pathway;
       }
     }
-    return widget.libraryWorkspace.pathways.isEmpty
-        ? null
-        : widget.libraryWorkspace.pathways.first;
+    return widget.libraryWorkspace.pathways.isEmpty ? null : widget.libraryWorkspace.pathways.first;
   }
 
   LibraryWorkspacePlaylist? get _selectedPlaylist {
@@ -3149,8 +2526,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
   void _selectPathway(LibraryWorkspacePathway pathway) {
     setState(() {
       _selectedPathwayId = pathway.pathwayId;
-      _selectedPlaylistId =
-          pathway.playlists.isEmpty ? null : pathway.playlists.first.playlistId;
+      _selectedPlaylistId = pathway.playlists.isEmpty ? null : pathway.playlists.first.playlistId;
       _selectedSessionIndex = 0;
     });
     _openPreferredRoute(_preferredRouteForPathway(pathway));
@@ -3185,9 +2561,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           const SizedBox(height: 6),
           Text(
             'Use the left rail as the planning menu: pick a pathway, then a playlist, then inspect a single session in detail.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 18),
           if (pathways.length > 1 && _selectedPathwayId != null) ...[
@@ -3195,14 +2569,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               initialValue: _selectedPathwayId,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Jump to pathway'),
-              items: pathways
-                  .map(
-                    (pathway) => DropdownMenuItem<String>(
-                      value: pathway.pathwayId,
-                      child: Text(pathway.title),
-                    ),
-                  )
-                  .toList(growable: false),
+              items: pathways.map((pathway) => DropdownMenuItem<String>(value: pathway.pathwayId, child: Text(pathway.title))).toList(growable: false),
               onChanged: (value) {
                 if (value == null) {
                   return;
@@ -3221,73 +2588,65 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: pathways.map((pathway) {
-                  final selectedPathway = pathway.pathwayId == _selectedPathwayId;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _DesktopSidebarButton(
-                          label: pathway.title,
-                          icon: Icons.route_rounded,
-                          selected: selectedPathway,
-                          onTap: () => _selectPathway(pathway),
-                        ),
-                        if (selectedPathway) ...[
-                          const SizedBox(height: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 14),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    pathway.description,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
+                children: pathways
+                    .map((pathway) {
+                      final selectedPathway = pathway.pathwayId == _selectedPathwayId;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _DesktopSidebarButton(label: pathway.title, icon: Icons.route_rounded, selected: selectedPathway, onTap: () => _selectPathway(pathway)),
+                            if (selectedPathway) ...[
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 14),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _PillBadge(
-                                        text: '${pathway.playlistCount} playlists',
-                                        color: theme.colorScheme.secondaryContainer,
-                                        textColor: theme.colorScheme.onSecondaryContainer,
+                                      Text(pathway.description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                                      const SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          _PillBadge(
+                                            text: '${pathway.playlistCount} playlists',
+                                            color: theme.colorScheme.secondaryContainer,
+                                            textColor: theme.colorScheme.onSecondaryContainer,
+                                          ),
+                                          _PillBadge(
+                                            text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                            textColor: theme.colorScheme.primary,
+                                          ),
+                                        ],
                                       ),
-                                      _PillBadge(
-                                        text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                        textColor: theme.colorScheme.primary,
-                                      ),
+                                      if (pathway.routePath != null) ...[
+                                        const SizedBox(height: 10),
+                                        TextButton.icon(
+                                          onPressed: () => widget.onOpenLibraryRoute(pathway.routePath!),
+                                          icon: const Icon(Icons.description_rounded, size: 18),
+                                          label: const Text('Open pathway brief'),
+                                        ),
+                                      ],
                                     ],
                                   ),
-                                  if (pathway.routePath != null) ...[
-                                    const SizedBox(height: 10),
-                                    TextButton.icon(
-                                      onPressed: () => widget.onOpenLibraryRoute(pathway.routePath!),
-                                      icon: const Icon(Icons.description_rounded, size: 18),
-                                      label: const Text('Open pathway brief'),
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                }).toList(growable: false),
+                            ],
+                          ],
+                        ),
+                      );
+                    })
+                    .toList(growable: false),
               ),
             ),
           ),
@@ -3300,12 +2659,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     final pathway = _selectedPathway;
     final playlist = _selectedPlaylist;
     if (pathway == null || playlist == null) {
-      return _SurfaceCard(
-        child: Text(
-          'Select a playlist to inspect it.',
-          style: theme.textTheme.bodyLarge,
-        ),
-      );
+      return _SurfaceCard(child: Text('Select a playlist to inspect it.', style: theme.textTheme.bodyLarge));
     }
 
     return _SurfaceCard(
@@ -3316,9 +2670,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           const SizedBox(height: 6),
           Text(
             'This view keeps assignment, session structure, and delivery shape visible at once instead of stacking every material inside every card.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 18),
           Container(
@@ -3341,12 +2693,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                         children: [
                           Text(pathway.title, style: theme.textTheme.titleLarge),
                           const SizedBox(height: 6),
-                          Text(
-                            pathway.description,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+                          Text(pathway.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                         ],
                       ),
                     ),
@@ -3363,11 +2710,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _PillBadge(
-                      text: pathway.areaTitle,
-                      color: theme.colorScheme.secondaryContainer,
-                      textColor: theme.colorScheme.onSecondaryContainer,
-                    ),
+                    _PillBadge(text: pathway.areaTitle, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
                     _PillBadge(
                       text: '${pathway.playlistCount} playlists',
                       color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -3389,14 +2732,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               initialValue: _selectedPlaylistId,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Playlist focus'),
-              items: pathway.playlists
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item.playlistId,
-                      child: Text(item.title),
-                    ),
-                  )
-                  .toList(growable: false),
+              items: pathway.playlists.map((item) => DropdownMenuItem<String>(value: item.playlistId, child: Text(item.title))).toList(growable: false),
               onChanged: (value) {
                 if (value == null) {
                   return;
@@ -3418,22 +2754,13 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                 children: [
                   Text(playlist.title, style: theme.textTheme.titleLarge),
                   const SizedBox(height: 6),
-                  Text(
-                    playlist.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(playlist.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _PillBadge(
-                        text: 'Age ${playlist.recommendedAge}',
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        textColor: theme.colorScheme.primary,
-                      ),
+                      _PillBadge(text: 'Age ${playlist.recommendedAge}', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
                       _PillBadge(
                         text: '${playlist.sessions.length} sessions',
                         color: theme.colorScheme.surfaceContainerHighest,
@@ -3464,65 +2791,52 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                   if (playlist.assignmentTargets.isEmpty)
                     Text(
                       'No learner targets are available for this playlist yet.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     )
                   else
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
-                      children: playlist.assignmentTargets.map((target) {
-                        return SizedBox(
-                          width: 240,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: theme.colorScheme.outlineVariant),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(target.displayName, style: theme.textTheme.titleSmall),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Age ${target.currentAge} · ${target.currentLevel}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
+                      children: playlist.assignmentTargets
+                          .map((target) {
+                            return SizedBox(
+                              width: 240,
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: theme.colorScheme.outlineVariant),
                                 ),
-                                const SizedBox(height: 10),
-                                Text(target.statusLabel, style: theme.textTheme.bodyMedium),
-                                if (widget.viewerCanManage) ...[
-                                  const SizedBox(height: 12),
-                                  FilledButton.tonal(
-                                    onPressed: target.assignedHere
-                                        ? null
-                                        : () => widget.onCreateAssignment(
-                                              target.learnerId,
-                                              playlist.playlistId,
-                                            ),
-                                    child: Text(
-                                      target.assignedHere
-                                          ? 'Assigned here'
-                                          : 'Assign to ${target.displayName}',
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(target.displayName, style: theme.textTheme.titleSmall),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Age ${target.currentAge} · ${target.currentLevel}',
+                                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                                     ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(growable: false),
+                                    const SizedBox(height: 10),
+                                    Text(target.statusLabel, style: theme.textTheme.bodyMedium),
+                                    if (widget.viewerCanManage) ...[
+                                      const SizedBox(height: 12),
+                                      FilledButton.tonal(
+                                        onPressed: target.assignedHere ? null : () => widget.onCreateAssignment(target.learnerId, playlist.playlistId),
+                                        child: Text(target.assignedHere ? 'Assigned here' : 'Assign to ${target.displayName}'),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Expanded(
-                        child: Text('Session outline', style: theme.textTheme.titleLarge),
-                      ),
+                      Expanded(child: Text('Session outline', style: theme.textTheme.titleLarge)),
                       if (playlist.routePath != null)
                         TextButton.icon(
                           onPressed: () => widget.onOpenLibraryRoute(playlist.routePath!),
@@ -3540,9 +2854,8 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _DesktopSessionNavTile(
                         title: '${session.sessionIndex}. ${session.title}',
-                        subtitle:
-                            '${session.materialCount} materials · ${session.estimatedMinutes} min',
-                        statusLabel: _humanizeLabel(session.dominantKind),
+                        subtitle: '${session.materialCount} materials · ${session.estimatedMinutes} min',
+                        statusLabel: _contractTermLabel(session.dominantKind),
                         selected: selected,
                         onTap: () => _selectSession(index),
                       ),
@@ -3576,46 +2889,22 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
         children: [
           Text(title, style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          Text(
-            description,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          Text(description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 14),
           if (groups.isEmpty)
-            Text(
-              emptyState,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
+            Text(emptyState, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
           else
-            ...groups.map(
-              (group) => _WorkspaceMaterialGroupPanel(
-                group: group,
-                onOpenLibraryRoute: widget.onOpenLibraryRoute,
-              ),
-            ),
+            ...groups.map((group) => _WorkspaceMaterialGroupPanel(group: group, onOpenLibraryRoute: widget.onOpenLibraryRoute)),
         ],
       ),
     );
   }
 
   Widget _buildPreviewStudio(ThemeData theme) {
-    final routeBySourcePath = {
-      for (final document in widget.documents?.documents ?? const <LibraryDocumentSummary>[])
-        document.sourcePath: document.routePath,
-    };
+    final routeBySourcePath = {for (final document in widget.documents?.documents ?? const <LibraryDocumentSummary>[]) document.sourcePath: document.routePath};
     final session = _selectedSession;
-    final learnerGroups = session?.materialsByKind
-            .where((group) => group.audience == 'learner')
-            .toList(growable: false) ??
-        const <WorkspaceMaterialKindGroup>[];
-    final adultGroups = session?.materialsByKind
-            .where((group) => group.audience == 'adult')
-            .toList(growable: false) ??
-        const <WorkspaceMaterialKindGroup>[];
+    final learnerGroups = session?.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false) ?? const <WorkspaceMaterialKindGroup>[];
+    final adultGroups = session?.materialsByKind.where((group) => group.audience == 'adult').toList(growable: false) ?? const <WorkspaceMaterialKindGroup>[];
 
     return Column(
       children: [
@@ -3629,11 +2918,9 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                 const SizedBox(height: 6),
                 Text(
                   session == null
-                      ? 'Select a session from the middle panel to compare the learner-facing material with the teaching notes.'
-                      : 'Compare what the learner gets with the teacher guidance for the selected session.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                      ? 'Select a session to inspect session_material grouped by audience and material_kind.'
+                      : 'Selected session details with explicit learner and adult session_material groups.',
+                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 18),
                 Expanded(
@@ -3644,15 +2931,10 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                         if (session != null) ...[
                           Text(session.title, style: theme.textTheme.titleLarge),
                           const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                          _ContractChipRow(
                             children: [
-                              _PillBadge(
-                                text: _humanizeLabel(session.dominantKind),
-                                color: _materialKindBackgroundColor(theme, session.dominantKind),
-                                textColor: _materialKindForegroundColor(theme, session.dominantKind),
-                              ),
+                              const _ContractChip(domain: 'entity', value: 'session'),
+                              _ContractChip(domain: 'material_kind', value: session.dominantKind),
                               _PillBadge(
                                 text: '${session.estimatedMinutes} min',
                                 color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -3667,30 +2949,20 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                             final split = constraints.maxWidth > 840;
                             final learnerPanel = _buildAudiencePreview(
                               theme,
-                              title: 'Learner view',
-                              description:
-                                  'This is the material a learner can open for this selected session.',
+                              title: 'audience:learner',
+                              description: 'session_material where audience=learner for the selected session.',
                               groups: learnerGroups,
-                              emptyState:
-                                  'This session does not expose learner-facing material yet.',
+                              emptyState: 'No session_material with audience=learner in this session.',
                             );
                             final teacherPanel = _buildAudiencePreview(
                               theme,
-                              title: 'Teacher guidance',
-                              description:
-                                  'These are the teaching notes and adult-only materials for this session.',
+                              title: 'audience:adult',
+                              description: 'session_material where audience=adult for the selected session.',
                               groups: adultGroups,
-                              emptyState: 'No teaching note is attached to this session.',
+                              emptyState: 'No session_material with audience=adult in this session.',
                             );
                             if (!split) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  learnerPanel,
-                                  const SizedBox(height: 14),
-                                  teacherPanel,
-                                ],
-                              );
+                              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [learnerPanel, const SizedBox(height: 14), teacherPanel]);
                             }
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3740,31 +3012,14 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           description:
               'Use the wide workspace as a real planning screen: choose a pathway on the left, inspect one playlist in the middle, and compare teacher guidance with learner-facing material on the right.',
           chips: [
-            _StatChip(
-              label: 'Pathways',
-              value: '${widget.libraryWorkspace.pathways.length}',
-              icon: Icons.route_rounded,
-            ),
-            _StatChip(
-              label: 'Documents',
-              value: '${widget.documents?.documents.length ?? 0}',
-              icon: Icons.description_rounded,
-            ),
-            _StatChip(
-              label: 'Materials',
-              value: '${widget.totalMaterials}',
-              icon: Icons.menu_book_rounded,
-            ),
+            _StatChip(label: 'Pathways', value: '${widget.libraryWorkspace.pathways.length}', icon: Icons.route_rounded),
+            _StatChip(label: 'Documents', value: '${widget.documents?.documents.length ?? 0}', icon: Icons.description_rounded),
+            _StatChip(label: 'Materials', value: '${widget.totalMaterials}', icon: Icons.menu_book_rounded),
           ],
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: _desktopStudioHeight(
-            context,
-            subtract: 220,
-            minHeight: 760,
-            maxHeight: 980,
-          ),
+          height: _desktopStudioHeight(context, subtract: 220, minHeight: 760, maxHeight: 980),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3782,12 +3037,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
 }
 
 class _DesktopSidebarButton extends StatelessWidget {
-  const _DesktopSidebarButton({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
+  const _DesktopSidebarButton({required this.label, required this.icon, required this.selected, required this.onTap});
 
   final String label;
   final IconData icon;
@@ -3804,27 +3054,16 @@ class _DesktopSidebarButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.72)
-              : theme.colorScheme.surface.withValues(alpha: 0.56),
+          color: selected ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.72) : theme.colorScheme.surface.withValues(alpha: 0.56),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected
-                ? theme.colorScheme.secondary.withValues(alpha: 0.18)
-                : theme.colorScheme.outlineVariant,
-          ),
+          border: Border.all(color: selected ? theme.colorScheme.secondary.withValues(alpha: 0.18) : theme.colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
             Icon(icon, size: 18, color: selected ? theme.colorScheme.secondary : theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: selected ? theme.colorScheme.onSecondaryContainer : null,
-                ),
-              ),
+              child: Text(label, style: theme.textTheme.titleSmall?.copyWith(color: selected ? theme.colorScheme.onSecondaryContainer : null)),
             ),
           ],
         ),
@@ -3834,13 +3073,7 @@ class _DesktopSidebarButton extends StatelessWidget {
 }
 
 class _DesktopSessionNavTile extends StatelessWidget {
-  const _DesktopSessionNavTile({
-    required this.title,
-    required this.subtitle,
-    required this.statusLabel,
-    required this.selected,
-    required this.onTap,
-  });
+  const _DesktopSessionNavTile({required this.title, required this.subtitle, required this.statusLabel, required this.selected, required this.onTap});
 
   final String title;
   final String subtitle;
@@ -3858,36 +3091,21 @@ class _DesktopSessionNavTile extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.10)
-              : theme.colorScheme.surface.withValues(alpha: 0.42),
+          color: selected ? theme.colorScheme.primary.withValues(alpha: 0.10) : theme.colorScheme.surface.withValues(alpha: 0.42),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? theme.colorScheme.primary.withValues(alpha: 0.22)
-                : theme.colorScheme.outlineVariant,
-          ),
+          border: Border.all(color: selected ? theme.colorScheme.primary.withValues(alpha: 0.22) : theme.colorScheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             _PillBadge(
               text: statusLabel,
-              color: selected
-                  ? theme.colorScheme.secondaryContainer
-                  : theme.colorScheme.surfaceContainerHighest,
-              textColor: selected
-                  ? theme.colorScheme.onSecondaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
+              color: selected ? theme.colorScheme.secondaryContainer : theme.colorScheme.surfaceContainerHighest,
+              textColor: selected ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onSurfaceVariant,
             ),
           ],
         ),

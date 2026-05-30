@@ -1,28 +1,16 @@
 part of '../../main.dart';
 
 String _humanizeLabel(String value) {
-  final parts = value
-    .split(RegExp(r'[_\-\s]+'))
-    .where((part) => part.isNotEmpty)
-    .toList(growable: false);
+  final parts = value.split(RegExp(r'[_\-\s]+')).where((part) => part.isNotEmpty).toList(growable: false);
   if (parts.isEmpty) return value;
-  return parts
-    .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-    .join(' ');
+  return parts.map((part) => '${part[0].toUpperCase()}${part.substring(1)}').join(' ');
 }
 
 class _ExecutableActivityDialog extends StatefulWidget {
-  const _ExecutableActivityDialog({
-    required this.activity,
-    required this.onComplete,
-  });
+  const _ExecutableActivityDialog({required this.activity, required this.onComplete});
 
   final ActivityInstance activity;
-  final Future<CompleteActivityResponse> Function(
-    List<String> answers,
-    int durationSeconds,
-    String notes,
-  ) onComplete;
+  final Future<CompleteActivityResponse> Function(List<String> answers, int durationSeconds, String notes) onComplete;
 
   @override
   State<_ExecutableActivityDialog> createState() => _ExecutableActivityDialogState();
@@ -40,9 +28,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
-    _answerControllers = widget.activity.items
-        .map((_) => TextEditingController())
-        .toList(growable: false);
+    _answerControllers = widget.activity.items.map((_) => TextEditingController()).toList(growable: false);
   }
 
   @override
@@ -108,29 +94,19 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                       children: [
                         _PillBadge(
                           text: result.activitySummary.passed ? 'Pass threshold met' : 'More review needed',
-                          color: result.activitySummary.passed
-                              ? theme.colorScheme.secondaryContainer
-                              : theme.colorScheme.errorContainer,
-                          textColor: result.activitySummary.passed
-                              ? theme.colorScheme.onSecondaryContainer
-                              : theme.colorScheme.onErrorContainer,
+                          color: result.activitySummary.passed ? theme.colorScheme.secondaryContainer : theme.colorScheme.errorContainer,
+                          textColor: result.activitySummary.passed ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onErrorContainer,
                         ),
                         ...result.activitySummary.weakGroups.map(
-                          (group) => _PillBadge(
-                            text: _humanizeLabel(group),
-                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                            textColor: theme.colorScheme.primary,
-                          ),
+                          (group) =>
+                              _PillBadge(text: _humanizeLabel(group), color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
                         ),
                       ],
                     ),
                     const SizedBox(height: 18),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('Close'),
-                      ),
+                      child: FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Close')),
                     ),
                   ],
                 )
@@ -139,16 +115,8 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            widget.activity.materialTitle,
-                            style: theme.textTheme.headlineSmall,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _submitting ? null : () => Navigator.of(context).pop(false),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
+                        Expanded(child: Text(widget.activity.materialTitle, style: theme.textTheme.headlineSmall)),
+                        IconButton(onPressed: _submitting ? null : () => Navigator.of(context).pop(false), icon: const Icon(Icons.close_rounded)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -178,10 +146,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                     ),
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        _errorMessage!,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-                      ),
+                      Text(_errorMessage!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
                     ],
                     const SizedBox(height: 16),
                     Expanded(
@@ -230,11 +195,7 @@ class _ExecutableActivityDialogState extends State<_ExecutableActivityDialog> {
                       child: FilledButton.icon(
                         onPressed: _submitting ? null : _submit,
                         icon: _submitting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.playlist_add_check_circle_rounded, size: 18),
                         label: const Text('Submit activity'),
                       ),
@@ -317,17 +278,9 @@ class _LearnerCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _PillBadge(
-                  text: learner.attentionLabel,
-                  color: attentionColor,
-                  textColor: attentionTextColor,
-                ),
+                _PillBadge(text: learner.attentionLabel, color: attentionColor, textColor: attentionTextColor),
                 if (learner.activeAssignment != null)
-                  _PillBadge(
-                    text: learner.activeAssignment!.title,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    textColor: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  _PillBadge(text: learner.activeAssignment!.title, color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
               ],
             ),
             if (learner.activeAssignment != null) ...[
@@ -567,7 +520,7 @@ class _PillBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(999),
@@ -575,7 +528,7 @@ class _PillBadge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: textColor, fontWeight: FontWeight.w700, letterSpacing: 0.2),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: textColor, fontWeight: FontWeight.w700, fontSize: 10.5, letterSpacing: 0.0),
       ),
     );
   }
@@ -904,4 +857,3 @@ class _AppearancePanel extends StatelessWidget {
     );
   }
 }
-
