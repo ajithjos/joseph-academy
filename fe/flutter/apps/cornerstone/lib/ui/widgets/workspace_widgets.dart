@@ -2978,132 +2978,158 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     );
   }
 
-  Widget _buildPlaylistStudio(ThemeData theme) {
+  Widget _buildHierarchyNavigator(ThemeData theme) {
     final pathway = _selectedPathway;
     final playlist = _selectedPlaylist;
     if (pathway == null || playlist == null) {
       return _SurfaceCard(child: Text('Select a playlist to inspect it.', style: theme.textTheme.bodyLarge));
     }
 
+    final session = _selectedSession;
+
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Master detail studio', style: theme.textTheme.headlineSmall),
+          Text('Navigator', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 10),
           _buildStickySelectors(theme, pathway, playlist),
           const SizedBox(height: 12),
-          Expanded(child: SingleChildScrollView(child: _buildFocusDetail(theme, pathway, playlist))),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DesktopSidebarButton(
+                    label: pathway.title,
+                    icon: Icons.route_rounded,
+                    selected: true,
+                    onTap: () {
+                      _selectPathway(pathway);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: pathway.playlists
+                          .map((item) {
+                            final isSelectedPlaylist = item.playlistId == _selectedPlaylistId;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DesktopSidebarButton(
+                                    label: item.title,
+                                    icon: Icons.playlist_play_rounded,
+                                    selected: isSelectedPlaylist,
+                                    onTap: () {
+                                      _selectPlaylist(item);
+                                    },
+                                  ),
+                                  if (isSelectedPlaylist) ...[
+                                    const SizedBox(height: 6),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: item.sessions
+                                            .asMap()
+                                            .entries
+                                            .map((entry) {
+                                              final isSelectedSession = entry.key == _selectedSessionIndex;
+                                              return Padding(
+                                                padding: const EdgeInsets.only(bottom: 6),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    _DesktopSidebarButton(
+                                                      label: '${entry.value.sessionIndex}. ${entry.value.title}',
+                                                      icon: Icons.fact_check_rounded,
+                                                      selected: isSelectedSession,
+                                                      onTap: () {
+                                                        _selectSession(entry.key);
+                                                      },
+                                                    ),
+                                                    if (isSelectedSession) ...[
+                                                      const SizedBox(height: 6),
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(left: 12),
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: entry.value.materials
+                                                              .map((material) {
+                                                                final isSelectedMaterial = material.materialId == _selectedMaterialId;
+                                                                return Padding(
+                                                                  padding: const EdgeInsets.only(bottom: 6),
+                                                                  child: _DesktopSidebarButton(
+                                                                    label: material.title,
+                                                                    icon: Icons.description_rounded,
+                                                                    selected: isSelectedMaterial,
+                                                                    onTap: () {
+                                                                      _selectMaterial(material);
+                                                                    },
+                                                                  ),
+                                                                );
+                                                              })
+                                                              .toList(growable: false),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              );
+                                            })
+                                            .toList(growable: false),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
+                    ),
+                  ),
+                  if (session == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text('Select a session to expand materials.', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPreviewStudio(ThemeData theme) {
+  Widget _buildContentWorkspace(ThemeData theme) {
+    final pathway = _selectedPathway;
+    final playlist = _selectedPlaylist;
+    if (pathway == null || playlist == null) {
+      return _SurfaceCard(child: Text('Select a pathway and playlist from the navigator.', style: theme.textTheme.bodyLarge));
+    }
+
     final routeBySourcePath = {for (final document in widget.documents?.documents ?? const <LibraryDocumentSummary>[]) document.sourcePath: document.routePath};
-    final session = _selectedSession;
-    final selectedMaterial = _selectedMaterial;
 
     return Column(
       children: [
         Expanded(
           flex: 4,
           child: _SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Selected session and material', style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 6),
-                const SizedBox(height: 18),
-                if (session == null)
-                  Text(
-                    'Select a session from the playlist panel to inspect materials.',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  )
-                else
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(session.title, style: theme.textTheme.titleLarge),
-                          const SizedBox(height: 10),
-                          _ContractChipRow(
-                            children: [
-                              const _ContractChip(domain: 'entity', value: 'session'),
-                              _ContractChip(domain: 'material_kind', value: session.dominantKind),
-                              _PillBadge(
-                                text: 'materials:${session.materialCount}',
-                                color: theme.colorScheme.secondaryContainer,
-                                textColor: theme.colorScheme.onSecondaryContainer,
-                              ),
-                              _PillBadge(
-                                text: '${session.estimatedMinutes} min',
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                textColor: theme.colorScheme.primary,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Text('Session materials', style: theme.textTheme.titleSmall),
-                          const SizedBox(height: 8),
-                          _ContractChipRow(
-                            children: session.materials
-                                .map(
-                                  (material) => ActionChip(
-                                    label: Text('${material.title} (${material.kind})'),
-                                    onPressed: () => _selectMaterial(material),
-                                    avatar: material.materialId == selectedMaterial?.materialId
-                                        ? Icon(Icons.check_circle_rounded, size: 14, color: theme.colorScheme.primary)
-                                        : null,
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                          const SizedBox(height: 14),
-                          if (selectedMaterial != null)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: theme.colorScheme.outlineVariant),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(selectedMaterial.title, style: theme.textTheme.titleSmall),
-                                  const SizedBox(height: 8),
-                                  _ContractChipRow(
-                                    children: [
-                                      const _ContractChip(domain: 'entity', value: 'session_material'),
-                                      _ContractChip(domain: 'material_kind', value: selectedMaterial.kind),
-                                      _ContractChip(domain: 'audience', value: selectedMaterial.audience),
-                                      if (selectedMaterial.executable) const _ContractChip(domain: 'status', value: 'live'),
-                                      _PillBadge(
-                                        text: '${selectedMaterial.estimatedMinutes} min',
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                        textColor: theme.colorScheme.primary,
-                                      ),
-                                    ],
-                                  ),
-                                  if (selectedMaterial.routePath != null) ...[
-                                    const SizedBox(height: 10),
-                                    TextButton.icon(
-                                      onPressed: () => widget.onOpenLibraryRoute(selectedMaterial.routePath!),
-                                      icon: const Icon(Icons.description_rounded, size: 16),
-                                      label: const Text('Open selected material'),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Selected content', style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 10),
+                  _buildFocusDetail(theme, pathway, playlist),
+                ],
+              ),
             ),
           ),
         ),
@@ -3138,9 +3164,9 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(flex: 6, child: _buildPlaylistStudio(theme)),
+              Expanded(flex: 4, child: _buildHierarchyNavigator(theme)),
               const SizedBox(width: 20),
-              Expanded(flex: 5, child: _buildPreviewStudio(theme)),
+              Expanded(flex: 7, child: _buildContentWorkspace(theme)),
             ],
           ),
         ),
