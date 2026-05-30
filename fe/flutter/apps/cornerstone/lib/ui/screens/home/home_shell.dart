@@ -98,8 +98,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     if (viewer.canManageTeam) {
       return <_ShellDestination>[
         _ShellDestination.owner,
-        if (viewer.isLearner || viewer.learnerId != null)
-          _ShellDestination.learner,
+        _ShellDestination.learner,
         if (viewer.canReadLibrary) _ShellDestination.library,
         _ShellDestination.account,
       ];

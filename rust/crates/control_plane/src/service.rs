@@ -1799,14 +1799,15 @@ async fn create_assignment_internal(
         .execute(&state.pool)
         .await?;
 
-        for skill_id in &session.skill_ids {
-            let material_id = choose_material_for_skill(library, session, skill_id).ok_or_else(|| {
-                anyhow!(
-                    "playlist '{}' has no material for skill '{}'",
-                    playlist_id,
-                    skill_id
-                )
-            })?;
+        let material_skill_pairs = material_skill_pairs_for_session(library, session);
+        if material_skill_pairs.is_empty() {
+            bail!(
+                "playlist '{}' session '{}' has no material-to-skill links",
+                playlist_id,
+                session.title
+            );
+        }
+        for (material_id, skill_id) in material_skill_pairs {
             query(
                 "insert into session_material (session_material_id, session_id, title, skill_id, material_id, status)
                  values ($1, $2, $3, $4, $5, 'scheduled')",
@@ -1814,8 +1815,8 @@ async fn create_assignment_internal(
             .bind(Uuid::new_v4().to_string())
             .bind(&session_id)
             .bind(format!("{}: {}", session.title, skill_id))
-            .bind(skill_id)
-            .bind(material_id)
+            .bind(&skill_id)
+            .bind(&material_id)
             .execute(&state.pool)
             .await?;
         }
@@ -1834,18 +1835,32 @@ async fn create_assignment_internal(
     })
 }
 
-fn choose_material_for_skill<'a>(
-    library: &'a LibraryBundle,
-    session: &'a PlaylistSession,
-    skill_id: &str,
-) -> Option<&'a str> {
+fn material_skill_pairs_for_session(
+    library: &LibraryBundle,
+    session: &PlaylistSession,
+) -> Vec<(String, String)> {
+    let mut pairs = BTreeSet::new();
     for material_id in &session.material_ids {
-        let material = library.materials.iter().find(|item| item.id == *material_id)?;
-        if material.skill_ids.iter().any(|item| item == skill_id) {
-            return Some(material_id.as_str());
+        let Some(material) = library.material(material_id) else {
+            continue;
+        };
+        let linked_skills = session
+            .skill_ids
+            .iter()
+            .filter(|skill_id| material.skill_ids.iter().any(|item| item == *skill_id))
+            .cloned()
+            .collect::<Vec<_>>();
+        if linked_skills.is_empty() {
+            if let Some(first_skill) = session.skill_ids.first() {
+                pairs.insert((material_id.clone(), first_skill.clone()));
+            }
+            continue;
+        }
+        for skill_id in linked_skills {
+            pairs.insert((material_id.clone(), skill_id));
         }
     }
-    session.material_ids.first().map(String::as_str)
+    pairs.into_iter().collect()
 }
 
 async fn fetch_active_assignment_for_learner(pool: &PgPool, learner_id: &str) -> anyhow::Result<Option<AssignmentSummary>> {
@@ -1941,7 +1956,7 @@ async fn fetch_sessions(
 
     let mut sessions = Vec::new();
     for (index, row) in rows.into_iter().enumerate() {
-        let material_rows = query_as::<_, SessionMaterialRow>(
+        let mut material_rows = query_as::<_, SessionMaterialRow>(
             "select session_material_id, session_id, title, skill_id, material_id, status
              from session_material
              where session_id = $1
@@ -1949,6 +1964,13 @@ async fn fetch_sessions(
         )
         .bind(&row.session_id)
         .fetch_all(pool)
+        .await?;
+        material_rows = ensure_session_material_rows(
+            pool,
+            library,
+            &row,
+            material_rows,
+        )
         .await?;
         let latest_evidence = fetch_latest_evidence_for_session(pool, &row.session_id).await?;
         let materials = build_session_material_summaries(library, documents, material_rows);
@@ -1984,6 +2006,97 @@ async fn fetch_sessions(
         });
     }
     Ok(sessions)
+}
+
+async fn ensure_session_material_rows(
+    pool: &PgPool,
+    library: &LibraryBundle,
+    session_row: &SessionRow,
+    existing_rows: Vec<SessionMaterialRow>,
+) -> anyhow::Result<Vec<SessionMaterialRow>> {
+    if session_row.status == "completed" || session_row.assignment_id.is_empty() {
+        return Ok(existing_rows);
+    }
+
+    let playlist_id = query_scalar::<_, String>(
+        "select playlist_id from assignment where assignment_id = $1",
+    )
+    .bind(&session_row.assignment_id)
+    .fetch_optional(pool)
+    .await?;
+    let Some(playlist_id) = playlist_id else {
+        return Ok(existing_rows);
+    };
+    let Some(playlist) = library.playlist(&playlist_id) else {
+        return Ok(existing_rows);
+    };
+
+    let authored_session = playlist
+        .session_pattern
+        .sessions
+        .iter()
+        .find(|session| {
+            session.day_offset == session_row.day_offset && session.title == session_row.title
+        })
+        .or_else(|| {
+            playlist
+                .session_pattern
+                .sessions
+                .iter()
+                .find(|session| session.day_offset == session_row.day_offset)
+        });
+    let Some(authored_session) = authored_session else {
+        return Ok(existing_rows);
+    };
+
+    let expected_pairs = material_skill_pairs_for_session(library, authored_session)
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    if expected_pairs.is_empty() {
+        return Ok(existing_rows);
+    }
+    let existing_pairs = existing_rows
+        .iter()
+        .map(|row| (row.material_id.clone(), row.skill_id.clone()))
+        .collect::<BTreeSet<_>>();
+    let missing_pairs = expected_pairs
+        .difference(&existing_pairs)
+        .cloned()
+        .collect::<Vec<_>>();
+    if missing_pairs.is_empty() {
+        return Ok(existing_rows);
+    }
+
+    let material_status = if session_row.status == "active" {
+        "active"
+    } else {
+        "scheduled"
+    };
+    for (material_id, skill_id) in missing_pairs {
+        query(
+            "insert into session_material (session_material_id, session_id, title, skill_id, material_id, status)
+             values ($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(Uuid::new_v4().to_string())
+        .bind(&session_row.session_id)
+        .bind(format!("{}: {}", session_row.title, skill_id))
+        .bind(skill_id)
+        .bind(material_id)
+        .bind(material_status)
+        .execute(pool)
+        .await?;
+    }
+
+    query_as::<_, SessionMaterialRow>(
+        "select session_material_id, session_id, title, skill_id, material_id, status
+         from session_material
+         where session_id = $1
+         order by title, skill_id",
+    )
+    .bind(&session_row.session_id)
+    .fetch_all(pool)
+    .await
+    .map_err(Into::into)
 }
 
 fn build_session_material_summaries(
