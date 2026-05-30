@@ -20,10 +20,23 @@ class _ContractChip extends StatelessWidget {
     final normalizedDomain = domain.trim().toLowerCase();
     final normalizedValue = value.trim().toLowerCase();
 
-    final backgroundColor = _contractChipBackgroundColor(theme, domain: normalizedDomain, value: normalizedValue);
-    final foregroundColor = _contractChipForegroundColor(theme, domain: normalizedDomain, value: normalizedValue);
+    final backgroundColor = _contractChipBackgroundColor(
+      theme,
+      domain: normalizedDomain,
+      value: normalizedValue,
+    );
+    final foregroundColor = _contractChipForegroundColor(
+      theme,
+      domain: normalizedDomain,
+      value: normalizedValue,
+    );
 
-    return _PillBadge(text: '${_contractTermLabel(normalizedDomain)}:${_contractTermLabel(normalizedValue)}', color: backgroundColor, textColor: foregroundColor);
+    return _PillBadge(
+      text:
+          '${_contractTermLabel(normalizedDomain)}:${_contractTermLabel(normalizedValue)}',
+      color: backgroundColor,
+      textColor: foregroundColor,
+    );
   }
 }
 
@@ -41,14 +54,21 @@ class _ContractChipRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          for (var index = 0; index < children.length; index++) ...[if (index > 0) const SizedBox(width: 6), children[index]],
+          for (var index = 0; index < children.length; index++) ...[
+            if (index > 0) const SizedBox(width: 6),
+            children[index],
+          ],
         ],
       ),
     );
   }
 }
 
-Color _contractChipBackgroundColor(ThemeData theme, {required String domain, required String value}) {
+Color _contractChipBackgroundColor(
+  ThemeData theme, {
+  required String domain,
+  required String value,
+}) {
   if (domain == 'material_kind') {
     return _materialKindBackgroundColor(theme, value);
   }
@@ -98,7 +118,11 @@ Color _contractChipBackgroundColor(ThemeData theme, {required String domain, req
   }
 }
 
-Color _contractChipForegroundColor(ThemeData theme, {required String domain, required String value}) {
+Color _contractChipForegroundColor(
+  ThemeData theme, {
+  required String domain,
+  required String value,
+}) {
   if (domain == 'material_kind') {
     return _materialKindForegroundColor(theme, value);
   }
@@ -154,8 +178,11 @@ String _materialKindFromDocument(LibraryDocumentData document) {
     return kind;
   }
 
-  final combined = '${document.sourcePath} ${document.routePath} ${document.documentId}'.toLowerCase();
-  if (combined.contains('teaching-note') || combined.contains('teaching_note')) {
+  final combined =
+      '${document.sourcePath} ${document.routePath} ${document.documentId}'
+          .toLowerCase();
+  if (combined.contains('teaching-note') ||
+      combined.contains('teaching_note')) {
     return 'teaching_note';
   }
   if (combined.contains('lesson-note') || combined.contains('lesson_note')) {

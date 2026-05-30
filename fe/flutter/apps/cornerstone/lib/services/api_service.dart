@@ -15,8 +15,9 @@ class CornerstoneApiClient {
 
   void setViewerUsername(String? username) {
     final normalized = username?.trim();
-    _viewerUsername =
-        normalized == null || normalized.isEmpty ? null : normalized;
+    _viewerUsername = normalized == null || normalized.isEmpty
+        ? null
+        : normalized;
   }
 
   static String _resolveBaseUrl() {
@@ -95,9 +96,9 @@ class CornerstoneApiClient {
 
   Future<LibraryDocumentData> fetchLibraryDocument(String routePath) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/v1/library/document').replace(
-        queryParameters: {'route_path': routePath},
-      ),
+      Uri.parse(
+        '$baseUrl/api/v1/library/document',
+      ).replace(queryParameters: {'route_path': routePath}),
       headers: _viewerHeaders(),
     );
     return LibraryDocumentPayload.fromJson(_decode(response)).document;
@@ -169,15 +170,14 @@ class CornerstoneApiClient {
     required String notes,
   }) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/v1/activity-instances/$activityInstanceId/complete'),
+      Uri.parse(
+        '$baseUrl/api/v1/activity-instances/$activityInstanceId/complete',
+      ),
       headers: _viewerHeaders(contentTypeJson: true),
       body: jsonEncode({
         'responses': List.generate(
           items.length,
-          (index) => {
-            'item_id': items[index].itemId,
-            'value': answers[index],
-          },
+          (index) => {'item_id': items[index].itemId, 'value': answers[index]},
         ),
         'duration_seconds': durationSeconds,
         'notes': notes,

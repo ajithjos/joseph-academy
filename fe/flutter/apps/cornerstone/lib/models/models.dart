@@ -10,7 +10,9 @@ class DashboardPayload {
           ? null
           : LibraryReport.fromJson(json['library'] as Map<String, dynamic>),
       learners: (json['learners'] as List<dynamic>)
-          .map((item) => LearnerDashboard.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => LearnerDashboard.fromJson(item as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -37,9 +39,7 @@ class ViewerSessionPayload {
           : TeamInfo.fromJson(json['team'] as Map<String, dynamic>),
       currentUser: json['current_user'] == null
           ? null
-          : ViewerUser.fromJson(
-              json['current_user'] as Map<String, dynamic>,
-            ),
+          : ViewerUser.fromJson(json['current_user'] as Map<String, dynamic>),
       developerDocsUrl: json['developer_docs_url'] as String?,
       availableUsers: (json['available_users'] as List<dynamic>)
           .map((item) => ViewerUser.fromJson(item as Map<String, dynamic>))
@@ -81,9 +81,8 @@ class LibraryWorkspacePayload {
       featuredRoutePath: json['featured_route_path'] as String?,
       pathways: (json['pathways'] as List<dynamic>)
           .map(
-            (item) => LibraryWorkspacePathway.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryWorkspacePathway.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -127,9 +126,8 @@ class LibraryWorkspacePathway {
           .toList(),
       playlists: (json['playlists'] as List<dynamic>)
           .map(
-            (item) => LibraryWorkspacePlaylist.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryWorkspacePlaylist.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -203,17 +201,15 @@ class LibraryWorkspacePlaylist {
       ),
       assignmentTargets: (json['assignment_targets'] as List<dynamic>)
           .map(
-            (item) => PlaylistAssignmentTarget.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                PlaylistAssignmentTarget.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
       routePath: json['route_path'] as String?,
       sessions: (json['sessions'] as List<dynamic>)
           .map(
-            (item) => LibraryWorkspaceSession.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryWorkspaceSession.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -339,9 +335,8 @@ class LibraryWorkspaceSession {
           .toList(),
       materials: (json['materials'] as List<dynamic>)
           .map(
-            (item) => LibraryWorkspaceMaterial.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryWorkspaceMaterial.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -415,9 +410,8 @@ class WorkspaceMaterialKindGroup {
       materialCount: (json['material_count'] as num).toInt(),
       materials: (json['materials'] as List<dynamic>)
           .map(
-            (item) => LibraryWorkspaceMaterial.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryWorkspaceMaterial.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -437,9 +431,8 @@ class LibraryDocumentsPayload {
       status: json['status'] as String,
       documents: (json['documents'] as List<dynamic>)
           .map(
-            (item) => LibraryDocumentSummary.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                LibraryDocumentSummary.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
     );
@@ -639,8 +632,7 @@ class TeamInfo {
 class ViewerUser {
   factory ViewerUser.fromJson(Map<String, dynamic> json) {
     final role = json['role'] as String;
-    final canManageTeam =
-      json['can_manage_team'] as bool? ?? role != 'learner';
+    final canManageTeam = json['can_manage_team'] as bool? ?? role != 'learner';
     return ViewerUser(
       userId: json['user_id'] as String,
       username: json['username'] as String,
@@ -649,9 +641,8 @@ class ViewerUser {
       currentLevel: json['current_level'] as String?,
       notes: json['notes'] as String? ?? '',
       learnerId: json['learner_id'] as String?,
-        canManageTeam: canManageTeam,
-      canReadLibrary:
-          json['can_read_library'] as bool? ?? canManageTeam,
+      canManageTeam: canManageTeam,
+      canReadLibrary: json['can_read_library'] as bool? ?? canManageTeam,
       canViewAllLearners:
           json['can_view_all_learners'] as bool? ?? canManageTeam,
       canOpenDeveloperDocs:
@@ -778,7 +769,7 @@ class LearnerDetailPayload {
           : AssignmentSummary.fromJson(
               json['active_assignment'] as Map<String, dynamic>,
             ),
-        journey: json['journey'] == null
+      journey: json['journey'] == null
           ? null
           : LearnerJourney.fromJson(json['journey'] as Map<String, dynamic>),
       sessions: (json['sessions'] as List<dynamic>)
@@ -786,9 +777,8 @@ class LearnerDetailPayload {
           .toList(),
       progress: (json['progress'] as List<dynamic>)
           .map(
-            (item) => SkillProgressSummary.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                SkillProgressSummary.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
       reviewItems: (json['review_items'] as List<dynamic>)
@@ -1110,18 +1100,16 @@ class SessionDetail extends SessionSummary {
       sequenceNumber: (json['sequence_number'] as num?)?.toInt(),
       dominantKind: json['dominant_kind'] as String,
       requiresAdultSupport: json['requires_adult_support'] as bool? ?? false,
-        estimatedMinutes: (json['estimated_minutes'] as num?)?.toInt() ?? 0,
-        liveMaterialCount: (json['live_material_count'] as num?)?.toInt() ?? 0,
-        learnerMaterialCount:
+      estimatedMinutes: (json['estimated_minutes'] as num?)?.toInt() ?? 0,
+      liveMaterialCount: (json['live_material_count'] as num?)?.toInt() ?? 0,
+      learnerMaterialCount:
           (json['learner_material_count'] as num?)?.toInt() ?? 0,
-        adultMaterialCount:
-          (json['adult_material_count'] as num?)?.toInt() ?? 0,
+      adultMaterialCount: (json['adult_material_count'] as num?)?.toInt() ?? 0,
       notes: json['notes'] as String,
       materialsByKind: (json['materials_by_kind'] as List<dynamic>)
           .map(
-            (item) => SessionMaterialKindGroup.fromJson(
-              item as Map<String, dynamic>,
-            ),
+            (item) =>
+                SessionMaterialKindGroup.fromJson(item as Map<String, dynamic>),
           )
           .toList(),
       materials: (json['materials'] as List<dynamic>)
@@ -1175,7 +1163,7 @@ class SessionMaterial {
           .toList(),
       status: json['status'] as String,
       documentRoutePath: json['document_route_path'] as String?,
-        documentBody: json['document_body'] as String?,
+      documentBody: json['document_body'] as String?,
       runtime: json['runtime'] == null
           ? null
           : SessionMaterialRuntimeSummary.fromJson(
@@ -1551,9 +1539,13 @@ class PlaylistInfo {
           .map((item) => item as String)
           .toList(),
       durationDays: (json['duration_days'] as num).toInt(),
-      sessions: ((sessionPattern?['sessions'] as List<dynamic>?) ?? const <dynamic>[])
-          .map((item) => PlaylistSessionInfo.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      sessions:
+          ((sessionPattern?['sessions'] as List<dynamic>?) ?? const <dynamic>[])
+              .map(
+                (item) =>
+                    PlaylistSessionInfo.fromJson(item as Map<String, dynamic>),
+              )
+              .toList(),
     );
   }
 
@@ -1664,7 +1656,8 @@ class MaterialRuntimeInfo {
       specVersion: (json['spec_version'] as num).toInt(),
       templateId: json['template_id'] as String,
       parameters:
-          (json['parameters'] as Map<String, dynamic>?) ?? const <String, dynamic>{},
+          (json['parameters'] as Map<String, dynamic>?) ??
+          const <String, dynamic>{},
       scoring: json['scoring'] == null
           ? null
           : MaterialRuntimeScoringInfo.fromJson(
@@ -1687,10 +1680,7 @@ class MaterialRuntimeInfo {
 }
 
 class MaterialRuntimeScoringInfo {
-  MaterialRuntimeScoringInfo({
-    this.passAccuracy,
-    this.softTimeLimitSeconds,
-  });
+  MaterialRuntimeScoringInfo({this.passAccuracy, this.softTimeLimitSeconds});
 
   factory MaterialRuntimeScoringInfo.fromJson(Map<String, dynamic> json) {
     return MaterialRuntimeScoringInfo(
@@ -1726,7 +1716,9 @@ class ActivityStartPayload {
   factory ActivityStartPayload.fromJson(Map<String, dynamic> json) {
     return ActivityStartPayload(
       status: json['status'] as String,
-      activity: ActivityInstance.fromJson(json['activity'] as Map<String, dynamic>),
+      activity: ActivityInstance.fromJson(
+        json['activity'] as Map<String, dynamic>,
+      ),
     );
   }
 
@@ -1786,10 +1778,7 @@ class ActivityInstance {
 }
 
 class ActivityScoringSummary {
-  ActivityScoringSummary({
-    this.passAccuracy,
-    this.softTimeLimitSeconds,
-  });
+  ActivityScoringSummary({this.passAccuracy, this.softTimeLimitSeconds});
 
   factory ActivityScoringSummary.fromJson(Map<String, dynamic> json) {
     return ActivityScoringSummary(
@@ -1833,9 +1822,14 @@ class CompleteActivityResponse {
   factory CompleteActivityResponse.fromJson(Map<String, dynamic> json) {
     return CompleteActivityResponse(
       status: json['status'] as String,
-      evidence: EvidenceSummary.fromJson(json['evidence'] as Map<String, dynamic>),
+      evidence: EvidenceSummary.fromJson(
+        json['evidence'] as Map<String, dynamic>,
+      ),
       updatedProgress: (json['updated_progress'] as List<dynamic>)
-          .map((item) => SkillProgressSummary.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                SkillProgressSummary.fromJson(item as Map<String, dynamic>),
+          )
           .toList(),
       activitySummary: ActivitySummary.fromJson(
         json['activity_summary'] as Map<String, dynamic>,
