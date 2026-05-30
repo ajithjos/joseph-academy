@@ -246,6 +246,9 @@ pub struct LearnerDetailResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct LearnerWorkspaceResponse {
     pub status: String,
+    pub workspace_view: String,
+    pub viewer_role: String,
+    pub includes_adult_materials: bool,
     pub learner: LearnerSummary,
     pub active_assignment: Option<AssignmentSummary>,
     pub journey: Option<LearnerJourneySummary>,

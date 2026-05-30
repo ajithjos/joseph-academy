@@ -28,21 +28,11 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   final Map<_LearnerWorkspaceSection, String?> _selectedSessionIds =
       <_LearnerWorkspaceSection, String?>{};
 
-  @override
-  void initState() {
-    super.initState();
-    _syncSelections();
-  }
-
-  @override
-  void didUpdateWidget(covariant _LearnerWorkspaceDesktop oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncSelections();
-  }
-
   LearnerWorkspace get _workspace => widget.workspace.workspace;
 
   LearnerJourney? get _journey => widget.workspace.journey;
+
+  bool get _isSupportView => widget.workspace.workspaceView == 'owner_support';
 
   SessionDetail? get _continueSession {
     final continueSession = _workspace.continueBlock?.session;
@@ -55,6 +45,18 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       }
     }
     return null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSelections();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LearnerWorkspaceDesktop oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncSelections();
   }
 
   List<SessionDetail> _sessionsFor(_LearnerWorkspaceSection section) {
@@ -124,13 +126,26 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   String _sectionLabel(_LearnerWorkspaceSection section) {
     switch (section) {
       case _LearnerWorkspaceSection.now:
-        return 'Now';
+        return 'Do now';
       case _LearnerWorkspaceSection.practice:
-        return 'Practice';
+        return 'Extra practice';
       case _LearnerWorkspaceSection.journey:
-        return 'Journey';
+        return 'Full route';
       case _LearnerWorkspaceSection.progress:
-        return 'Progress';
+        return 'How it is going';
+    }
+  }
+
+  String _sectionDescription(_LearnerWorkspaceSection section) {
+    switch (section) {
+      case _LearnerWorkspaceSection.now:
+        return 'Open the exact session to do now.';
+      case _LearnerWorkspaceSection.practice:
+        return 'Pick worksheet, drill, or quick check items.';
+      case _LearnerWorkspaceSection.journey:
+        return 'See every session in this playbook path.';
+      case _LearnerWorkspaceSection.progress:
+        return 'Review secure, developing, and review items.';
     }
   }
 
@@ -139,24 +154,11 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       case _LearnerWorkspaceSection.now:
         return Icons.play_circle_outline_rounded;
       case _LearnerWorkspaceSection.practice:
-        return Icons.fitness_center_rounded;
+        return Icons.sports_score_rounded;
       case _LearnerWorkspaceSection.journey:
-        return Icons.route_rounded;
+        return Icons.alt_route_rounded;
       case _LearnerWorkspaceSection.progress:
-        return Icons.analytics_rounded;
-    }
-  }
-
-  String _sectionSubtitle(_LearnerWorkspaceSection section) {
-    switch (section) {
-      case _LearnerWorkspaceSection.now:
-        return 'Resume the next session without browsing around.';
-      case _LearnerWorkspaceSection.practice:
-        return 'Open drills, worksheets, and checks that are ready now.';
-      case _LearnerWorkspaceSection.journey:
-        return 'See the full route and jump to any session workspace.';
-      case _LearnerWorkspaceSection.progress:
-        return 'Review mastery, wins, and review queue in one place.';
+        return Icons.insights_rounded;
     }
   }
 
@@ -165,50 +167,58 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       return '${widget.workspace.reviewItems.length} review';
     }
     final count = _sessionsFor(section).length;
-    return '$count step${count == 1 ? '' : 's'}';
+    return '$count session${count == 1 ? '' : 's'}';
   }
 
-  Widget _buildWorkspaceHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme) {
     final journey = _journey;
     final snapshot = _workspace.progressSnapshot;
-    final continueSession = _continueSession;
     final standingLabel = journey == null
         ? '--'
         : 'S${journey.completedSessionCount + 1}/${journey.totalSessionCount}';
+    final title = _isSupportView
+        ? 'Learner workspace preview'
+        : 'My learning workspace';
+
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _PillBadge(
-                text: 'learner',
+                text: _isSupportView ? 'owner_support' : 'learner',
                 color: theme.colorScheme.secondaryContainer,
                 textColor: theme.colorScheme.onSecondaryContainer,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'My learning workspace',
-                  style: theme.textTheme.titleLarge,
-                ),
+              _PillBadge(
+                text: 'role:${widget.workspace.viewerRole}',
+                color: theme.colorScheme.surfaceContainerHighest,
+                textColor: theme.colorScheme.onSurfaceVariant,
               ),
-              if (_workspace.attentionLabel.isNotEmpty)
+              if (widget.workspace.includesAdultMaterials)
                 _PillBadge(
-                  text: _workspace.attentionLabel,
+                  text: 'teaching guidance visible',
                   color: theme.colorScheme.tertiaryContainer,
                   textColor: theme.colorScheme.onTertiaryContainer,
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          Text(title, style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
           Text(
-            'Land on what to do now, keep practising with purpose, and track progress clearly.',
-            style: theme.textTheme.bodyMedium?.copyWith(
+            _isSupportView
+                ? 'Use this preview to guide the learner through the exact pathway, playbook, and session. Teaching guidance appears in each session when available.'
+                : 'Start with Do now, continue with Extra practice, and check progress clearly.',
+            style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _ContractChipRow(
             children: [
               _StatChip(
@@ -233,428 +243,276 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              if (continueSession != null)
-                FilledButton.icon(
-                  onPressed: () {
-                    _selectSection(_LearnerWorkspaceSection.now);
-                    _selectSession(continueSession.sessionId);
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Resume now'),
-                ),
-              if (_workspace.practiceLane.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: () => _selectSection(
-                    _LearnerWorkspaceSection.practice,
-                  ),
-                  icon: const Icon(Icons.fitness_center_rounded),
-                  label: const Text('Open practice lane'),
-                ),
-              if (snapshot.reviewItemCount > 0)
-                TextButton.icon(
-                  onPressed: () => _selectSection(
-                    _LearnerWorkspaceSection.progress,
-                  ),
-                  icon: const Icon(Icons.analytics_rounded),
-                  label: const Text('See progress report'),
-                ),
-              if (widget.viewerCanReadLibrary &&
-                  journey != null &&
-                  journey.playlistRoutePath != null)
-                TextButton.icon(
-                  onPressed: () => widget.onOpenLibraryRoute(
-                    journey.playlistRoutePath!,
-                  ),
-                  icon: const Icon(Icons.auto_stories_rounded),
-                  label: const Text('Open route brief'),
-                ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildSidebar(ThemeData theme) {
+  Widget _buildPathContext(ThemeData theme, SessionDetail? session) {
     final journey = _journey;
-    final sectionSessions = _sessionsFor(_section);
-    return _SurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Learning lanes', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            _sectionSubtitle(_section),
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ..._LearnerWorkspaceSection.values.map(
-            (section) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _DesktopSidebarButton(
-                label: '${_sectionLabel(section)} · ${_sectionCountLabel(section)}',
-                icon: _sectionIcon(section),
-                selected: _section == section,
-                onTap: () => _selectSection(section),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (journey != null) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.38),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            journey.playlistTitle,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Route: ${journey.totalSessionCount} sessions · ${journey.totalMaterialCount} materials',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                  ],
-                  if (_section != _LearnerWorkspaceSection.progress &&
-                      sectionSessions.isNotEmpty) ...[
-                    Text('In this lane', style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 10),
-                    ...sectionSessions.map(
-                      (session) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _DesktopSessionNavTile(
-                          title: session.title,
-                          subtitle: 'Session ${session.sequenceNumber ?? '?'}',
-                          statusLabel: session.status == 'completed'
-                              ? 'Done'
-                              : _contractTermLabel(session.dominantKind),
-                          selected: session.sessionId ==
-                              _selectedSessionIds[_section],
-                          onTap: () => _selectSession(session.sessionId),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSessionStudio(
-    ThemeData theme, {
-    required String eyebrow,
-    required String description,
-    required SessionDetail session,
-    String? laneActionLabel,
-  }) {
-    final learnerGroups = session.materialsByKind
-        .where((group) => group.audience == 'learner')
-        .toList(growable: false);
-    final availableRoutes = session.materials
-        .map((material) => material.documentRoutePath)
-        .whereType<String>()
-        .toSet()
-        .toList(growable: false);
-    final materialKinds = <String, int>{};
-    for (final material in session.materials) {
-      materialKinds.update(
-        material.kind,
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
+    if (journey == null && session == null) {
+      return const SizedBox.shrink();
     }
-
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(eyebrow, style: theme.textTheme.headlineSmall),
+          Text('Where am I?', style: theme.textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(
-            description,
-            style: theme.textTheme.bodyLarge?.copyWith(
+            'Pathway -> Playbook -> Session context for this lane.',
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 18),
-          if (laneActionLabel != null) ...[
-            _PillBadge(
-              text: laneActionLabel,
-              color: theme.colorScheme.secondaryContainer,
-              textColor: theme.colorScheme.onSecondaryContainer,
-            ),
-            const SizedBox(height: 12),
-          ],
-          Text(session.title, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 10),
-          _ContractChipRow(
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const _ContractChip(domain: 'entity', value: 'session'),
-              _ContractChip(
-                domain: 'material_kind',
-                value: session.dominantKind,
-              ),
-              if (session.estimatedMinutes > 0)
+              if (journey?.pathwayTitle != null)
                 _PillBadge(
-                  text: '${session.estimatedMinutes} min',
+                  text: 'Pathway: ${journey!.pathwayTitle}',
                   color: theme.colorScheme.primary.withValues(alpha: 0.12),
                   textColor: theme.colorScheme.primary,
                 ),
-              if (session.requiresAdultSupport)
-                _ContractChip(domain: 'status', value: 'adult_guided'),
+              if (journey != null)
+                _PillBadge(
+                  text: 'Playbook: ${journey.playlistTitle}',
+                  color: theme.colorScheme.secondaryContainer,
+                  textColor: theme.colorScheme.onSecondaryContainer,
+                ),
+              if (session != null)
+                _PillBadge(
+                  text: 'Session ${session.sequenceNumber ?? '?'}: ${session.title}',
+                  color: theme.colorScheme.tertiaryContainer,
+                  textColor: theme.colorScheme.onTertiaryContainer,
+                ),
             ],
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final split = constraints.maxWidth > 900;
-                final summary = SingleChildScrollView(
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.36),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Session plan', style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 12),
-                        _ContractChipRow(
-                          children: [
-                            _PillBadge(
-                              text:
-                                  'learner_count:${session.learnerMaterialCount}',
-                              color: _contractChipBackgroundColor(
-                                theme,
-                                domain: 'audience',
-                                value: 'learner',
-                              ),
-                              textColor: _contractChipForegroundColor(
-                                theme,
-                                domain: 'audience',
-                                value: 'learner',
-                              ),
-                            ),
-                            _PillBadge(
-                              text: 'live_count:${session.liveMaterialCount}',
-                              color: _contractChipBackgroundColor(
-                                theme,
-                                domain: 'status',
-                                value: 'live',
-                              ),
-                              textColor: _contractChipForegroundColor(
-                                theme,
-                                domain: 'status',
-                                value: 'live',
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (materialKinds.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _ContractChipRow(
-                            children: materialKinds.entries
-                                .map(
-                                  (entry) => _PillBadge(
-                                    text:
-                                        '${_contractTermLabel(entry.key)}:${entry.value}',
-                                    color: _materialKindBackgroundColor(
-                                      theme,
-                                      entry.key,
-                                    ),
-                                    textColor: _materialKindForegroundColor(
-                                      theme,
-                                      entry.key,
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                        ],
-                        if (widget.viewerCanReadLibrary &&
-                            availableRoutes.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text('References', style: theme.textTheme.titleSmall),
-                          const SizedBox(height: 8),
-                          ...availableRoutes.take(2).map(
-                            (route) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: TextButton(
-                                onPressed: () => widget.onOpenLibraryRoute(route),
-                                child: const Text('Open linked source'),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-                final content = SingleChildScrollView(
-                  child: learnerGroups.isEmpty
-                      ? const _MissingLearnerContentNotice()
-                      : Column(
-                          children: learnerGroups
-                              .map(
-                                (group) => _SessionMaterialGroupPanel(
-                                  group: group,
-                                  session: session,
-                                  viewerCanReadLibrary:
-                                      widget.viewerCanReadLibrary,
-                                  showDocumentBodies: true,
-                                  onOpenLibraryRoute: widget.onOpenLibraryRoute,
-                                  onStartActivity: widget.onStartActivity,
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                );
-
-                if (!split) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      summary,
-                      const SizedBox(height: 16),
-                      Expanded(child: content),
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 280, child: summary),
-                    const SizedBox(width: 18),
-                    Expanded(child: content),
-                  ],
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildJourneyOutline(ThemeData theme, SessionDetail? selectedSession) {
-    final sessions = widget.workspace.sessions;
+  Widget _buildLaneSelector(ThemeData theme) {
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Learning lanes', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 6),
+          Text(
+            _sectionDescription(_section),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _LearnerWorkspaceSection.values.map((section) {
+              final selected = _section == section;
+              return ChoiceChip(
+                avatar: Icon(_sectionIcon(section), size: 18),
+                label: Text('${_sectionLabel(section)} · ${_sectionCountLabel(section)}'),
+                selected: selected,
+                onSelected: (_) => _selectSection(section),
+              );
+            }).toList(growable: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionSelector(ThemeData theme, List<SessionDetail> sessions) {
     if (sessions.isEmpty) {
       return _SurfaceCard(
         child: Text(
-          'No journey steps are available yet.',
+          _section == _LearnerWorkspaceSection.now
+              ? 'There is no active session yet.'
+              : 'No sessions are available in this lane yet.',
           style: theme.textTheme.bodyLarge,
         ),
       );
     }
 
+    final selectedSessionId = _selectedSessionIds[_section];
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Journey outline', style: theme.textTheme.titleLarge),
+          Text('Select a session', style: theme.textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(
-            'Select any session to open it in the learner studio.',
+            'Click a card to open exactly what this session asks the learner to do.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 14),
-          ...sessions.map((session) {
-            final selected = selectedSession?.sessionId == session.sessionId;
-            final completed = session.status == 'completed';
-            final color = completed
-                ? theme.colorScheme.secondaryContainer
-                : selected
-                ? theme.colorScheme.primaryContainer
-                : theme.colorScheme.surfaceContainerHighest;
-            final textColor = completed
-                ? theme.colorScheme.onSecondaryContainer
-                : selected
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSurfaceVariant;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: sessions.map((session) {
+              final selected = session.sessionId == selectedSessionId;
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
                 onTap: () => _selectSession(session.sessionId),
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  width: 300,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(16),
+                    color: selected
+                        ? theme.colorScheme.primaryContainer
+                        : theme.colorScheme.surface.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: selected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.outlineVariant,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: textColor.withValues(alpha: 0.16),
-                        foregroundColor: textColor,
-                        child: Text('${session.sequenceNumber ?? '?'}'),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          session.title,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                      Text(
+                        'Session ${session.sequenceNumber ?? '?'}',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: selected
+                              ? theme.colorScheme.onPrimaryContainer
+                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      _PillBadge(
-                        text:
-                            completed ? 'Done' : _contractTermLabel(session.dominantKind),
-                        color: textColor.withValues(alpha: 0.14),
-                        textColor: textColor,
+                      const SizedBox(height: 4),
+                      Text(
+                        session.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _ContractChip(
+                            domain: 'material_kind',
+                            value: session.dominantKind,
+                          ),
+                          _PillBadge(
+                            text: 'learner:${session.learnerMaterialCount}',
+                            color: _contractChipBackgroundColor(
+                              theme,
+                              domain: 'audience',
+                              value: 'learner',
+                            ),
+                            textColor: _contractChipForegroundColor(
+                              theme,
+                              domain: 'audience',
+                              value: 'learner',
+                            ),
+                          ),
+                          if (_isSupportView)
+                            _PillBadge(
+                              text: 'adult:${session.adultMaterialCount}',
+                              color: _contractChipBackgroundColor(
+                                theme,
+                                domain: 'audience',
+                                value: 'adult',
+                              ),
+                              textColor: _contractChipForegroundColor(
+                                theme,
+                                domain: 'audience',
+                                value: 'adult',
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            }).toList(growable: false),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionStudio(ThemeData theme, SessionDetail session) {
+    final learnerGroups = session.materialsByKind
+        .where((group) => group.audience == 'learner')
+        .toList(growable: false);
+    final adultGroups = session.materialsByKind
+        .where((group) => group.audience == 'adult')
+        .toList(growable: false);
+
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_sectionLabel(_section), style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text(
+            _sectionDescription(_section),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _ContractChipRow(
+            children: [
+              const _ContractChip(domain: 'entity', value: 'session'),
+              _ContractChip(domain: 'material_kind', value: session.dominantKind),
+              if (session.requiresAdultSupport)
+                const _ContractChip(domain: 'status', value: 'adult_guided'),
+              if (session.estimatedMinutes > 0)
+                _PillBadge(
+                  text: '${session.estimatedMinutes} min',
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  textColor: theme.colorScheme.primary,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (learnerGroups.isEmpty)
+            const _MissingLearnerContentNotice()
+          else
+            _SessionWorkspaceAudiencePanel(
+              title: _isSupportView
+                  ? 'Learner materials in this session'
+                  : 'What I work on in this session',
+              description:
+                  'Lesson notes, worksheets, drills, and checks for the learner are grouped here.',
+              emptyState:
+                  'No learner-facing materials are attached to this session yet.',
+              icon: Icons.school_rounded,
+              groups: learnerGroups,
+              session: session,
+              viewerCanReadLibrary: widget.viewerCanReadLibrary,
+              showDocumentBodies: true,
+              onOpenLibraryRoute: widget.onOpenLibraryRoute,
+              onStartActivity: widget.onStartActivity,
+            ),
+          if (_isSupportView && adultGroups.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _SessionWorkspaceAudiencePanel(
+              title: 'Teaching guidance for parent or teacher',
+              description:
+                  'Use these teaching notes to guide explanation, correction, and pacing before or during learner work.',
+              emptyState: 'No teaching guidance is attached to this session yet.',
+              icon: Icons.co_present_rounded,
+              groups: adultGroups,
+              session: session,
+              viewerCanReadLibrary: widget.viewerCanReadLibrary,
+              showDocumentBodies: true,
+              onOpenLibraryRoute: widget.onOpenLibraryRoute,
+              onStartActivity: widget.onStartActivity,
+            ),
+          ],
         ],
       ),
     );
@@ -703,207 +561,148 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Progress and review', style: theme.textTheme.headlineSmall),
+          Text('How it is going', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
           Text(
-            'See what is secure, what still needs practice, and what should be reviewed next.',
+            'This shows what is secure, what is developing, and what should be reviewed next.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 18),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProgressMeter(
-                    theme,
-                    label: 'Secure',
-                    value: snapshot.secureCount,
-                    total: masteredTotal,
-                    color: theme.colorScheme.secondary,
+          _buildProgressMeter(
+            theme,
+            label: 'Secure',
+            value: snapshot.secureCount,
+            total: masteredTotal,
+            color: theme.colorScheme.secondary,
+          ),
+          const SizedBox(height: 12),
+          _buildProgressMeter(
+            theme,
+            label: 'Developing',
+            value: snapshot.developingCount,
+            total: masteredTotal,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(height: 12),
+          _buildProgressMeter(
+            theme,
+            label: 'Not started',
+            value: snapshot.notStartedCount,
+            total: masteredTotal,
+            color: theme.colorScheme.outline,
+          ),
+          const SizedBox(height: 12),
+          _buildProgressMeter(
+            theme,
+            label: 'Review queue',
+            value: snapshot.reviewItemCount,
+            total: snapshot.reviewItemCount > 0 ? snapshot.reviewItemCount : 1,
+            color: theme.colorScheme.tertiary,
+          ),
+          const SizedBox(height: 22),
+          Text('Recent wins', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 10),
+          if (recentWins.isEmpty)
+            Text(
+              'Completed work appears here when evidence is recorded.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            ...recentWins.map(
+              (win) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(win.sessionTitle),
+                  subtitle: Text(
+                    win.notes.isEmpty
+                        ? 'Completed and recorded in learner history.'
+                        : win.notes,
                   ),
-                  const SizedBox(height: 12),
-                  _buildProgressMeter(
-                    theme,
-                    label: 'Developing',
-                    value: snapshot.developingCount,
-                    total: masteredTotal,
-                    color: theme.colorScheme.primary,
+                  trailing: _PillBadge(
+                    text: win.scoreLabel,
+                    color: theme.colorScheme.secondaryContainer,
+                    textColor: theme.colorScheme.onSecondaryContainer,
                   ),
-                  const SizedBox(height: 12),
-                  _buildProgressMeter(
-                    theme,
-                    label: 'Not started',
-                    value: snapshot.notStartedCount,
-                    total: masteredTotal,
-                    color: theme.colorScheme.outline,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildProgressMeter(
-                    theme,
-                    label: 'Review queue',
-                    value: snapshot.reviewItemCount,
-                    total: snapshot.reviewItemCount > 0
-                        ? snapshot.reviewItemCount
-                        : 1,
-                    color: theme.colorScheme.tertiary,
-                  ),
-                  const SizedBox(height: 22),
-                  Text('Recent wins', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  if (recentWins.isEmpty)
-                    Text(
-                      'Completed work will appear here once this learner has recorded evidence.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    )
-                  else
-                    ...recentWins.map(
-                      (win) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(win.sessionTitle),
-                          subtitle: Text(
-                            win.notes.isEmpty
-                                ? 'Completed and recorded in the learner history.'
-                                : win.notes,
-                          ),
-                          trailing: _PillBadge(
-                            text: win.scoreLabel,
-                            color: theme.colorScheme.secondaryContainer,
-                            textColor: theme.colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  Text('Review queue', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  if (reviewItems.isEmpty)
-                    Text(
-                      'No review items are waiting.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    )
-                  else
-                    ...reviewItems.map(
-                      (item) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(item.reason),
-                        subtitle: Text(_contractTermLabel(item.skillId)),
-                        trailing: _PillBadge(
-                          text: item.dueDate,
-                          color: theme.colorScheme.errorContainer,
-                          textColor: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-          ),
+          const SizedBox(height: 10),
+          Text('Review queue', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 10),
+          if (reviewItems.isEmpty)
+            Text(
+              'No review items are waiting.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            )
+          else
+            ...reviewItems.map(
+              (item) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.reason),
+                subtitle: Text(_contractTermLabel(item.skillId)),
+                trailing: _PillBadge(
+                  text: item.dueDate,
+                  color: theme.colorScheme.errorContainer,
+                  textColor: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  Widget _buildMainPanel(ThemeData theme, SessionDetail? selectedSession) {
+    if (_section == _LearnerWorkspaceSection.progress) {
+      return _buildProgressStudio(theme);
+    }
+    if (selectedSession == null) {
+      return _SurfaceCard(
+        child: Text(
+          'No session is selected for this lane yet.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      );
+    }
+    return _buildSessionStudio(theme, selectedSession);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final sessions = _sessionsFor(_section);
     final selectedSession = _selectedSession();
-
-    Widget mainPanel;
-    switch (_section) {
-      case _LearnerWorkspaceSection.now:
-        if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'There is no active learner step yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
-        } else {
-          mainPanel = _buildSessionStudio(
-            theme,
-            eyebrow: 'Now',
-            description:
-                _workspace.continueBlock?.description ??
-                'Open your next step and start the learner materials directly.',
-            session: selectedSession,
-            laneActionLabel: _workspace.continueBlock?.actionLabel,
-          );
-        }
-      case _LearnerWorkspaceSection.practice:
-        if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'No practice steps are ready yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
-        } else {
-          mainPanel = _buildSessionStudio(
-            theme,
-            eyebrow: 'Practice',
-            description:
-                'Choose any practice or check step and complete it from one place.',
-            session: selectedSession,
-          );
-        }
-      case _LearnerWorkspaceSection.journey:
-        if (selectedSession == null) {
-          mainPanel = _SurfaceCard(
-            child: Text(
-              'No journey steps are available yet.',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
-        } else {
-          mainPanel = Column(
-            children: [
-              _buildJourneyOutline(theme, selectedSession),
-              const SizedBox(height: 14),
-              Expanded(
-                child: _buildSessionStudio(
-                  theme,
-                  eyebrow: 'Journey session',
-                  description:
-                      'Inspect the selected step and open learner materials below.',
-                  session: selectedSession,
-                ),
-              ),
-            ],
-          );
-        }
-      case _LearnerWorkspaceSection.progress:
-        mainPanel = _buildProgressStudio(theme);
-    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
-        _buildWorkspaceHeader(theme),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: _desktopStudioHeight(
-            context,
-            subtract: 210,
-            minHeight: 720,
-            maxHeight: 980,
+        _buildHeader(theme),
+        const SizedBox(height: 14),
+        _buildLaneSelector(theme),
+        const SizedBox(height: 14),
+        _buildPathContext(theme, selectedSession),
+        if (_section != _LearnerWorkspaceSection.progress) ...[
+          const SizedBox(height: 14),
+          _buildSessionSelector(theme, sessions),
+        ],
+        const SizedBox(height: 14),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: _desktopStudioHeight(
+              context,
+              subtract: 320,
+              minHeight: 460,
+              maxHeight: 760,
+            ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: 300, child: _buildSidebar(theme)),
-              const SizedBox(width: 20),
-              Expanded(child: mainPanel),
-            ],
-          ),
+          child: _buildMainPanel(theme, selectedSession),
         ),
       ],
     );

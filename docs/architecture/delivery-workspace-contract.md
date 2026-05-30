@@ -242,12 +242,24 @@ Recommended endpoint direction:
 Required sections:
 
 - learner summary
+- workspace audience contract (`workspace_view`, `viewer_role`, `includes_adult_materials`)
 - active journey summary
 - continue block
 - journey outline
 - practice lane
 - progress snapshot
 - recent wins or evidence summary
+
+### Workspace audience contract
+
+The learner workspace endpoint must declare which audience mode is being returned.
+
+- `workspace_view: learner` means learner-safe view only. Adult teaching material is excluded.
+- `workspace_view: owner_support` means parent or teacher guidance view. Adult teaching material is included.
+- `viewer_role` carries the current viewer role used for policy decisions.
+- `includes_adult_materials` is the explicit rendering switch for frontend surfaces.
+
+This keeps the boundary explicit: learner surfaces never infer policy from raw materials; they render the contract directly.
 
 Recommended sections in more detail:
 

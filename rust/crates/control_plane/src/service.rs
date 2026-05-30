@@ -805,15 +805,33 @@ pub async fn fetch_learner_workspace(
     viewer_username: &str,
     learner_id: &str,
 ) -> anyhow::Result<crate::domain::LearnerWorkspaceResponse> {
+    let viewer = resolve_viewer_member(state, viewer_username).await?;
+    ensure_viewer_can_access_learner(&viewer, learner_id)?;
     let detail = fetch_learner_detail(state, viewer_username, learner_id).await?;
-    let sessions = detail
-        .sessions
-        .iter()
-        .map(learner_safe_session_detail)
-        .collect::<Vec<_>>();
-    let workspace = learner_safe_workspace_summary(&detail.workspace);
+    let support_workspace = viewer.can_manage_team;
+    let sessions = if support_workspace {
+        detail.sessions.clone()
+    } else {
+        detail
+            .sessions
+            .iter()
+            .map(learner_safe_session_detail)
+            .collect::<Vec<_>>()
+    };
+    let workspace = if support_workspace {
+        detail.workspace.clone()
+    } else {
+        learner_safe_workspace_summary(&detail.workspace)
+    };
     Ok(crate::domain::LearnerWorkspaceResponse {
         status: "ok".to_string(),
+        workspace_view: if support_workspace {
+            "owner_support".to_string()
+        } else {
+            "learner".to_string()
+        },
+        viewer_role: viewer.role,
+        includes_adult_materials: support_workspace,
         learner: detail.learner,
         active_assignment: detail.active_assignment,
         journey: detail.journey,

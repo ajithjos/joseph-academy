@@ -802,6 +802,9 @@ class LearnerDetailPayload {
 class LearnerWorkspacePayload {
   LearnerWorkspacePayload({
     required this.status,
+    required this.workspaceView,
+    required this.viewerRole,
+    required this.includesAdultMaterials,
     required this.learner,
     required this.sessions,
     required this.progress,
@@ -814,6 +817,10 @@ class LearnerWorkspacePayload {
   factory LearnerWorkspacePayload.fromJson(Map<String, dynamic> json) {
     return LearnerWorkspacePayload(
       status: json['status'] as String,
+      workspaceView: json['workspace_view'] as String? ?? 'learner',
+      viewerRole: json['viewer_role'] as String? ?? 'learner',
+      includesAdultMaterials:
+          json['includes_adult_materials'] as bool? ?? false,
       learner: LearnerSummary.fromJson(json['learner'] as Map<String, dynamic>),
       activeAssignment: json['active_assignment'] == null
           ? null
@@ -842,6 +849,9 @@ class LearnerWorkspacePayload {
   }
 
   final String status;
+  final String workspaceView;
+  final String viewerRole;
+  final bool includesAdultMaterials;
   final LearnerSummary learner;
   final AssignmentSummary? activeAssignment;
   final LearnerJourney? journey;

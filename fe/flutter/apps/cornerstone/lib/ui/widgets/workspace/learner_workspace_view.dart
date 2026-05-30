@@ -52,6 +52,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
 
     final journey = learnerWorkspace.journey;
     final learnerSurface = learnerWorkspace.workspace;
+    final isSupportView = learnerWorkspace.workspaceView == 'owner_support';
     final continueBlock = learnerSurface.continueBlock;
     final nextSession =
         continueBlock?.session ??
@@ -110,6 +111,9 @@ class _LearnerWorkspaceView extends StatelessWidget {
     }) {
       final learnerGroups = session.materialsByKind
           .where((group) => group.audience == 'learner')
+          .toList(growable: false);
+      final adultGroups = session.materialsByKind
+          .where((group) => group.audience == 'adult')
           .toList(growable: false);
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -224,6 +228,23 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   onOpenLibraryRoute: onOpenLibraryRoute,
                   onStartActivity: onStartActivity,
                 ),
+              if (isSupportView && adultGroups.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _SessionWorkspaceAudiencePanel(
+                  title: 'Teaching guidance for parent or teacher',
+                  description:
+                      'Use this guidance to explain and correct before the learner attempts activities.',
+                  emptyState:
+                      'No teaching guidance is attached to this session yet.',
+                  icon: Icons.co_present_rounded,
+                  groups: adultGroups,
+                  session: session,
+                  viewerCanReadLibrary: viewerCanReadLibrary,
+                  showDocumentBodies: true,
+                  onOpenLibraryRoute: onOpenLibraryRoute,
+                  onStartActivity: onStartActivity,
+                ),
+              ],
             ],
           ),
         ),
@@ -234,8 +255,10 @@ class _LearnerWorkspaceView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
-          eyebrow: 'Learner home',
-          title: 'My learning workspace',
+          eyebrow: isSupportView ? 'Learner preview' : 'Learner home',
+          title: isSupportView
+              ? 'Learner workspace for support'
+              : 'My learning workspace',
           description: journey == null
               ? 'This is your learner home: start now, keep practising, and track progress in one place.'
               : learnerSurface.attentionLabel.isNotEmpty
@@ -244,6 +267,12 @@ class _LearnerWorkspaceView extends StatelessWidget {
               ? 'You are part of ${journey.playlistTitle}. Start in the Now lane, then move through practice and journey steps.'
               : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Start in Now, then continue through practice and progress.',
           chips: [
+            if (isSupportView)
+              _PillBadge(
+                text: 'support view · role:${learnerWorkspace.viewerRole}',
+                color: theme.colorScheme.tertiaryContainer,
+                textColor: theme.colorScheme.onTertiaryContainer,
+              ),
             _StatChip(
               label: 'Standing',
               value: currentStanding == null
@@ -464,22 +493,48 @@ class _LearnerWorkspaceView extends StatelessWidget {
                     final learnerGroups = nextSession.materialsByKind
                         .where((group) => group.audience == 'learner')
                         .toList(growable: false);
+                    final adultGroups = nextSession.materialsByKind
+                        .where((group) => group.audience == 'adult')
+                        .toList(growable: false);
                     if (learnerGroups.isEmpty) {
                       return const _MissingLearnerContentNotice();
                     }
-                    return _SessionWorkspaceAudiencePanel(
-                      title: 'What I work on now',
-                      description:
-                          'The learner-facing materials for the current session stay together here.',
-                      emptyState:
-                          'No learner-facing materials are attached to this session yet.',
-                      icon: Icons.school_rounded,
-                      groups: learnerGroups,
-                      session: nextSession,
-                      viewerCanReadLibrary: viewerCanReadLibrary,
-                      showDocumentBodies: true,
-                      onOpenLibraryRoute: onOpenLibraryRoute,
-                      onStartActivity: onStartActivity,
+                    return Column(
+                      children: [
+                        _SessionWorkspaceAudiencePanel(
+                          title: isSupportView
+                              ? 'Learner materials in this session'
+                              : 'What I work on now',
+                          description:
+                              'The learner-facing materials for the current session stay together here.',
+                          emptyState:
+                              'No learner-facing materials are attached to this session yet.',
+                          icon: Icons.school_rounded,
+                          groups: learnerGroups,
+                          session: nextSession,
+                          viewerCanReadLibrary: viewerCanReadLibrary,
+                          showDocumentBodies: true,
+                          onOpenLibraryRoute: onOpenLibraryRoute,
+                          onStartActivity: onStartActivity,
+                        ),
+                        if (isSupportView && adultGroups.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _SessionWorkspaceAudiencePanel(
+                            title: 'Teaching guidance for parent or teacher',
+                            description:
+                                'Use this guidance to explain and correct before the learner attempts activities.',
+                            emptyState:
+                                'No teaching guidance is attached to this session yet.',
+                            icon: Icons.co_present_rounded,
+                            groups: adultGroups,
+                            session: nextSession,
+                            viewerCanReadLibrary: viewerCanReadLibrary,
+                            showDocumentBodies: true,
+                            onOpenLibraryRoute: onOpenLibraryRoute,
+                            onStartActivity: onStartActivity,
+                          ),
+                        ],
+                      ],
                     );
                   },
                 ),
