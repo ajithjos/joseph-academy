@@ -1,6 +1,6 @@
 part of '../../../main.dart';
 
-enum _LearnerWorkspaceSection { continueFlow, practice, journey, progress }
+enum _LearnerWorkspaceSection { now, practice, journey, progress }
 
 class _LearnerWorkspaceDesktop extends StatefulWidget {
   const _LearnerWorkspaceDesktop({
@@ -24,35 +24,41 @@ class _LearnerWorkspaceDesktop extends StatefulWidget {
 }
 
 class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
-  _LearnerWorkspaceSection _section = _LearnerWorkspaceSection.continueFlow;
-  String? _selectedSessionId;
+  _LearnerWorkspaceSection _section = _LearnerWorkspaceSection.now;
+  final Map<_LearnerWorkspaceSection, String?> _selectedSessionIds =
+      <_LearnerWorkspaceSection, String?>{};
 
   @override
   void initState() {
     super.initState();
-    _selectedSessionId = _defaultSessionFor(_section)?.sessionId;
+    _syncSelections();
   }
 
   @override
   void didUpdateWidget(covariant _LearnerWorkspaceDesktop oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncSelection();
+    _syncSelections();
   }
 
   LearnerWorkspace get _workspace => widget.detail.workspace;
 
-  SessionDetail? _defaultSessionFor(_LearnerWorkspaceSection section) {
-    if (section == _LearnerWorkspaceSection.continueFlow) {
-      return _workspace.continueBlock?.session;
+  SessionDetail? get _continueSession {
+    final fromContinue = _workspace.continueBlock?.session;
+    if (fromContinue != null) {
+      return fromContinue;
     }
-    final sessions = _sessionsFor(section);
-    return sessions.isEmpty ? null : sessions.first;
+    for (final session in widget.detail.sessions) {
+      if (session.status != 'completed') {
+        return session;
+      }
+    }
+    return null;
   }
 
   List<SessionDetail> _sessionsFor(_LearnerWorkspaceSection section) {
     switch (section) {
-      case _LearnerWorkspaceSection.continueFlow:
-        final session = _workspace.continueBlock?.session;
+      case _LearnerWorkspaceSection.now:
+        final session = _continueSession;
         return session == null
             ? const <SessionDetail>[]
             : <SessionDetail>[session];
@@ -70,40 +76,53 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     if (sessions.isEmpty) {
       return null;
     }
+    final selectedSessionId = _selectedSessionIds[_section];
     for (final session in sessions) {
-      if (session.sessionId == _selectedSessionId) {
+      if (session.sessionId == selectedSessionId) {
         return session;
       }
     }
     return sessions.first;
   }
 
-  void _syncSelection() {
-    final sessions = _sessionsFor(_section);
+  void _syncSelection(_LearnerWorkspaceSection section) {
+    final sessions = _sessionsFor(section);
     if (sessions.isEmpty) {
-      _selectedSessionId = null;
+      _selectedSessionIds[section] = null;
       return;
     }
+    final selectedSessionId = _selectedSessionIds[section];
     final hasCurrent = sessions.any(
-      (session) => session.sessionId == _selectedSessionId,
+      (session) => session.sessionId == selectedSessionId,
     );
     if (!hasCurrent) {
-      _selectedSessionId = sessions.first.sessionId;
+      _selectedSessionIds[section] = sessions.first.sessionId;
+    }
+  }
+
+  void _syncSelections() {
+    for (final section in _LearnerWorkspaceSection.values) {
+      _syncSelection(section);
     }
   }
 
   void _selectSection(_LearnerWorkspaceSection section) {
     setState(() {
       _section = section;
-      _selectedSessionId = _defaultSessionFor(section)?.sessionId;
-      _syncSelection();
+      _syncSelection(section);
+    });
+  }
+
+  void _selectSession(String sessionId) {
+    setState(() {
+      _selectedSessionIds[_section] = sessionId;
     });
   }
 
   String _sectionLabel(_LearnerWorkspaceSection section) {
     switch (section) {
-      case _LearnerWorkspaceSection.continueFlow:
-        return 'Continue';
+      case _LearnerWorkspaceSection.now:
+        return 'Now';
       case _LearnerWorkspaceSection.practice:
         return 'Practice';
       case _LearnerWorkspaceSection.journey:
@@ -115,7 +134,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
 
   IconData _sectionIcon(_LearnerWorkspaceSection section) {
     switch (section) {
-      case _LearnerWorkspaceSection.continueFlow:
+      case _LearnerWorkspaceSection.now:
         return Icons.play_circle_outline_rounded;
       case _LearnerWorkspaceSection.practice:
         return Icons.fitness_center_rounded;
@@ -126,49 +145,163 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     }
   }
 
-  Widget _buildSidebar(ThemeData theme) {
+  String _sectionSubtitle(_LearnerWorkspaceSection section) {
+    switch (section) {
+      case _LearnerWorkspaceSection.now:
+        return 'Resume the next session without browsing around.';
+      case _LearnerWorkspaceSection.practice:
+        return 'Open drills, worksheets, and checks that are ready now.';
+      case _LearnerWorkspaceSection.journey:
+        return 'See the full route and jump to any session workspace.';
+      case _LearnerWorkspaceSection.progress:
+        return 'Review mastery, wins, and review queue in one place.';
+    }
+  }
+
+  String _sectionCountLabel(_LearnerWorkspaceSection section) {
+    if (section == _LearnerWorkspaceSection.progress) {
+      final reviewCount = _workspace.progressSnapshot.reviewItemCount;
+      return '$reviewCount review';
+    }
+    final count = _sessionsFor(section).length;
+    return '$count step${count == 1 ? '' : 's'}';
+  }
+
+  Widget _buildWorkspaceHeader(ThemeData theme) {
     final journey = widget.detail.journey;
-    final sectionSessions = _sessionsFor(_section);
-    final practiceCount = _workspace.practiceLane.length;
-    final reviewCount = _workspace.progressSnapshot.reviewItemCount;
+    final snapshot = _workspace.progressSnapshot;
+    final continueSession = _continueSession;
+    final standingLabel = journey == null
+        ? '--'
+        : 'S${journey.completedSessionCount + 1}/${journey.totalSessionCount}';
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Learning flow', style: theme.textTheme.headlineSmall),
+          Row(
+            children: [
+              _PillBadge(
+                text: 'learner',
+                color: theme.colorScheme.secondaryContainer,
+                textColor: theme.colorScheme.onSecondaryContainer,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'My learning workspace',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+              if (_workspace.attentionLabel.isNotEmpty)
+                _PillBadge(
+                  text: _workspace.attentionLabel,
+                  color: theme.colorScheme.tertiaryContainer,
+                  textColor: theme.colorScheme.onTertiaryContainer,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Land on what to do now, keep practising with purpose, and track progress clearly.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _ContractChipRow(
+            children: [
+              _StatChip(
+                label: 'Standing',
+                value: standingLabel,
+                icon: Icons.place_rounded,
+              ),
+              _StatChip(
+                label: 'Completed',
+                value: '${snapshot.completedSessionCount}',
+                icon: Icons.task_alt_rounded,
+              ),
+              _StatChip(
+                label: 'Ready now',
+                value: '${snapshot.pendingSessionCount}',
+                icon: Icons.rocket_launch_rounded,
+              ),
+              _StatChip(
+                label: 'Review',
+                value: '${snapshot.reviewItemCount}',
+                icon: Icons.pending_actions_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              if (continueSession != null)
+                FilledButton.icon(
+                  onPressed: () {
+                    _selectSection(_LearnerWorkspaceSection.now);
+                    _selectSession(continueSession.sessionId);
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Resume now'),
+                ),
+              if (_workspace.practiceLane.isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: () => _selectSection(_LearnerWorkspaceSection.practice),
+                  icon: const Icon(Icons.fitness_center_rounded),
+                  label: const Text('Open practice lane'),
+                ),
+              if (snapshot.reviewItemCount > 0)
+                TextButton.icon(
+                  onPressed: () => _selectSection(_LearnerWorkspaceSection.progress),
+                  icon: const Icon(Icons.analytics_rounded),
+                  label: const Text('See progress report'),
+                ),
+              if (widget.viewerCanReadLibrary &&
+                  journey != null &&
+                  journey.playlistRoutePath != null)
+                TextButton.icon(
+                  onPressed: () =>
+                      widget.onOpenLibraryRoute(journey.playlistRoutePath!),
+                  icon: const Icon(Icons.auto_stories_rounded),
+                  label: const Text('Open route brief'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar(ThemeData theme) {
+    final journey = widget.detail.journey;
+    final sectionSessions = _sessionsFor(_section);
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Learning lanes', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 6),
           Text(
-            'Select the section and session to open learner materials directly.',
+            _sectionSubtitle(_section),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (journey != null)
-                _PillBadge(
-                  text:
-                      '${journey.completedSessionCount} complete · ${journey.pendingSessionCount} ahead',
-                  color: theme.colorScheme.secondaryContainer,
-                  textColor: theme.colorScheme.onSecondaryContainer,
-                ),
-              _PillBadge(
-                text:
-                    '$practiceCount practice step${practiceCount == 1 ? '' : 's'}',
-                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                textColor: theme.colorScheme.primary,
+          ..._LearnerWorkspaceSection.values.map(
+            (section) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _DesktopSidebarButton(
+                label: '${_sectionLabel(section)} · ${_sectionCountLabel(section)}',
+                icon: _sectionIcon(section),
+                selected: _section == section,
+                onTap: () => _selectSection(section),
               ),
-              _PillBadge(
-                text: '$reviewCount review item${reviewCount == 1 ? '' : 's'}',
-                color: theme.colorScheme.tertiaryContainer,
-                textColor: theme.colorScheme.onTertiaryContainer,
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -179,8 +312,9 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.38),
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.38,
+                        ),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -202,21 +336,9 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                     ),
                     const SizedBox(height: 18),
                   ],
-                  ..._LearnerWorkspaceSection.values.map(
-                    (section) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _DesktopSidebarButton(
-                        label: _sectionLabel(section),
-                        icon: _sectionIcon(section),
-                        selected: _section == section,
-                        onTap: () => _selectSection(section),
-                      ),
-                    ),
-                  ),
                   if (_section != _LearnerWorkspaceSection.progress &&
                       sectionSessions.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    Text('Steps', style: theme.textTheme.titleSmall),
+                    Text('In this lane', style: theme.textTheme.titleSmall),
                     const SizedBox(height: 10),
                     ...sectionSessions.map(
                       (session) => Padding(
@@ -227,10 +349,9 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                           statusLabel: session.status == 'completed'
                               ? 'Done'
                               : _contractTermLabel(session.dominantKind),
-                          selected: session.sessionId == _selectedSessionId,
-                          onTap: () => setState(
-                            () => _selectedSessionId = session.sessionId,
-                          ),
+                          selected:
+                              session.sessionId == _selectedSessionIds[_section],
+                          onTap: () => _selectSession(session.sessionId),
                         ),
                       ),
                     ),
@@ -249,6 +370,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     required String eyebrow,
     required String description,
     required SessionDetail session,
+    String? laneActionLabel,
   }) {
     final learnerGroups = session.materialsByKind
         .where((group) => group.audience == 'learner')
@@ -280,6 +402,14 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
             ),
           ),
           const SizedBox(height: 18),
+          if (laneActionLabel != null) ...[
+            _PillBadge(
+              text: laneActionLabel,
+              color: theme.colorScheme.secondaryContainer,
+              textColor: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(height: 12),
+          ],
           Text(session.title, style: theme.textTheme.titleLarge),
           const SizedBox(height: 10),
           _ContractChipRow(
@@ -319,7 +449,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Session summary',
+                          'Session plan',
                           style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 12),
@@ -388,7 +518,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                                   child: TextButton(
                                     onPressed: () =>
                                         widget.onOpenLibraryRoute(route),
-                                    child: const Text('Open linked material'),
+                                    child: const Text('Open linked source'),
                                   ),
                                 ),
                               ),
@@ -443,10 +573,131 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     );
   }
 
+  Widget _buildJourneyOutline(ThemeData theme, SessionDetail? selectedSession) {
+    final sessions = widget.detail.sessions;
+    if (sessions.isEmpty) {
+      return _SurfaceCard(
+        child: Text(
+          'No journey steps are available yet.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      );
+    }
+
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Journey outline', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 6),
+          Text(
+            'Select any session to open it in the learner studio.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...sessions.map((session) {
+            final selected = selectedSession?.sessionId == session.sessionId;
+            final completed = session.status == 'completed';
+            final color = completed
+                ? theme.colorScheme.secondaryContainer
+                : selected
+                ? theme.colorScheme.primaryContainer
+                : theme.colorScheme.surfaceContainerHighest;
+            final textColor = completed
+                ? theme.colorScheme.onSecondaryContainer
+                : selected
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSurfaceVariant;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => _selectSession(session.sessionId),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: selected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: textColor.withValues(alpha: 0.16),
+                        foregroundColor: textColor,
+                        child: Text('${session.sequenceNumber ?? '?'}'),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          session.title,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _PillBadge(
+                        text: completed ? 'Done' : _contractTermLabel(session.dominantKind),
+                        color: textColor.withValues(alpha: 0.14),
+                        textColor: textColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressMeter(
+    ThemeData theme, {
+    required String label,
+    required int value,
+    required int total,
+    required Color color,
+  }) {
+    final ratio = total <= 0 ? 0.0 : (value / total).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+            Text('$value', style: theme.textTheme.titleSmall),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            minHeight: 10,
+            value: ratio,
+            color: color,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildProgressStudio(ThemeData theme) {
     final snapshot = _workspace.progressSnapshot;
     final recentWins = _workspace.recentWins;
     final reviewItems = widget.detail.reviewItems;
+    final masteredTotal = snapshot.secureCount +
+        snapshot.developingCount +
+        snapshot.notStartedCount;
 
     return _SurfaceCard(
       child: Column(
@@ -466,31 +717,38 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _StatChip(
-                        label: 'Secure',
-                        value: '${snapshot.secureCount}',
-                        icon: Icons.verified_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Developing',
-                        value: '${snapshot.developingCount}',
-                        icon: Icons.construction_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Not Started',
-                        value: '${snapshot.notStartedCount}',
-                        icon: Icons.hourglass_bottom_rounded,
-                      ),
-                      _StatChip(
-                        label: 'Review',
-                        value: '${snapshot.reviewItemCount}',
-                        icon: Icons.pending_actions_rounded,
-                      ),
-                    ],
+                  _buildProgressMeter(
+                    theme,
+                    label: 'Secure',
+                    value: snapshot.secureCount,
+                    total: masteredTotal,
+                    color: theme.colorScheme.secondary,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildProgressMeter(
+                    theme,
+                    label: 'Developing',
+                    value: snapshot.developingCount,
+                    total: masteredTotal,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildProgressMeter(
+                    theme,
+                    label: 'Not started',
+                    value: snapshot.notStartedCount,
+                    total: masteredTotal,
+                    color: theme.colorScheme.outline,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildProgressMeter(
+                    theme,
+                    label: 'Review queue',
+                    value: snapshot.reviewItemCount,
+                    total: snapshot.reviewItemCount > 0
+                        ? snapshot.reviewItemCount
+                        : 1,
+                    color: theme.colorScheme.tertiary,
                   ),
                   const SizedBox(height: 22),
                   Text('Recent wins', style: theme.textTheme.titleLarge),
@@ -557,13 +815,11 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final journey = widget.detail.journey;
-    final snapshot = _workspace.progressSnapshot;
     final selectedSession = _selectedSession();
 
     Widget mainPanel;
     switch (_section) {
-      case _LearnerWorkspaceSection.continueFlow:
+      case _LearnerWorkspaceSection.now:
         if (selectedSession == null) {
           mainPanel = _SurfaceCard(
             child: Text(
@@ -574,11 +830,12 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
         } else {
           mainPanel = _buildSessionStudio(
             theme,
-            eyebrow: 'Continue',
+            eyebrow: 'Now',
             description:
                 _workspace.continueBlock?.description ??
-                'Open the current step and go straight into the learner material.',
+                'Open your next step and start the learner materials directly.',
             session: selectedSession,
+            laneActionLabel: _workspace.continueBlock?.actionLabel,
           );
         }
       case _LearnerWorkspaceSection.practice:
@@ -594,7 +851,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
             theme,
             eyebrow: 'Practice',
             description:
-                'Choose a practice or check step from the left and work through the learner material directly.',
+                'Choose any practice or check step and complete it from one place.',
             session: selectedSession,
           );
         }
@@ -607,12 +864,20 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
             ),
           );
         } else {
-          mainPanel = _buildSessionStudio(
-            theme,
-            eyebrow: 'Journey',
-            description:
-                'Inspect any step in the route without opening and collapsing a stack of nested cards.',
-            session: selectedSession,
+          mainPanel = Column(
+            children: [
+              _buildJourneyOutline(theme, selectedSession),
+              const SizedBox(height: 14),
+              Expanded(
+                child: _buildSessionStudio(
+                  theme,
+                  eyebrow: 'Journey session',
+                  description:
+                      'Inspect the selected step and open learner materials below.',
+                  session: selectedSession,
+                ),
+              ),
+            ],
           );
         }
       case _LearnerWorkspaceSection.progress:
@@ -622,64 +887,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
-        _SurfaceCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _PillBadge(
-                    text: 'workspace',
-                    color: theme.colorScheme.secondaryContainer,
-                    textColor: theme.colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Learner workspace',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                  ),
-                  if (_workspace.attentionLabel.isNotEmpty)
-                    _PillBadge(
-                      text: _workspace.attentionLabel,
-                      color: theme.colorScheme.tertiaryContainer,
-                      textColor: theme.colorScheme.onTertiaryContainer,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Follow the learning flow: Continue, Practice, Journey, and Progress.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 10),
-              _ContractChipRow(
-                children: [
-                  _PillBadge(
-                    text: journey == null
-                        ? 'standing:--'
-                        : 'standing:S${journey.completedSessionCount + 1}/${journey.totalSessionCount}',
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    textColor: theme.colorScheme.primary,
-                  ),
-                  _PillBadge(
-                    text: 'completed:${snapshot.completedSessionCount}',
-                    color: theme.colorScheme.secondaryContainer,
-                    textColor: theme.colorScheme.onSecondaryContainer,
-                  ),
-                  _PillBadge(
-                    text: 'ready_now:${snapshot.pendingSessionCount}',
-                    color: theme.colorScheme.tertiaryContainer,
-                    textColor: theme.colorScheme.onTertiaryContainer,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        _buildWorkspaceHeader(theme),
         const SizedBox(height: 20),
         SizedBox(
           height: _desktopStudioHeight(

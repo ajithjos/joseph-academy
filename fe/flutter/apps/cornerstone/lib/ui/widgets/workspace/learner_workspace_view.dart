@@ -234,15 +234,15 @@ class _LearnerWorkspaceView extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
         _PageHeroCard(
-          eyebrow: 'Learning workspace',
+          eyebrow: 'Learner home',
           title: 'My learning workspace',
           description: journey == null
-              ? 'This is where your pathway, your current standing, and your session workspaces appear.'
+              ? 'This is your learner home: start now, keep practising, and track progress in one place.'
               : workspace.attentionLabel.isNotEmpty
               ? workspace.attentionLabel
               : currentStanding == null
-              ? 'You are part of ${journey.playlistTitle}. Open the session workspaces below to see what you learn and practise.'
-              : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Open the workspace below to learn, practise, and check your progress.',
+              ? 'You are part of ${journey.playlistTitle}. Start in the Now lane, then move through practice and journey steps.'
+              : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Start in Now, then continue through practice and progress.',
           chips: [
             _StatChip(
               label: 'Standing',
@@ -257,11 +257,58 @@ class _LearnerWorkspaceView extends StatelessWidget {
               icon: Icons.task_alt_rounded,
             ),
             _StatChip(
-              label: 'Ready Now',
+              label: 'Ready now',
               value: '${progressSnapshot.pendingSessionCount}',
               icon: Icons.rocket_launch_rounded,
             ),
+            _StatChip(
+              label: 'Review',
+              value: '${progressSnapshot.reviewItemCount}',
+              icon: Icons.pending_actions_rounded,
+            ),
           ],
+        ),
+        const SizedBox(height: 20),
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Learning lanes', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(
+                'Use this order: Now, Practice, Journey, Progress.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _PillBadge(
+                    text: nextSession == null
+                        ? 'Now: waiting'
+                        : 'Now: Session ${nextSession.sequenceNumber ?? '?'}',
+                    color: theme.colorScheme.secondaryContainer,
+                    textColor: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  _PillBadge(
+                    text:
+                        'Practice: ${practiceSessions.length} step${practiceSessions.length == 1 ? '' : 's'}',
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    textColor: theme.colorScheme.primary,
+                  ),
+                  _PillBadge(
+                    text:
+                        'Progress: ${progressSnapshot.reviewItemCount} review',
+                    color: theme.colorScheme.tertiaryContainer,
+                    textColor: theme.colorScheme.onTertiaryContainer,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         if (journey != null) ...[
           const SizedBox(height: 20),
@@ -369,7 +416,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Continue', style: theme.textTheme.headlineSmall),
+                Text('Now', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
                 Text(
                   continueBlock?.description ??
@@ -508,7 +555,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Journey', style: theme.textTheme.headlineSmall),
+              Text('Journey lane', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 'Open any session workspace below to see where you stand and what that session asks you to do.',
@@ -539,7 +586,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Practice workspace', style: theme.textTheme.headlineSmall),
+              Text('Practice lane', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 'Open the learner-facing practice and check materials that are already inside your assigned route.',
@@ -618,7 +665,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Progress', style: theme.textTheme.headlineSmall),
+              Text('Progress report', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 'A simple snapshot of where this learner is secure, still developing, and not started yet.',
@@ -672,7 +719,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Review items', style: theme.textTheme.headlineSmall),
+              Text('Review queue', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 'These are the skills that still need another pass.',
