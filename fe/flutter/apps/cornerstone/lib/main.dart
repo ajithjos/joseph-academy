@@ -19,7 +19,9 @@ part 'ui/widgets/contract_chip_widgets.dart';
 part 'ui/widgets/workspace/shared_widgets.dart';
 part 'ui/widgets/workspace/owner_workspace_view.dart';
 part 'ui/widgets/workspace/learner_workspace_view.dart';
+part 'ui/widgets/workspace/learner_workspace_desktop.dart';
 part 'ui/widgets/workspace/library_workspace_view.dart';
+part 'ui/widgets/workspace/library_planning_desktop.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
