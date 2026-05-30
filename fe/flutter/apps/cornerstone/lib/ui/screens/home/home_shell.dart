@@ -231,7 +231,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _libraryDocuments = null;
         _selectedLibraryDocument = null;
         _learnerDetail = null;
-          _learnerWorkspace = null;
+        _learnerWorkspace = null;
         _selectedLearnerId = null;
         _selectedLibraryRoutePath = null;
         _selectedDestination = _defaultDestinationForViewer(

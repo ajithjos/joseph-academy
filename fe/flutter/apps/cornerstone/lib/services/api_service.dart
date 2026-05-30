@@ -112,7 +112,9 @@ class CornerstoneApiClient {
     return LearnerDetailPayload.fromJson(_decode(response));
   }
 
-  Future<LearnerWorkspacePayload> fetchLearnerWorkspace(String learnerId) async {
+  Future<LearnerWorkspacePayload> fetchLearnerWorkspace(
+    String learnerId,
+  ) async {
     final response = await _client.get(
       Uri.parse('$baseUrl/api/v1/learners/$learnerId/workspace'),
       headers: _viewerHeaders(),

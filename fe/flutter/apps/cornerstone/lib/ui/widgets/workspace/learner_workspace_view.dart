@@ -54,21 +54,20 @@ class _LearnerWorkspaceView extends StatelessWidget {
     final learnerSurface = learnerWorkspace.workspace;
     final isSupportView = learnerWorkspace.workspaceView == 'owner_support';
     final continueBlock = learnerSurface.continueBlock;
-    final nextSession =
-        continueBlock?.session ??
-      learnerWorkspace.sessions
-            .where((session) => session.status != 'completed')
-            .cast<SessionDetail?>()
-            .firstWhere(
-              (session) =>
-                  session?.sessionId == journey?.nextSessionId ||
-                  journey?.nextSessionId == null,
-              orElse: () => null,
-            ) ??
-      learnerWorkspace.sessions
-            .where((session) => session.status != 'completed')
-            .cast<SessionDetail?>()
-            .firstWhere((_) => true, orElse: () => null);
+    final orderedSessions = learnerWorkspace.sessions.toList(growable: false)
+      ..sort((left, right) {
+        final leftSequence = left.sequenceNumber ?? 1 << 30;
+        final rightSequence = right.sequenceNumber ?? 1 << 30;
+        final sequenceCompare = leftSequence.compareTo(rightSequence);
+        if (sequenceCompare != 0) return sequenceCompare;
+        final dateCompare = left.scheduledDate.compareTo(right.scheduledDate);
+        if (dateCompare != 0) return dateCompare;
+        return left.title.compareTo(right.title);
+      });
+    final nextSession = orderedSessions
+        .where((session) => session.status != 'completed')
+        .cast<SessionDetail?>()
+        .firstWhere((_) => true, orElse: () => continueBlock?.session);
     final currentStanding =
         nextSession?.sequenceNumber ??
         (journey != null && journey.totalSessionCount > 0
@@ -627,7 +626,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   ),
                 )
               else
-                ...learnerWorkspace.sessions.map(
+                ...orderedSessions.map(
                   (session) => buildSessionSequenceCard(
                     session,
                     active: session.sessionId == nextSession?.sessionId,

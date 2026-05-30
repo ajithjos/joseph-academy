@@ -1666,18 +1666,12 @@ fn summarize_progress(
 fn build_learner_workspace(
     library: &LibraryBundle,
     active_assignment: Option<&AssignmentSummary>,
-    journey: Option<&LearnerJourneySummary>,
+    _journey: Option<&LearnerJourneySummary>,
     sessions: &[SessionDetail],
     progress: &[SkillProgressSummary],
     review_items: &[ReviewItemSummary],
 ) -> LearnerWorkspaceSummary {
-    let continue_session = journey
-        .and_then(|current_journey| {
-            current_journey.next_session_id.as_deref().and_then(|session_id| {
-                sessions.iter().find(|session| session.session_id == session_id)
-            })
-        })
-        .or_else(|| sessions.iter().find(|session| session.status != "completed"));
+    let continue_session = sessions.iter().find(|session| session.status != "completed");
 
     let continue_block = continue_session.cloned().map(|session| LearnerContinueBlock {
         title: continue_block_title(&session),
