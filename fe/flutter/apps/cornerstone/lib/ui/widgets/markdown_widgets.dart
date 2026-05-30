@@ -57,8 +57,8 @@ class _LibraryDocumentReader extends StatelessWidget {
       h3: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
       code: theme.textTheme.bodyMedium?.copyWith(
         fontFamily: 'SF Mono',
-        color: theme.colorScheme.primary,
-        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+        color: _markdownCodeForegroundColor(theme),
+        backgroundColor: _markdownCodeBackgroundColor(theme),
       ),
       blockquote: theme.textTheme.bodyLarge?.copyWith(
         height: 1.7,
@@ -68,10 +68,10 @@ class _LibraryDocumentReader extends StatelessWidget {
       blockquotePadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       codeblockPadding: const EdgeInsets.all(16),
       codeblockDecoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
+        color: _markdownCodeBackgroundColor(theme),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.10),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.82),
         ),
       ),
       blockquoteDecoration: BoxDecoration(

@@ -628,10 +628,10 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
 
   double _contentMaxWidthFor(_ShellDestination destination) {
     return switch (destination) {
-      _ShellDestination.owner => 1320,
-      _ShellDestination.learner => 1160,
-      _ShellDestination.library => 1480,
-      _ShellDestination.account => 1040,
+      _ShellDestination.owner => 1460,
+      _ShellDestination.learner => 1360,
+      _ShellDestination.library => 1780,
+      _ShellDestination.account => 1080,
     };
   }
 
