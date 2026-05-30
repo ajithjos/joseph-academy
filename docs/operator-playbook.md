@@ -56,6 +56,15 @@ make control-plane-db-up
 make control-plane-compose-up
 make control-plane-compose-down
 make control-plane-compose-reset
+
+# For live frontend iteration with hot reload  up/down the BE in Docker and run the FE separately with flutter run:
+make control-plane-live-frontend-up
+make control-plane-live-frontend-down
+# Run FE separately with:
+flutter run -d chrome --web-port=2255 --dart-define=CORNERSTONE_API_BASE_URL=http://127.0.0.1:8788
+# or
+make frontend-live-run
+
 ```
 
 If tracked Postgres defaults become incompatible, the repo rotates `CORNERSTONE_DEV_DATA_REVISION` to move local work onto a fresh dev data window.

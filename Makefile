@@ -1,4 +1,4 @@
-.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-library-validate content-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-library-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset daily-local daily
+.PHONY: help install-dev fmt fmt-check lint test rust-fmt rust-lint rust-test rust-run rust-migrate rust-bootstrap-apply rust-library-validate content-validate frontend-pub-get flutter-version-check flutter-analyze flutter-test frontend-sanity docs-site-install docs-site-prepare docs-site-build docs-site-dev control-plane-db-up control-plane-db-migrate control-plane-bootstrap-apply control-plane-library-reload control-plane-compose-up control-plane-compose-down control-plane-compose-reset control-plane-live-frontend-up control-plane-live-frontend-down frontend-live-run daily-local daily
 
 PYTHON_RUN ?= uv run
 FLUTTER_APP_DIR ?= $(CURDIR)/fe/flutter/apps/cornerstone
@@ -6,11 +6,14 @@ DOCS_SITE_DIR ?= $(CURDIR)/docs_site
 RUST_MANIFEST ?= $(CURDIR)/rust/Cargo.toml
 FLUTTER_REQUIRED_VERSION ?= 3.41.9
 CONTENT_ROOT ?= $(CURDIR)/content
+LIVE_FRONTEND_PORT ?= 2255
+LIVE_FRONTEND_API_BASE_URL ?= http://127.0.0.1:8788
 
 help:
 	@echo "Primary targets: daily-local, control-plane-compose-up, rust-run"
 	@echo "Validation targets: fmt-check, lint, test, rust-library-validate, content-validate, frontend-sanity, docs-site-build"
 	@echo "Control-plane targets: control-plane-db-up, control-plane-db-migrate, control-plane-bootstrap-apply, control-plane-library-reload, control-plane-compose-up, control-plane-compose-down, control-plane-compose-reset"
+	@echo "Live frontend targets: control-plane-live-frontend-up, control-plane-live-frontend-down, frontend-live-run"
 
 install-dev:
 	uv sync --all-extras
@@ -104,6 +107,15 @@ control-plane-compose-down:
 
 control-plane-compose-reset:
 	bash deploy/dev/reset.sh
+
+control-plane-live-frontend-up:
+	bash deploy/dev/live_frontend/up.sh
+
+control-plane-live-frontend-down:
+	bash deploy/dev/live_frontend/down.sh
+
+frontend-live-run: frontend-pub-get
+	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter run -d chrome --web-port $(LIVE_FRONTEND_PORT) --dart-define=CORNERSTONE_API_BASE_URL=$(LIVE_FRONTEND_API_BASE_URL)'
 
 daily-local: fmt-check lint rust-test frontend-sanity content-validate docs-site-build
 

@@ -1,0 +1,55 @@
+name: ${CORNERSTONE_DEV_LIVE_FE_COMPOSE_PROJECT_NAME:?CORNERSTONE_DEV_LIVE_FE_COMPOSE_PROJECT_NAME must be exported}
+
+services:
+  postgres:
+    image: ${CORNERSTONE_POSTGRES_IMAGE:?CORNERSTONE_POSTGRES_IMAGE must be exported}
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_DB: ${CORNERSTONE_POSTGRES_DB}
+      POSTGRES_USER: ${CORNERSTONE_POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${CORNERSTONE_POSTGRES_ADMIN_PASSWORD}
+      CORNERSTONE_POSTGRES_APP_USER: ${CORNERSTONE_POSTGRES_APP_USER}
+      CORNERSTONE_POSTGRES_APP_PASSWORD: ${CORNERSTONE_POSTGRES_APP_PASSWORD}
+    ports:
+      - "${CORNERSTONE_POSTGRES_PORT}:5432"
+    volumes:
+      - ${CORNERSTONE_POSTGRES_DATA_HOST}:/var/lib/postgresql/data
+      - ../templates/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CORNERSTONE_POSTGRES_ADMIN_USER} -d ${CORNERSTONE_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  control-plane:
+    build:
+      context: ../../..
+      dockerfile: deploy/dev/Dockerfile.control_plane
+      args:
+        RUST_IMAGE: ${CORNERSTONE_RUST_IMAGE}
+        RUNTIME_IMAGE: ${CORNERSTONE_RUNTIME_IMAGE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CORNERSTONE_BIND_ADDRESS: 0.0.0.0:${CORNERSTONE_CONTROL_PLANE_PORT}
+      CORNERSTONE_DATABASE_URL: ${CORNERSTONE_DATABASE_URL}
+      CORNERSTONE_CONTENT_ROOT: /workspace/content
+      CORNERSTONE_BOOTSTRAP_FILE: /workspace/deploy/config/runtime_defaults/identity_bootstrap.yaml
+      CORNERSTONE_ARTIFACTS_ROOT: /data/artifacts
+      CORNERSTONE_EXPORTS_ROOT: /data/exports
+      CORNERSTONE_AUTO_BOOTSTRAP: "true"
+      CORNERSTONE_FRONTEND_PUBLIC_URL: http://127.0.0.1:${CORNERSTONE_LIVE_FRONTEND_PORT}
+      CORNERSTONE_DEVELOPER_DOCS_URL: http://127.0.0.1:${CORNERSTONE_DOCS_SITE_PORT}
+    ports:
+      - "${CORNERSTONE_CONTROL_PLANE_PORT}:${CORNERSTONE_CONTROL_PLANE_PORT}"
+    volumes:
+      - ${CORNERSTONE_WORKSPACE_HOST}:/workspace:ro
+      - ${CORNERSTONE_ARTIFACTS_HOST}:/data/artifacts:rw
+      - ${CORNERSTONE_EXPORTS_HOST}:/data/exports:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${CORNERSTONE_CONTROL_PLANE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
