@@ -68,6 +68,7 @@ Use these from the repo root when you need to validate repository changes:
 ```bash
 uv run --with pytest python -m pytest tests/test_pathway_library.py
 make rust-library-validate
+make learner-content-validate
 make content-validate
 uv run python scripts/sync_docs_site_docs.py
 cargo test -p catalog --manifest-path rust/Cargo.toml

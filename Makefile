@@ -61,6 +61,9 @@ rust-library-validate:
 content-validate: rust-library-validate
 	$(PYTHON_RUN) --with pytest python -m pytest tests/test_pathway_library.py tests/test_sync_docs_site_docs.py
 
+learner-content-validate: rust-library-validate
+	$(PYTHON_RUN) --with pytest python -m pytest tests/test_pathway_library.py
+
 frontend-pub-get:
 	@bash -lc 'cd "$(FLUTTER_APP_DIR)" && flutter pub get'
 
