@@ -62,6 +62,7 @@ content-validate: rust-library-validate
 	$(PYTHON_RUN) --with pytest python -m pytest tests/test_pathway_library.py tests/test_sync_docs_site_docs.py
 
 learner-content-validate: rust-library-validate
+	cargo test --manifest-path $(RUST_MANIFEST) -p control_plane learner_workspace_sanitizes_adult_materials
 	$(PYTHON_RUN) --with pytest python -m pytest tests/test_pathway_library.py
 
 frontend-pub-get:

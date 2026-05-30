@@ -112,6 +112,14 @@ class CornerstoneApiClient {
     return LearnerDetailPayload.fromJson(_decode(response));
   }
 
+  Future<LearnerWorkspacePayload> fetchLearnerWorkspace(String learnerId) async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/v1/learners/$learnerId/workspace'),
+      headers: _viewerHeaders(),
+    );
+    return LearnerWorkspacePayload.fromJson(_decode(response));
+  }
+
   Future<void> createAssignment({
     required String learnerId,
     required String playlistId,

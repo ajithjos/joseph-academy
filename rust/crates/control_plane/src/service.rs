@@ -800,6 +800,30 @@ pub async fn fetch_learner_detail(
     })
 }
 
+pub async fn fetch_learner_workspace(
+    state: &Arc<AppState>,
+    viewer_username: &str,
+    learner_id: &str,
+) -> anyhow::Result<crate::domain::LearnerWorkspaceResponse> {
+    let detail = fetch_learner_detail(state, viewer_username, learner_id).await?;
+    let sessions = detail
+        .sessions
+        .iter()
+        .map(learner_safe_session_detail)
+        .collect::<Vec<_>>();
+    let workspace = learner_safe_workspace_summary(&detail.workspace);
+    Ok(crate::domain::LearnerWorkspaceResponse {
+        status: "ok".to_string(),
+        learner: detail.learner,
+        active_assignment: detail.active_assignment,
+        journey: detail.journey,
+        sessions,
+        progress: detail.progress,
+        review_items: detail.review_items,
+        workspace,
+    })
+}
+
 pub async fn create_assignment(
     state: &Arc<AppState>,
     viewer_username: &str,
@@ -2387,5 +2411,196 @@ fn progress_row_to_summary(row: SkillProgressRow) -> SkillProgressSummary {
         last_score: row.last_score,
         total_evidence: row.total_evidence,
         last_evidence_at: row.last_evidence_at,
+    }
+}
+
+fn learner_safe_workspace_summary(workspace: &LearnerWorkspaceSummary) -> LearnerWorkspaceSummary {
+    LearnerWorkspaceSummary {
+        attention_label: workspace.attention_label.clone(),
+        continue_block: workspace
+            .continue_block
+            .as_ref()
+            .map(|block| LearnerContinueBlock {
+                title: block.title.clone(),
+                description: block.description.clone(),
+                action_label: block.action_label.clone(),
+                session: learner_safe_session_detail(&block.session),
+            }),
+        practice_lane: workspace
+            .practice_lane
+            .iter()
+            .map(learner_safe_session_detail)
+            .collect(),
+        progress_snapshot: workspace.progress_snapshot.clone(),
+        recent_wins: workspace.recent_wins.clone(),
+    }
+}
+
+fn learner_safe_session_detail(session: &SessionDetail) -> SessionDetail {
+    let materials = session
+        .materials
+        .iter()
+        .filter(|material| material.audience == AUDIENCE_LEARNER)
+        .cloned()
+        .collect::<Vec<_>>();
+    let materials_by_kind = session
+        .materials_by_kind
+        .iter()
+        .filter(|group| group.audience == AUDIENCE_LEARNER)
+        .map(|group| SessionMaterialKindGroupSummary {
+            kind: group.kind.clone(),
+            audience: group.audience.clone(),
+            material_count: group.materials.iter().filter(|material| material.audience == AUDIENCE_LEARNER).count(),
+            materials: group
+                .materials
+                .iter()
+                .filter(|material| material.audience == AUDIENCE_LEARNER)
+                .cloned()
+                .collect(),
+        })
+        .filter(|group| group.material_count > 0)
+        .collect::<Vec<_>>();
+
+    SessionDetail {
+        live_material_count: materials.iter().filter(|material| material.runtime.as_ref().map(|runtime| runtime.executable).unwrap_or(false)).count(),
+        learner_material_count: materials.len(),
+        adult_material_count: 0,
+        materials,
+        materials_by_kind,
+        ..session.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::NaiveDate;
+
+    use crate::domain::{
+        EvidenceSummary, LearnerContinueBlock, LearnerProgressSnapshot,
+        LearnerRecentWinSummary, LearnerWorkspaceSummary, SessionDetail,
+        SessionMaterialKindGroupSummary, SessionMaterialRuntimeSummary,
+        SessionMaterialSummary,
+    };
+
+    use super::learner_safe_workspace_summary;
+
+    fn sample_session() -> SessionDetail {
+        let learner_material = SessionMaterialSummary {
+            session_material_id: "sm-1".to_string(),
+            title: "Learner note".to_string(),
+            material_id: "m-1".to_string(),
+            kind: "lesson_note".to_string(),
+            audience: "learner".to_string(),
+            estimated_minutes: 10,
+            skill_ids: vec!["skill-1".to_string()],
+            status: "scheduled".to_string(),
+            document_route_path: Some("library/documents/learner".to_string()),
+            document_body: Some("Learner body".to_string()),
+            runtime: None,
+        };
+        let teaching_material = SessionMaterialSummary {
+            session_material_id: "sm-2".to_string(),
+            title: "Adult note".to_string(),
+            material_id: "m-2".to_string(),
+            kind: "teaching_note".to_string(),
+            audience: "adult".to_string(),
+            estimated_minutes: 5,
+            skill_ids: vec!["skill-1".to_string()],
+            status: "scheduled".to_string(),
+            document_route_path: Some("library/documents/adult".to_string()),
+            document_body: Some("Adult body".to_string()),
+            runtime: Some(SessionMaterialRuntimeSummary {
+                runtime_id: "runtime-1".to_string(),
+                engine_id: "engine-1".to_string(),
+                template_id: "template-1".to_string(),
+                executable: true,
+            }),
+        };
+        SessionDetail {
+            session_id: "session-1".to_string(),
+            title: "Session 1".to_string(),
+            scheduled_date: NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+            status: "scheduled".to_string(),
+            day_offset: 0,
+            sequence_number: Some(1),
+            dominant_kind: "lesson_note".to_string(),
+            requires_adult_support: true,
+            estimated_minutes: 15,
+            live_material_count: 1,
+            learner_material_count: 1,
+            adult_material_count: 1,
+            notes: String::new(),
+            materials_by_kind: vec![
+                SessionMaterialKindGroupSummary {
+                    kind: "lesson_note".to_string(),
+                    audience: "learner".to_string(),
+                    material_count: 1,
+                    materials: vec![learner_material.clone()],
+                },
+                SessionMaterialKindGroupSummary {
+                    kind: "teaching_note".to_string(),
+                    audience: "adult".to_string(),
+                    material_count: 1,
+                    materials: vec![teaching_material.clone()],
+                },
+            ],
+            materials: vec![learner_material, teaching_material],
+            latest_evidence: Some(EvidenceSummary {
+                evidence_id: "evidence-1".to_string(),
+                score: 8.0,
+                max_score: 10.0,
+                duration_minutes: 12,
+                notes: "Great work".to_string(),
+                recorded_at: chrono::Utc::now(),
+            }),
+        }
+    }
+
+    #[test]
+    fn learner_workspace_sanitizes_adult_materials() {
+        let workspace = LearnerWorkspaceSummary {
+            attention_label: "Adult-guided step ready now".to_string(),
+            continue_block: Some(LearnerContinueBlock {
+                title: "Continue".to_string(),
+                description: "desc".to_string(),
+                action_label: "Open practice".to_string(),
+                session: sample_session(),
+            }),
+            practice_lane: vec![sample_session()],
+            progress_snapshot: LearnerProgressSnapshot {
+                secure_count: 1,
+                developing_count: 2,
+                not_started_count: 3,
+                review_item_count: 4,
+                completed_session_count: 0,
+                pending_session_count: 1,
+            },
+            recent_wins: vec![LearnerRecentWinSummary {
+                session_id: "session-1".to_string(),
+                session_title: "Session 1".to_string(),
+                score_label: "8/10 (80%)".to_string(),
+                notes: "Great work".to_string(),
+                recorded_at: chrono::Utc::now(),
+            }],
+        };
+
+        let safe = learner_safe_workspace_summary(&workspace);
+        let session = safe.continue_block.expect("continue block").session;
+
+        assert!(session
+            .materials
+            .iter()
+            .all(|material| material.audience == "learner"));
+        assert!(session
+            .materials_by_kind
+            .iter()
+            .all(|group| group.audience == "learner"));
+        assert_eq!(session.adult_material_count, 0);
+        assert_eq!(safe.practice_lane[0].materials.len(), 1);
+        assert!(safe.practice_lane[0]
+            .materials
+            .iter()
+            .all(|material| material.audience == "learner"));
+        assert_eq!(safe.recent_wins.len(), 1);
     }
 }

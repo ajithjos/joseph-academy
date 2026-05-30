@@ -3,14 +3,14 @@ part of '../../../main.dart';
 class _LearnerWorkspaceView extends StatelessWidget {
   const _LearnerWorkspaceView({
     required this.viewer,
-    required this.detail,
+    required this.workspace,
     required this.viewerCanReadLibrary,
     required this.onOpenLibraryRoute,
     required this.onStartActivity,
   });
 
   final ViewerUser? viewer;
-  final LearnerDetailPayload? detail;
+  final LearnerWorkspacePayload? workspace;
   final bool viewerCanReadLibrary;
   final ValueChanged<String> onOpenLibraryRoute;
   final Future<void> Function(SessionDetail session, SessionMaterial material)
@@ -19,8 +19,8 @@ class _LearnerWorkspaceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final learnerDetail = detail;
-    if (learnerDetail == null) {
+    final learnerWorkspace = workspace;
+    if (learnerWorkspace == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(48),
@@ -50,12 +50,12 @@ class _LearnerWorkspaceView extends StatelessWidget {
       );
     }
 
-    final journey = learnerDetail.journey;
-    final workspace = learnerDetail.workspace;
-    final continueBlock = workspace.continueBlock;
+    final journey = learnerWorkspace.journey;
+    final learnerSurface = learnerWorkspace.workspace;
+    final continueBlock = learnerSurface.continueBlock;
     final nextSession =
         continueBlock?.session ??
-        learnerDetail.sessions
+      learnerWorkspace.sessions
             .where((session) => session.status != 'completed')
             .cast<SessionDetail?>()
             .firstWhere(
@@ -64,7 +64,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   journey?.nextSessionId == null,
               orElse: () => null,
             ) ??
-        learnerDetail.sessions
+      learnerWorkspace.sessions
             .where((session) => session.status != 'completed')
             .cast<SessionDetail?>()
             .firstWhere((_) => true, orElse: () => null);
@@ -83,21 +83,21 @@ class _LearnerWorkspaceView extends StatelessWidget {
             1.0,
           );
     final progressStatusCounts = <String, int>{};
-    for (final state in learnerDetail.progress) {
+    for (final state in learnerWorkspace.progress) {
       progressStatusCounts.update(
         state.status,
         (count) => count + 1,
         ifAbsent: () => 1,
       );
     }
-    final practiceSessions = workspace.practiceLane;
-    final progressSnapshot = workspace.progressSnapshot;
-    final recentWins = workspace.recentWins;
+    final practiceSessions = learnerSurface.practiceLane;
+    final progressSnapshot = learnerSurface.progressSnapshot;
+    final recentWins = learnerSurface.recentWins;
 
     if (MediaQuery.sizeOf(context).width > 1080) {
       return _LearnerWorkspaceDesktop(
         viewer: viewer,
-        detail: learnerDetail,
+        workspace: learnerWorkspace,
         viewerCanReadLibrary: viewerCanReadLibrary,
         onOpenLibraryRoute: onOpenLibraryRoute,
         onStartActivity: onStartActivity,
@@ -238,8 +238,8 @@ class _LearnerWorkspaceView extends StatelessWidget {
           title: 'My learning workspace',
           description: journey == null
               ? 'This is your learner home: start now, keep practising, and track progress in one place.'
-              : workspace.attentionLabel.isNotEmpty
-              ? workspace.attentionLabel
+              : learnerSurface.attentionLabel.isNotEmpty
+              ? learnerSurface.attentionLabel
               : currentStanding == null
               ? 'You are part of ${journey.playlistTitle}. Start in the Now lane, then move through practice and journey steps.'
               : 'You are in ${journey.playlistTitle}, standing at session $currentStanding of ${journey.totalSessionCount}. Start in Now, then continue through practice and progress.',
@@ -248,7 +248,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
               label: 'Standing',
               value: currentStanding == null
                   ? '--'
-                  : 'S$currentStanding/${journey?.totalSessionCount ?? learnerDetail.sessions.length}',
+                  : 'S$currentStanding/${journey?.totalSessionCount ?? learnerWorkspace.sessions.length}',
               icon: Icons.place_rounded,
             ),
             _StatChip(
@@ -564,7 +564,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              if (learnerDetail.sessions.isEmpty)
+              if (learnerWorkspace.sessions.isEmpty)
                 Text(
                   'No sessions are available yet.',
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -572,7 +572,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   ),
                 )
               else
-                ...learnerDetail.sessions.map(
+                ...learnerWorkspace.sessions.map(
                   (session) => buildSessionSequenceCard(
                     session,
                     active: session.sessionId == nextSession?.sessionId,
@@ -728,7 +728,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              if (learnerDetail.reviewItems.isEmpty)
+              if (learnerWorkspace.reviewItems.isEmpty)
                 Row(
                   children: [
                     Icon(
@@ -741,7 +741,7 @@ class _LearnerWorkspaceView extends StatelessWidget {
                   ],
                 )
               else
-                ...learnerDetail.reviewItems.map(
+                ...learnerWorkspace.reviewItems.map(
                   (item) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(item.reason),

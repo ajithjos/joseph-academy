@@ -5,14 +5,14 @@ enum _LearnerWorkspaceSection { now, practice, journey, progress }
 class _LearnerWorkspaceDesktop extends StatefulWidget {
   const _LearnerWorkspaceDesktop({
     required this.viewer,
-    required this.detail,
+    required this.workspace,
     required this.viewerCanReadLibrary,
     required this.onOpenLibraryRoute,
     required this.onStartActivity,
   });
 
   final ViewerUser? viewer;
-  final LearnerDetailPayload detail;
+  final LearnerWorkspacePayload workspace;
   final bool viewerCanReadLibrary;
   final ValueChanged<String> onOpenLibraryRoute;
   final Future<void> Function(SessionDetail session, SessionMaterial material)
@@ -40,14 +40,16 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
     _syncSelections();
   }
 
-  LearnerWorkspace get _workspace => widget.detail.workspace;
+  LearnerWorkspace get _workspace => widget.workspace.workspace;
+
+  LearnerJourney? get _journey => widget.workspace.journey;
 
   SessionDetail? get _continueSession {
-    final fromContinue = _workspace.continueBlock?.session;
-    if (fromContinue != null) {
-      return fromContinue;
+    final continueSession = _workspace.continueBlock?.session;
+    if (continueSession != null) {
+      return continueSession;
     }
-    for (final session in widget.detail.sessions) {
+    for (final session in widget.workspace.sessions) {
       if (session.status != 'completed') {
         return session;
       }
@@ -65,7 +67,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
       case _LearnerWorkspaceSection.practice:
         return _workspace.practiceLane;
       case _LearnerWorkspaceSection.journey:
-        return widget.detail.sessions;
+        return widget.workspace.sessions;
       case _LearnerWorkspaceSection.progress:
         return const <SessionDetail>[];
     }
@@ -160,15 +162,14 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
 
   String _sectionCountLabel(_LearnerWorkspaceSection section) {
     if (section == _LearnerWorkspaceSection.progress) {
-      final reviewCount = _workspace.progressSnapshot.reviewItemCount;
-      return '$reviewCount review';
+      return '${widget.workspace.reviewItems.length} review';
     }
     final count = _sessionsFor(section).length;
     return '$count step${count == 1 ? '' : 's'}';
   }
 
   Widget _buildWorkspaceHeader(ThemeData theme) {
-    final journey = widget.detail.journey;
+    final journey = _journey;
     final snapshot = _workspace.progressSnapshot;
     final continueSession = _continueSession;
     final standingLabel = journey == null
@@ -248,13 +249,17 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                 ),
               if (_workspace.practiceLane.isNotEmpty)
                 OutlinedButton.icon(
-                  onPressed: () => _selectSection(_LearnerWorkspaceSection.practice),
+                  onPressed: () => _selectSection(
+                    _LearnerWorkspaceSection.practice,
+                  ),
                   icon: const Icon(Icons.fitness_center_rounded),
                   label: const Text('Open practice lane'),
                 ),
               if (snapshot.reviewItemCount > 0)
                 TextButton.icon(
-                  onPressed: () => _selectSection(_LearnerWorkspaceSection.progress),
+                  onPressed: () => _selectSection(
+                    _LearnerWorkspaceSection.progress,
+                  ),
                   icon: const Icon(Icons.analytics_rounded),
                   label: const Text('See progress report'),
                 ),
@@ -262,8 +267,9 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                   journey != null &&
                   journey.playlistRoutePath != null)
                 TextButton.icon(
-                  onPressed: () =>
-                      widget.onOpenLibraryRoute(journey.playlistRoutePath!),
+                  onPressed: () => widget.onOpenLibraryRoute(
+                    journey.playlistRoutePath!,
+                  ),
                   icon: const Icon(Icons.auto_stories_rounded),
                   label: const Text('Open route brief'),
                 ),
@@ -275,7 +281,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   }
 
   Widget _buildSidebar(ThemeData theme) {
-    final journey = widget.detail.journey;
+    final journey = _journey;
     final sectionSessions = _sessionsFor(_section);
     return _SurfaceCard(
       child: Column(
@@ -312,9 +318,8 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.38,
-                        ),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.38),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Column(
@@ -349,8 +354,8 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                           statusLabel: session.status == 'completed'
                               ? 'Done'
                               : _contractTermLabel(session.dominantKind),
-                          selected:
-                              session.sessionId == _selectedSessionIds[_section],
+                          selected: session.sessionId ==
+                              _selectedSessionIds[_section],
                           onTap: () => _selectSession(session.sessionId),
                         ),
                       ),
@@ -448,10 +453,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Session plan',
-                          style: theme.textTheme.titleMedium,
-                        ),
+                        Text('Session plan', style: theme.textTheme.titleMedium),
                         const SizedBox(height: 12),
                         _ContractChipRow(
                           children: [
@@ -510,18 +512,15 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                           const SizedBox(height: 14),
                           Text('References', style: theme.textTheme.titleSmall),
                           const SizedBox(height: 8),
-                          ...availableRoutes
-                              .take(2)
-                              .map(
-                                (route) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: TextButton(
-                                    onPressed: () =>
-                                        widget.onOpenLibraryRoute(route),
-                                    child: const Text('Open linked source'),
-                                  ),
-                                ),
+                          ...availableRoutes.take(2).map(
+                            (route) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TextButton(
+                                onPressed: () => widget.onOpenLibraryRoute(route),
+                                child: const Text('Open linked source'),
                               ),
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -574,7 +573,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   }
 
   Widget _buildJourneyOutline(ThemeData theme, SessionDetail? selectedSession) {
-    final sessions = widget.detail.sessions;
+    final sessions = widget.workspace.sessions;
     if (sessions.isEmpty) {
       return _SurfaceCard(
         child: Text(
@@ -645,7 +644,8 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
                       ),
                       const SizedBox(width: 10),
                       _PillBadge(
-                        text: completed ? 'Done' : _contractTermLabel(session.dominantKind),
+                        text:
+                            completed ? 'Done' : _contractTermLabel(session.dominantKind),
                         color: textColor.withValues(alpha: 0.14),
                         textColor: textColor,
                       ),
@@ -694,7 +694,7 @@ class _LearnerWorkspaceDesktopState extends State<_LearnerWorkspaceDesktop> {
   Widget _buildProgressStudio(ThemeData theme) {
     final snapshot = _workspace.progressSnapshot;
     final recentWins = _workspace.recentWins;
-    final reviewItems = widget.detail.reviewItems;
+    final reviewItems = widget.workspace.reviewItems;
     final masteredTotal = snapshot.secureCount +
         snapshot.developingCount +
         snapshot.notStartedCount;

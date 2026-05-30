@@ -56,6 +56,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   LibraryDocumentsPayload? _libraryDocuments;
   LibraryDocumentData? _selectedLibraryDocument;
   LearnerDetailPayload? _learnerDetail;
+  LearnerWorkspacePayload? _learnerWorkspace;
   String? _selectedLearnerId;
   String? _selectedLibraryRoutePath;
   _ShellDestination _selectedDestination = _ShellDestination.owner;
@@ -97,7 +98,8 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
     if (viewer.canManageTeam) {
       return <_ShellDestination>[
         _ShellDestination.owner,
-        _ShellDestination.learner,
+        if (viewer.isLearner || viewer.learnerId != null)
+          _ShellDestination.learner,
         if (viewer.canReadLibrary) _ShellDestination.library,
         _ShellDestination.account,
       ];
@@ -123,7 +125,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   }
 
   _ShellDestination _defaultDestinationForViewer(ViewerUser viewer) {
-    return viewer.isLearner
+    return viewer.isLearner || viewer.learnerId != null
         ? _ShellDestination.learner
         : _ShellDestination.owner;
   }
@@ -230,6 +232,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _libraryDocuments = null;
         _selectedLibraryDocument = null;
         _learnerDetail = null;
+          _learnerWorkspace = null;
         _selectedLearnerId = null;
         _selectedLibraryRoutePath = null;
         _selectedDestination = _defaultDestinationForViewer(
@@ -289,6 +292,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _libraryDocuments = null;
         _selectedLibraryDocument = null;
         _learnerDetail = null;
+        _learnerWorkspace = null;
         _selectedLearnerId = null;
         _selectedLibraryRoutePath = null;
         _selectedDestination = _defaultDestinationForViewer(currentUser);
@@ -346,9 +350,15 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       LibraryDocumentsPayload? libraryDocuments;
       String? nextLibraryRoutePath;
       LearnerDetailPayload? learnerDetail;
+      LearnerWorkspacePayload? learnerWorkspace;
       LibraryDocumentData? selectedLibraryDocument;
       if (nextLearnerId != null) {
-        learnerDetail = await _apiClient.fetchLearnerDetail(nextLearnerId);
+        final results = await Future.wait<dynamic>([
+          _apiClient.fetchLearnerDetail(nextLearnerId),
+          _apiClient.fetchLearnerWorkspace(nextLearnerId),
+        ]);
+        learnerDetail = results[0] as LearnerDetailPayload;
+        learnerWorkspace = results[1] as LearnerWorkspacePayload;
       }
       if (_viewerCanReadLibrary) {
         libraryWorkspace = await _apiClient.fetchLibraryWorkspace();
@@ -373,6 +383,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
         _selectedLibraryDocument = selectedLibraryDocument;
         _selectedLearnerId = nextLearnerId;
         _learnerDetail = learnerDetail;
+        _learnerWorkspace = learnerWorkspace;
         _loading = false;
         _busy = false;
         _libraryDocumentBusy = false;
@@ -487,10 +498,14 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
       _errorMessage = null;
     });
     try {
-      final learnerDetail = await _apiClient.fetchLearnerDetail(learnerId);
+      final results = await Future.wait<dynamic>([
+        _apiClient.fetchLearnerDetail(learnerId),
+        _apiClient.fetchLearnerWorkspace(learnerId),
+      ]);
       if (!mounted) return;
       setState(() {
-        _learnerDetail = learnerDetail;
+        _learnerDetail = results[0] as LearnerDetailPayload;
+        _learnerWorkspace = results[1] as LearnerWorkspacePayload;
         _busy = false;
       });
     } catch (error) {
@@ -1435,7 +1450,7 @@ class _CornerstoneHomePageState extends State<CornerstoneHomePage> {
   Widget _buildLearnerView(BuildContext context) {
     return _LearnerWorkspaceView(
       viewer: _currentViewer,
-      detail: _learnerDetail,
+      workspace: _learnerWorkspace,
       viewerCanReadLibrary: _viewerCanReadLibrary,
       onOpenLibraryRoute: _selectLibraryDocument,
       onStartActivity: _startActivityForMaterial,

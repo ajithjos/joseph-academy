@@ -799,6 +799,58 @@ class LearnerDetailPayload {
   final LearnerWorkspace workspace;
 }
 
+class LearnerWorkspacePayload {
+  LearnerWorkspacePayload({
+    required this.status,
+    required this.learner,
+    required this.sessions,
+    required this.progress,
+    required this.reviewItems,
+    required this.workspace,
+    this.activeAssignment,
+    this.journey,
+  });
+
+  factory LearnerWorkspacePayload.fromJson(Map<String, dynamic> json) {
+    return LearnerWorkspacePayload(
+      status: json['status'] as String,
+      learner: LearnerSummary.fromJson(json['learner'] as Map<String, dynamic>),
+      activeAssignment: json['active_assignment'] == null
+          ? null
+          : AssignmentSummary.fromJson(
+              json['active_assignment'] as Map<String, dynamic>,
+            ),
+      journey: json['journey'] == null
+          ? null
+          : LearnerJourney.fromJson(json['journey'] as Map<String, dynamic>),
+      sessions: (json['sessions'] as List<dynamic>)
+          .map((item) => SessionDetail.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      progress: (json['progress'] as List<dynamic>)
+          .map(
+            (item) =>
+                SkillProgressSummary.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+      reviewItems: (json['review_items'] as List<dynamic>)
+          .map((item) => ReviewItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      workspace: LearnerWorkspace.fromJson(
+        json['workspace'] as Map<String, dynamic>,
+      ),
+    );
+  }
+
+  final String status;
+  final LearnerSummary learner;
+  final AssignmentSummary? activeAssignment;
+  final LearnerJourney? journey;
+  final List<SessionDetail> sessions;
+  final List<SkillProgressSummary> progress;
+  final List<ReviewItem> reviewItems;
+  final LearnerWorkspace workspace;
+}
+
 class LearnerWorkspace {
   LearnerWorkspace({
     required this.attentionLabel,

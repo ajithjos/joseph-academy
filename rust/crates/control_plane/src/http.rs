@@ -20,7 +20,7 @@ use crate::domain::{
 };
 use crate::service::{
     AppState, apply_bootstrap, complete_activity_instance, create_assignment,
-    fetch_dashboard, fetch_learner_detail, fetch_library,
+    fetch_dashboard, fetch_learner_detail, fetch_learner_workspace, fetch_library,
     fetch_library_document, fetch_library_workspace, fetch_viewer_session,
     list_learners, list_library_documents, login_viewer_session,
     rebuild_review_items, record_session, reload_library,
@@ -118,6 +118,10 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/api/v1/dashboard", get(get_dashboard))
         .route("/api/v1/learners", get(get_learners))
         .route("/api/v1/learners/{learner_id}", get(get_learner_detail))
+        .route(
+            "/api/v1/learners/{learner_id}/workspace",
+            get(get_learner_workspace),
+        )
         .route("/api/v1/assignments", post(post_assignment))
         .route("/api/v1/sessions/{session_id}/record", post(post_record_session))
         .route(
@@ -252,6 +256,17 @@ async fn get_learner_detail(
 ) -> Result<Json<crate::domain::LearnerDetailResponse>, ApiError> {
     let viewer_username = viewer_username_from_headers(&headers)?;
     Ok(Json(fetch_learner_detail(&state, &viewer_username, &learner_id).await?))
+}
+
+async fn get_learner_workspace(
+    Path(learner_id): Path<String>,
+    headers: HeaderMap,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<crate::domain::LearnerWorkspaceResponse>, ApiError> {
+    let viewer_username = viewer_username_from_headers(&headers)?;
+    Ok(Json(
+        fetch_learner_workspace(&state, &viewer_username, &learner_id).await?,
+    ))
 }
 
 async fn post_assignment(
