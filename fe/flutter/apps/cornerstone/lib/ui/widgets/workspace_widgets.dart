@@ -2402,10 +2402,15 @@ class _LibraryPlanningDesktop extends StatefulWidget {
   State<_LibraryPlanningDesktop> createState() => _LibraryPlanningDesktopState();
 }
 
+enum _PlanningFocus { pathway, playlist, session, material }
+
 class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
   String? _selectedPathwayId;
   String? _selectedPlaylistId;
   int _selectedSessionIndex = 0;
+  String? _selectedMaterialId;
+  bool _showPathwayBrowser = false;
+  _PlanningFocus _focus = _PlanningFocus.pathway;
 
   @override
   void initState() {
@@ -2443,6 +2448,16 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     if (_selectedSessionIndex >= playlist.sessions.length) {
       _selectedSessionIndex = 0;
     }
+
+    final selectedSession = _selectedSession;
+    if (selectedSession == null || selectedSession.materials.isEmpty) {
+      _selectedMaterialId = null;
+      return;
+    }
+    final hasMaterial = selectedSession.materials.any((material) => material.materialId == _selectedMaterialId);
+    if (!hasMaterial) {
+      _selectedMaterialId = selectedSession.materials.first.materialId;
+    }
   }
 
   LibraryWorkspacePathway? get _selectedPathway {
@@ -2476,6 +2491,19 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
       return playlist.sessions.first;
     }
     return playlist.sessions[_selectedSessionIndex];
+  }
+
+  LibraryWorkspaceMaterial? get _selectedMaterial {
+    final session = _selectedSession;
+    if (session == null || session.materials.isEmpty) {
+      return null;
+    }
+    for (final material in session.materials) {
+      if (material.materialId == _selectedMaterialId) {
+        return material;
+      }
+    }
+    return session.materials.first;
   }
 
   String? _preferredRouteForSession(LibraryWorkspaceSession session) {
@@ -2528,6 +2556,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
       _selectedPathwayId = pathway.pathwayId;
       _selectedPlaylistId = pathway.playlists.isEmpty ? null : pathway.playlists.first.playlistId;
       _selectedSessionIndex = 0;
+      _focus = _PlanningFocus.pathway;
     });
     _openPreferredRoute(_preferredRouteForPathway(pathway));
   }
@@ -2536,6 +2565,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     setState(() {
       _selectedPlaylistId = playlist.playlistId;
       _selectedSessionIndex = 0;
+      _focus = _PlanningFocus.playlist;
     });
     _openPreferredRoute(_preferredRouteForPlaylist(playlist));
   }
@@ -2544,6 +2574,13 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     final playlist = _selectedPlaylist;
     setState(() {
       _selectedSessionIndex = index;
+      _focus = _PlanningFocus.session;
+      if (playlist != null && index < playlist.sessions.length) {
+        final materials = playlist.sessions[index].materials;
+        _selectedMaterialId = materials.isEmpty ? null : materials.first.materialId;
+      } else {
+        _selectedMaterialId = null;
+      }
     });
     if (playlist == null || index >= playlist.sessions.length) {
       return;
@@ -2551,105 +2588,391 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     _openPreferredRoute(_preferredRouteForSession(playlist.sessions[index]));
   }
 
-  Widget _buildSidebar(ThemeData theme) {
+  void _selectMaterial(LibraryWorkspaceMaterial material) {
+    setState(() {
+      _selectedMaterialId = material.materialId;
+      _focus = _PlanningFocus.material;
+    });
+    final routePath = material.routePath;
+    if (routePath != null && routePath.isNotEmpty) {
+      widget.onOpenLibraryRoute(routePath);
+    }
+  }
+
+  String _focusLabel(_PlanningFocus focus) {
+    switch (focus) {
+      case _PlanningFocus.pathway:
+        return 'Pathway';
+      case _PlanningFocus.playlist:
+        return 'Playlist';
+      case _PlanningFocus.session:
+        return 'Session';
+      case _PlanningFocus.material:
+        return 'Material';
+    }
+  }
+
+  Widget _buildStickySelectors(ThemeData theme, LibraryWorkspacePathway pathway, LibraryWorkspacePlaylist playlist) {
+    final session = _selectedSession;
+    final material = _selectedMaterial;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SegmentedButton<_PlanningFocus>(
+          segments: _PlanningFocus.values.map((focus) => ButtonSegment<_PlanningFocus>(value: focus, label: Text(_focusLabel(focus)))).toList(growable: false),
+          selected: {_focus},
+          onSelectionChanged: (selection) {
+            if (selection.isEmpty) {
+              return;
+            }
+            setState(() {
+              _focus = selection.first;
+            });
+          },
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedPathwayId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Pathway'),
+                items: widget.libraryWorkspace.pathways.map((item) => DropdownMenuItem<String>(value: item.pathwayId, child: Text(item.title))).toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  for (final item in widget.libraryWorkspace.pathways) {
+                    if (item.pathwayId == value) {
+                      _selectPathway(item);
+                      return;
+                    }
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedPlaylistId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Playlist'),
+                items: pathway.playlists.map((item) => DropdownMenuItem<String>(value: item.playlistId, child: Text(item.title))).toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  for (final item in pathway.playlists) {
+                    if (item.playlistId == value) {
+                      _selectPlaylist(item);
+                      return;
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<int>(
+                initialValue: session == null ? null : _selectedSessionIndex,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Session'),
+                items: playlist.sessions
+                    .asMap()
+                    .entries
+                    .map((entry) => DropdownMenuItem<int>(value: entry.key, child: Text('${entry.value.sessionIndex}. ${entry.value.title}')))
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  _selectSession(value);
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: material?.materialId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Material'),
+                items: (session?.materials ?? const <LibraryWorkspaceMaterial>[])
+                    .map((item) => DropdownMenuItem<String>(value: item.materialId, child: Text(item.title)))
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null || session == null) {
+                    return;
+                  }
+                  for (final item in session.materials) {
+                    if (item.materialId == value) {
+                      _selectMaterial(item);
+                      return;
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _ContractChipRow(
+          children: [
+            const _ContractChip(domain: 'entity', value: 'pathway'),
+            _PillBadge(text: pathway.title, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+            const _ContractChip(domain: 'entity', value: 'playlist'),
+            _PillBadge(text: playlist.title, color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
+            if (session != null) ...[
+              const _ContractChip(domain: 'entity', value: 'session'),
+              _PillBadge(text: session.title, color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+            ],
+            if (material != null) ...[
+              const _ContractChip(domain: 'entity', value: 'session_material'),
+              _PillBadge(text: material.title, color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFocusDetail(ThemeData theme, LibraryWorkspacePathway pathway, LibraryWorkspacePlaylist playlist) {
+    final session = _selectedSession;
+    final material = _selectedMaterial;
+
+    switch (_focus) {
+      case _PlanningFocus.pathway:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(pathway.title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(pathway.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            _ContractChipRow(
+              children: [
+                _PillBadge(text: pathway.areaTitle, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                _PillBadge(text: 'playlists:${pathway.playlistCount}', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+                _PillBadge(
+                  text: 'age:${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  textColor: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text('Playlists in pathway', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            ...pathway.playlists.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(item.title),
+                  subtitle: Text('sessions:${item.sessions.length} · materials:${item.materialCount}'),
+                  trailing: item.playlistId == _selectedPlaylistId ? const Icon(Icons.check_circle_rounded, size: 18) : null,
+                  onTap: () => _selectPlaylist(item),
+                ),
+              ),
+            ),
+          ],
+        );
+      case _PlanningFocus.playlist:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(playlist.title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(playlist.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            _ContractChipRow(
+              children: [
+                _PillBadge(text: 'sessions:${playlist.sessions.length}', color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                _PillBadge(text: 'materials:${playlist.materialCount}', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+                _PillBadge(
+                  text: 'minutes:${playlist.deliveryShape.estimatedTotalMinutes}',
+                  color: theme.colorScheme.tertiaryContainer,
+                  textColor: theme.colorScheme.onTertiaryContainer,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text('Assignment targets', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            if (playlist.assignmentTargets.isEmpty)
+              Text('No assignment targets in this playlist.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+            else
+              ...playlist.assignmentTargets.map(
+                (target) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(target.displayName),
+                    subtitle: Text(target.statusLabel),
+                    trailing: target.recommended
+                        ? _PillBadge(text: 'recommended', color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer)
+                        : null,
+                  ),
+                ),
+              ),
+          ],
+        );
+      case _PlanningFocus.session:
+        if (session == null) {
+          return Text('No session available for this playlist.', style: theme.textTheme.bodyLarge);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(session.title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 10),
+            _ContractChipRow(
+              children: [
+                const _ContractChip(domain: 'entity', value: 'session'),
+                _ContractChip(domain: 'material_kind', value: session.dominantKind),
+                _PillBadge(text: 'materials:${session.materialCount}', color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                _PillBadge(text: '${session.estimatedMinutes} min', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ...playlist.sessions.asMap().entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _DesktopSessionNavTile(
+                  title: '${entry.value.sessionIndex}. ${entry.value.title}',
+                  subtitle: '${entry.value.materialCount} materials · ${entry.value.estimatedMinutes} min',
+                  statusLabel: _contractTermLabel(entry.value.dominantKind),
+                  selected: entry.key == _selectedSessionIndex,
+                  onTap: () => _selectSession(entry.key),
+                ),
+              ),
+            ),
+          ],
+        );
+      case _PlanningFocus.material:
+        if (session == null || material == null) {
+          return Text('No material selected in this session.', style: theme.textTheme.bodyLarge);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(material.title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 10),
+            _ContractChipRow(
+              children: [
+                const _ContractChip(domain: 'entity', value: 'session_material'),
+                _ContractChip(domain: 'material_kind', value: material.kind),
+                _ContractChip(domain: 'audience', value: material.audience),
+                if (material.executable) const _ContractChip(domain: 'status', value: 'live'),
+                _PillBadge(text: '${material.estimatedMinutes} min', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Materials in selected session', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            _ContractChipRow(
+              children: session.materials
+                  .map(
+                    (item) => ActionChip(
+                      label: Text('${item.title} (${item.kind})'),
+                      onPressed: () => _selectMaterial(item),
+                      avatar: item.materialId == material.materialId ? Icon(Icons.check_circle_rounded, size: 14, color: theme.colorScheme.primary) : null,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+            if (material.routePath != null) ...[
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: () => widget.onOpenLibraryRoute(material.routePath!),
+                icon: const Icon(Icons.description_rounded, size: 16),
+                label: const Text('Open selected material'),
+              ),
+            ],
+          ],
+        );
+    }
+  }
+
+  Widget _buildCompactStudioHeader(ThemeData theme) {
     final pathways = widget.libraryWorkspace.pathways;
+
     return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Pathways and playlists', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            'Use the left rail as the planning menu: pick a pathway, then a playlist, then inspect a single session in detail.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 18),
-          if (pathways.length > 1 && _selectedPathwayId != null) ...[
-            DropdownButtonFormField<String>(
-              initialValue: _selectedPathwayId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Jump to pathway'),
-              items: pathways.map((pathway) => DropdownMenuItem<String>(value: pathway.pathwayId, child: Text(pathway.title))).toList(growable: false),
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                for (final pathway in pathways) {
-                  if (pathway.pathwayId == value) {
-                    _selectPathway(pathway);
-                    return;
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 18),
-          ],
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: pathways
-                    .map((pathway) {
-                      final selectedPathway = pathway.pathwayId == _selectedPathwayId;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _DesktopSidebarButton(label: pathway.title, icon: Icons.route_rounded, selected: selectedPathway, onTap: () => _selectPathway(pathway)),
-                            if (selectedPathway) ...[
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.only(left: 14),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(pathway.description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          _PillBadge(
-                                            text: '${pathway.playlistCount} playlists',
-                                            color: theme.colorScheme.secondaryContainer,
-                                            textColor: theme.colorScheme.onSecondaryContainer,
-                                          ),
-                                          _PillBadge(
-                                            text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
-                                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                            textColor: theme.colorScheme.primary,
-                                          ),
-                                        ],
-                                      ),
-                                      if (pathway.routePath != null) ...[
-                                        const SizedBox(height: 10),
-                                        TextButton.icon(
-                                          onPressed: () => widget.onOpenLibraryRoute(pathway.routePath!),
-                                          icon: const Icon(Icons.description_rounded, size: 18),
-                                          label: const Text('Open pathway brief'),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    })
-                    .toList(growable: false),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    _PillBadge(text: 'library', color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
+                    const SizedBox(width: 10),
+                    Text('Pathway planning studio', style: theme.textTheme.titleLarge),
+                  ],
+                ),
               ),
-            ),
+              _ContractChipRow(
+                children: [
+                  _PillBadge(
+                    text: 'pathways:${widget.libraryWorkspace.pathways.length}',
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    textColor: theme.colorScheme.primary,
+                  ),
+                  _PillBadge(
+                    text: 'documents:${widget.documents?.documents.length ?? 0}',
+                    color: theme.colorScheme.secondaryContainer,
+                    textColor: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  _PillBadge(text: 'materials:${widget.totalMaterials}', color: theme.colorScheme.tertiaryContainer, textColor: theme.colorScheme.onTertiaryContainer),
+                ],
+              ),
+            ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedPathwayId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Select pathway'),
+                  items: pathways.map((pathway) => DropdownMenuItem<String>(value: pathway.pathwayId, child: Text(pathway.title))).toList(growable: false),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    for (final pathway in pathways) {
+                      if (pathway.pathwayId == value) {
+                        _selectPathway(pathway);
+                        return;
+                      }
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              TextButton.icon(
+                onPressed: () => setState(() => _showPathwayBrowser = !_showPathwayBrowser),
+                icon: Icon(_showPathwayBrowser ? Icons.expand_less_rounded : Icons.expand_more_rounded),
+                label: Text(_showPathwayBrowser ? 'Hide all pathways' : 'Show all pathways'),
+              ),
+            ],
+          ),
+          if (_showPathwayBrowser) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: pathways.map((pathway) => ActionChip(label: Text(pathway.title), onPressed: () => _selectPathway(pathway))).toList(growable: false),
+            ),
+          ],
         ],
       ),
     );
@@ -2666,235 +2989,11 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Planning studio', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(
-            'This view keeps assignment, session structure, and delivery shape visible at once instead of stacking every material inside every card.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(pathway.title, style: theme.textTheme.titleLarge),
-                          const SizedBox(height: 6),
-                          Text(pathway.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                        ],
-                      ),
-                    ),
-                    if (pathway.routePath != null)
-                      TextButton.icon(
-                        onPressed: () => widget.onOpenLibraryRoute(pathway.routePath!),
-                        icon: const Icon(Icons.description_rounded, size: 18),
-                        label: const Text('Open'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _PillBadge(text: pathway.areaTitle, color: theme.colorScheme.secondaryContainer, textColor: theme.colorScheme.onSecondaryContainer),
-                    _PillBadge(
-                      text: '${pathway.playlistCount} playlists',
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      textColor: theme.colorScheme.primary,
-                    ),
-                    _PillBadge(
-                      text: 'Ages ${pathway.recommendedAgeMin}-${pathway.recommendedAgeMax}',
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      textColor: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (pathway.playlists.length > 1) ...[
-            DropdownButtonFormField<String>(
-              initialValue: _selectedPlaylistId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Playlist focus'),
-              items: pathway.playlists.map((item) => DropdownMenuItem<String>(value: item.playlistId, child: Text(item.title))).toList(growable: false),
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                for (final item in pathway.playlists) {
-                  if (item.playlistId == value) {
-                    _selectPlaylist(item);
-                    return;
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(playlist.title, style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  Text(playlist.description, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _PillBadge(text: 'Age ${playlist.recommendedAge}', color: theme.colorScheme.primary.withValues(alpha: 0.12), textColor: theme.colorScheme.primary),
-                      _PillBadge(
-                        text: '${playlist.sessions.length} sessions',
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        textColor: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      _PillBadge(
-                        text: '${playlist.deliveryShape.estimatedTotalMinutes} min total',
-                        color: theme.colorScheme.secondaryContainer,
-                        textColor: theme.colorScheme.onSecondaryContainer,
-                      ),
-                      if (playlist.deliveryShape.teachingNoteCount > 0)
-                        _PillBadge(
-                          text: '${playlist.deliveryShape.teachingNoteCount} teaching notes',
-                          color: _materialKindBackgroundColor(theme, 'teaching_note'),
-                          textColor: _materialKindForegroundColor(theme, 'teaching_note'),
-                        ),
-                      if (playlist.deliveryShape.lessonNoteCount > 0)
-                        _PillBadge(
-                          text: '${playlist.deliveryShape.lessonNoteCount} learner notes',
-                          color: _materialKindBackgroundColor(theme, 'lesson_note'),
-                          textColor: _materialKindForegroundColor(theme, 'lesson_note'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text('Assignment targets', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 10),
-                  if (playlist.assignmentTargets.isEmpty)
-                    Text(
-                      'No learner targets are available for this playlist yet.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    )
-                  else
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: playlist.assignmentTargets
-                          .map((target) {
-                            return SizedBox(
-                              width: 240,
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.34),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(target.displayName, style: theme.textTheme.titleSmall),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Age ${target.currentAge} · ${target.currentLevel}',
-                                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(target.statusLabel, style: theme.textTheme.bodyMedium),
-                                    if (widget.viewerCanManage) ...[
-                                      const SizedBox(height: 12),
-                                      FilledButton.tonal(
-                                        onPressed: target.assignedHere ? null : () => widget.onCreateAssignment(target.learnerId, playlist.playlistId),
-                                        child: Text(target.assignedHere ? 'Assigned here' : 'Assign to ${target.displayName}'),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            );
-                          })
-                          .toList(growable: false),
-                    ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(child: Text('Session outline', style: theme.textTheme.titleLarge)),
-                      if (playlist.routePath != null)
-                        TextButton.icon(
-                          onPressed: () => widget.onOpenLibraryRoute(playlist.routePath!),
-                          icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                          label: const Text('Open playlist brief'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  ...playlist.sessions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final session = entry.value;
-                    final selected = index == _selectedSessionIndex;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _DesktopSessionNavTile(
-                        title: '${session.sessionIndex}. ${session.title}',
-                        subtitle: '${session.materialCount} materials · ${session.estimatedMinutes} min',
-                        statusLabel: _contractTermLabel(session.dominantKind),
-                        selected: selected,
-                        onTap: () => _selectSession(index),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAudiencePreview(
-    ThemeData theme, {
-    required String title,
-    required String description,
-    required List<WorkspaceMaterialKindGroup> groups,
-    required String emptyState,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          const SizedBox(height: 14),
-          if (groups.isEmpty)
-            Text(emptyState, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
-          else
-            ...groups.map((group) => _WorkspaceMaterialGroupPanel(group: group, onOpenLibraryRoute: widget.onOpenLibraryRoute)),
+          Text('Master detail studio', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 10),
+          _buildStickySelectors(theme, pathway, playlist),
+          const SizedBox(height: 12),
+          Expanded(child: SingleChildScrollView(child: _buildFocusDetail(theme, pathway, playlist))),
         ],
       ),
     );
@@ -2903,8 +3002,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
   Widget _buildPreviewStudio(ThemeData theme) {
     final routeBySourcePath = {for (final document in widget.documents?.documents ?? const <LibraryDocumentSummary>[]) document.sourcePath: document.routePath};
     final session = _selectedSession;
-    final learnerGroups = session?.materialsByKind.where((group) => group.audience == 'learner').toList(growable: false) ?? const <WorkspaceMaterialKindGroup>[];
-    final adultGroups = session?.materialsByKind.where((group) => group.audience == 'adult').toList(growable: false) ?? const <WorkspaceMaterialKindGroup>[];
+    final selectedMaterial = _selectedMaterial;
 
     return Column(
       children: [
@@ -2914,21 +3012,20 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Selected session preview', style: theme.textTheme.headlineSmall),
+                Text('Selected session and material', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 6),
-                Text(
-                  session == null
-                      ? 'Select a session to inspect session_material grouped by audience and material_kind.'
-                      : 'Selected session details with explicit learner and adult session_material groups.',
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
                 const SizedBox(height: 18),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (session != null) ...[
+                if (session == null)
+                  Text(
+                    'Select a session from the playlist panel to inspect materials.',
+                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  )
+                else
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(session.title, style: theme.textTheme.titleLarge),
                           const SizedBox(height: 10),
                           _ContractChipRow(
@@ -2936,48 +3033,76 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                               const _ContractChip(domain: 'entity', value: 'session'),
                               _ContractChip(domain: 'material_kind', value: session.dominantKind),
                               _PillBadge(
+                                text: 'materials:${session.materialCount}',
+                                color: theme.colorScheme.secondaryContainer,
+                                textColor: theme.colorScheme.onSecondaryContainer,
+                              ),
+                              _PillBadge(
                                 text: '${session.estimatedMinutes} min',
                                 color: theme.colorScheme.primary.withValues(alpha: 0.12),
                                 textColor: theme.colorScheme.primary,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 14),
+                          Text('Session materials', style: theme.textTheme.titleSmall),
+                          const SizedBox(height: 8),
+                          _ContractChipRow(
+                            children: session.materials
+                                .map(
+                                  (material) => ActionChip(
+                                    label: Text('${material.title} (${material.kind})'),
+                                    onPressed: () => _selectMaterial(material),
+                                    avatar: material.materialId == selectedMaterial?.materialId
+                                        ? Icon(Icons.check_circle_rounded, size: 14, color: theme.colorScheme.primary)
+                                        : null,
+                                  ),
+                                )
+                                .toList(growable: false),
+                          ),
+                          const SizedBox(height: 14),
+                          if (selectedMaterial != null)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: theme.colorScheme.outlineVariant),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(selectedMaterial.title, style: theme.textTheme.titleSmall),
+                                  const SizedBox(height: 8),
+                                  _ContractChipRow(
+                                    children: [
+                                      const _ContractChip(domain: 'entity', value: 'session_material'),
+                                      _ContractChip(domain: 'material_kind', value: selectedMaterial.kind),
+                                      _ContractChip(domain: 'audience', value: selectedMaterial.audience),
+                                      if (selectedMaterial.executable) const _ContractChip(domain: 'status', value: 'live'),
+                                      _PillBadge(
+                                        text: '${selectedMaterial.estimatedMinutes} min',
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                        textColor: theme.colorScheme.primary,
+                                      ),
+                                    ],
+                                  ),
+                                  if (selectedMaterial.routePath != null) ...[
+                                    const SizedBox(height: 10),
+                                    TextButton.icon(
+                                      onPressed: () => widget.onOpenLibraryRoute(selectedMaterial.routePath!),
+                                      icon: const Icon(Icons.description_rounded, size: 16),
+                                      label: const Text('Open selected material'),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                         ],
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final split = constraints.maxWidth > 840;
-                            final learnerPanel = _buildAudiencePreview(
-                              theme,
-                              title: 'audience:learner',
-                              description: 'session_material where audience=learner for the selected session.',
-                              groups: learnerGroups,
-                              emptyState: 'No session_material with audience=learner in this session.',
-                            );
-                            final teacherPanel = _buildAudiencePreview(
-                              theme,
-                              title: 'audience:adult',
-                              description: 'session_material where audience=adult for the selected session.',
-                              groups: adultGroups,
-                              emptyState: 'No session_material with audience=adult in this session.',
-                            );
-                            if (!split) {
-                              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [learnerPanel, const SizedBox(height: 14), teacherPanel]);
-                            }
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: learnerPanel),
-                                const SizedBox(width: 14),
-                                Expanded(child: teacherPanel),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -3006,26 +3131,14 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       children: [
-        _PageHeroCard(
-          eyebrow: 'Library',
-          title: 'Pathway planning studio',
-          description:
-              'Use the wide workspace as a real planning screen: choose a pathway on the left, inspect one playlist in the middle, and compare teacher guidance with learner-facing material on the right.',
-          chips: [
-            _StatChip(label: 'Pathways', value: '${widget.libraryWorkspace.pathways.length}', icon: Icons.route_rounded),
-            _StatChip(label: 'Documents', value: '${widget.documents?.documents.length ?? 0}', icon: Icons.description_rounded),
-            _StatChip(label: 'Materials', value: '${widget.totalMaterials}', icon: Icons.menu_book_rounded),
-          ],
-        ),
+        _buildCompactStudioHeader(theme),
         const SizedBox(height: 20),
         SizedBox(
-          height: _desktopStudioHeight(context, subtract: 220, minHeight: 760, maxHeight: 980),
+          height: _desktopStudioHeight(context, subtract: 200, minHeight: 760, maxHeight: 980),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 340, child: _buildSidebar(theme)),
-              const SizedBox(width: 20),
-              Expanded(flex: 5, child: _buildPlaylistStudio(theme)),
+              Expanded(flex: 6, child: _buildPlaylistStudio(theme)),
               const SizedBox(width: 20),
               Expanded(flex: 5, child: _buildPreviewStudio(theme)),
             ],
