@@ -415,14 +415,20 @@ class _OwnerWorkspaceView extends StatelessWidget {
                         TabBar(
                           isScrollable: true,
                           tabAlignment: TabAlignment.start,
-                          tabs: const [
-                            Tab(text: 'Learner workspace'),
-                            Tab(text: 'Teaching notes'),
+                          tabs: [
+                            Tab(
+                              text:
+                                  'Learner workspace (${learnerFacingGroups.length})',
+                            ),
+                            Tab(
+                              text:
+                                  'Teaching notes (${adultFacingGroups.length})',
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
                         SizedBox(
-                          height: 560,
+                          height: 500,
                           child: TabBarView(
                             children: [
                               SingleChildScrollView(
@@ -470,56 +476,98 @@ class _OwnerWorkspaceView extends StatelessWidget {
                   else
                     const SizedBox(height: 8),
                   if (activeMaterials.isNotEmpty)
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: activeMaterials
-                          .map(
-                            (material) => FilledButton.icon(
-                              onPressed: () =>
-                                  onStartActivity(activeSession, material),
-                              icon: const Icon(
-                                Icons.play_circle_fill_rounded,
-                                size: 18,
-                              ),
-                              label: Text('Start ${material.title}'),
-                            ),
-                          )
-                          .toList(growable: false),
-                    )
-                  else ...[
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _CompactField(
-                          label: 'Score',
-                          controller: scoreController,
+                        Text(
+                          'Live activities',
+                          style: theme.textTheme.titleSmall,
                         ),
-                        _CompactField(
-                          label: 'Max Score',
-                          controller: maxScoreController,
-                        ),
-                        _CompactField(
-                          label: 'Minutes',
-                          controller: durationController,
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: activeMaterials
+                              .map(
+                                (material) => FilledButton.icon(
+                                  onPressed: () =>
+                                      onStartActivity(activeSession, material),
+                                  icon: const Icon(
+                                    Icons.play_circle_fill_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text('Start ${material.title}'),
+                                ),
+                              )
+                              .toList(growable: false),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: notesController,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Session notes',
+                    )
+                  else ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.34),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton.icon(
-                      onPressed: onRecordSession,
-                      icon: const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Record session'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Session outcome',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Record score, duration, and notes for this session.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              _CompactField(
+                                label: 'Score',
+                                controller: scoreController,
+                              ),
+                              _CompactField(
+                                label: 'Max score',
+                                controller: maxScoreController,
+                              ),
+                              _CompactField(
+                                label: 'Minutes',
+                                controller: durationController,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: notesController,
+                            minLines: 2,
+                            maxLines: 3,
+                            decoration: const InputDecoration(
+                              labelText: 'Session notes',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: onRecordSession,
+                            icon: const Icon(
+                              Icons.check_circle_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Record session'),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],

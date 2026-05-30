@@ -10,9 +10,11 @@ import 'services/api_service.dart';
 import 'ui/theme/theme_controller.dart';
 
 part 'app/cornerstone_app.dart';
-part 'ui/screens/home_screen.dart';
+part 'ui/screens/home/home_shell.dart';
+part 'ui/screens/home/home_views.dart';
 part 'ui/widgets/markdown_widgets.dart';
-part 'ui/widgets/home_widgets.dart';
+part 'ui/widgets/home/shell_widgets.dart';
+part 'ui/widgets/home/activity_dialog.dart';
 part 'ui/widgets/contract_chip_widgets.dart';
 part 'ui/widgets/workspace/shared_widgets.dart';
 part 'ui/widgets/workspace/owner_workspace_view.dart';
