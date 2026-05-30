@@ -251,6 +251,34 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
     }
   }
 
+  InputDecoration _dropdownDecoration(ThemeData theme, String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: theme.colorScheme.surface.withValues(alpha: 0.66),
+      labelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w600,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.4),
+      ),
+    );
+  }
+
+  TextStyle? _dropdownTextStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurface,
+      fontWeight: FontWeight.w600,
+    );
+  }
+
   Widget _buildStickySelectors(
     ThemeData theme,
     LibraryWorkspacePathway pathway,
@@ -261,7 +289,7 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
 
     Widget boundedDropdown(Widget child) {
       return ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+        constraints: const BoxConstraints(minWidth: 250, maxWidth: 360),
         child: child,
       );
     }
@@ -297,7 +325,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               DropdownButtonFormField<String>(
                 initialValue: _selectedPathwayId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Pathway'),
+                menuMaxHeight: 420,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: theme.colorScheme.surface,
+                style: _dropdownTextStyle(theme),
+                iconEnabledColor: theme.colorScheme.primary,
+                decoration: _dropdownDecoration(theme, 'Pathway'),
                 items: widget.libraryWorkspace.pathways
                     .map(
                       (item) => DropdownMenuItem<String>(
@@ -323,7 +356,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               DropdownButtonFormField<String>(
                 initialValue: _selectedPlaylistId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Playlist'),
+                menuMaxHeight: 420,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: theme.colorScheme.surface,
+                style: _dropdownTextStyle(theme),
+                iconEnabledColor: theme.colorScheme.primary,
+                decoration: _dropdownDecoration(theme, 'Playlist'),
                 items: pathway.playlists
                     .map(
                       (item) => DropdownMenuItem<String>(
@@ -356,7 +394,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               DropdownButtonFormField<int>(
                 initialValue: session == null ? null : _selectedSessionIndex,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Session'),
+                menuMaxHeight: 420,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: theme.colorScheme.surface,
+                style: _dropdownTextStyle(theme),
+                iconEnabledColor: theme.colorScheme.primary,
+                decoration: _dropdownDecoration(theme, 'Session'),
                 items: playlist.sessions
                     .asMap()
                     .entries
@@ -381,7 +424,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               DropdownButtonFormField<String>(
                 initialValue: material?.materialId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Material'),
+                menuMaxHeight: 420,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: theme.colorScheme.surface,
+                style: _dropdownTextStyle(theme),
+                iconEnabledColor: theme.colorScheme.primary,
+                decoration: _dropdownDecoration(theme, 'Material'),
                 items:
                     (session?.materials ?? const <LibraryWorkspaceMaterial>[])
                         .map(
@@ -407,39 +455,95 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
           ],
         ),
         const SizedBox(height: 10),
-        _ContractChipRow(
-          children: [
-            const _ContractChip(domain: 'entity', value: 'pathway'),
-            _PillBadge(
-              text: pathway.title,
-              color: theme.colorScheme.secondaryContainer,
-              textColor: theme.colorScheme.onSecondaryContainer,
-            ),
-            const _ContractChip(domain: 'entity', value: 'playlist'),
-            _PillBadge(
-              text: playlist.title,
-              color: theme.colorScheme.tertiaryContainer,
-              textColor: theme.colorScheme.onTertiaryContainer,
-            ),
-            if (session != null) ...[
-              const _ContractChip(domain: 'entity', value: 'session'),
-              _PillBadge(
-                text: session.title,
-                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                textColor: theme.colorScheme.primary,
-              ),
-            ],
-            if (material != null) ...[
-              const _ContractChip(domain: 'entity', value: 'session_material'),
-              _PillBadge(
-                text: material.title,
-                color: theme.colorScheme.surfaceContainerHighest,
-                textColor: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ],
+        _buildSelectionBreadcrumb(
+          theme,
+          pathway: pathway,
+          playlist: playlist,
+          session: session,
+          material: material,
         ),
       ],
+    );
+  }
+
+  Widget _buildSelectionBreadcrumb(
+    ThemeData theme, {
+    required LibraryWorkspacePathway pathway,
+    required LibraryWorkspacePlaylist playlist,
+    LibraryWorkspaceSession? session,
+    LibraryWorkspaceMaterial? material,
+  }) {
+    const sep = Icon(Icons.chevron_right_rounded, size: 16);
+
+    Widget _crumb(String label, String value, {bool active = false}) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: active
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
+    final focusLevel = switch (_focus) {
+      _PlanningFocus.pathway => 0,
+      _PlanningFocus.playlist => 1,
+      _PlanningFocus.session => 2,
+      _PlanningFocus.material => 3,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.26,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.60),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _crumb('Pathway', pathway.title, active: focusLevel == 0),
+          const SizedBox(width: 6),
+          sep,
+          const SizedBox(width: 6),
+          _crumb('Playlist', playlist.title, active: focusLevel == 1),
+          if (session != null) ...[
+            const SizedBox(width: 6),
+            sep,
+            const SizedBox(width: 6),
+            _crumb('Session', session.title, active: focusLevel == 2),
+          ],
+          if (material != null) ...[
+            const SizedBox(width: 6),
+            sep,
+            const SizedBox(width: 6),
+            _crumb('Material', material.title, active: focusLevel == 3),
+          ],
+        ],
+      ),
     );
   }
 
@@ -805,44 +909,8 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
                       'Pathway planning studio',
                       style: theme.textTheme.titleLarge,
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: _navigatorExpanded
-                          ? 'Hide navigator'
-                          : 'Show navigator',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => setState(
-                        () => _navigatorExpanded = !_navigatorExpanded,
-                      ),
-                      icon: Icon(
-                        _navigatorExpanded
-                            ? Icons.menu_open_rounded
-                            : Icons.menu_rounded,
-                        size: 20,
-                      ),
-                    ),
                   ],
                 ),
-              ),
-              _ContractChipRow(
-                children: [
-                  _PillBadge(
-                    text: 'pathways:${widget.libraryWorkspace.pathways.length}',
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    textColor: theme.colorScheme.primary,
-                  ),
-                  _PillBadge(
-                    text:
-                        'documents:${widget.documents?.documents.length ?? 0}',
-                    color: theme.colorScheme.secondaryContainer,
-                    textColor: theme.colorScheme.onSecondaryContainer,
-                  ),
-                  _PillBadge(
-                    text: 'materials:${widget.totalMaterials}',
-                    color: theme.colorScheme.tertiaryContainer,
-                    textColor: theme.colorScheme.onTertiaryContainer,
-                  ),
-                ],
               ),
             ],
           ),
@@ -856,7 +924,12 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedPathwayId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Pathway'),
+                menuMaxHeight: 420,
+                borderRadius: BorderRadius.circular(16),
+                dropdownColor: theme.colorScheme.surface,
+                style: _dropdownTextStyle(theme),
+                iconEnabledColor: theme.colorScheme.primary,
+                decoration: _dropdownDecoration(theme, 'Pathway'),
                 items: pathways
                     .map(
                       (item) => DropdownMenuItem<String>(
@@ -879,6 +952,21 @@ class _LibraryPlanningDesktopState extends State<_LibraryPlanningDesktop> {
               ),
             ),
           ],
+          const SizedBox(height: 14),
+          Tooltip(
+            message: _navigatorExpanded ? 'Hide navigator' : 'Show navigator',
+            child: IconButton(
+              onPressed: () =>
+                  setState(() => _navigatorExpanded = !_navigatorExpanded),
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                _navigatorExpanded
+                    ? Icons.menu_open_rounded
+                    : Icons.menu_rounded,
+                size: 20,
+              ),
+            ),
+          ),
         ],
       ),
     );
