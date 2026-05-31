@@ -918,9 +918,6 @@ pub async fn start_session_material_activity(
     let viewer = resolve_viewer_member(state, viewer_username).await?;
     let (session, materials) = load_session_and_material_rows(&state.pool, session_id).await?;
     ensure_viewer_can_access_learner(&viewer, &session.learner_id)?;
-    if session.status == "completed" {
-        bail!("session '{session_id}' is already completed");
-    }
 
     let session_material = materials
         .iter()
@@ -990,9 +987,6 @@ pub async fn complete_activity_instance(
     let session_material = load_session_material_row(&state.pool, &session_material_id).await?;
     let session = load_session_row(&state.pool, &session_material.session_id).await?;
     ensure_viewer_can_access_learner(&viewer, &session.learner_id)?;
-    if session.status == "completed" {
-        bail!("session '{}' is already completed", session.session_id);
-    }
 
     let library = state.library.read().await.clone();
     let material = library
@@ -1069,9 +1063,6 @@ async fn persist_session_result(
 ) -> anyhow::Result<RecordSessionResponse> {
     if max_score <= 0.0 {
         bail!("max_score must be greater than zero");
-    }
-    if session.status == "completed" {
-        bail!("session '{}' is already completed", session.session_id);
     }
 
     let now = Utc::now();

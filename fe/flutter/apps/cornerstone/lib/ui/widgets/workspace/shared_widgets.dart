@@ -78,12 +78,7 @@ Color _markdownCodeBackgroundColor(ThemeData theme) {
       : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.92);
 }
 
-double _desktopStudioHeight(
-  BuildContext context, {
-  double subtract = 240,
-  double minHeight = 680,
-  double maxHeight = 960,
-}) {
+double _desktopStudioHeight(BuildContext context, {double subtract = 240, double minHeight = 680, double maxHeight = 960}) {
   final height = MediaQuery.sizeOf(context).height - subtract;
   if (height < minHeight) {
     return minHeight;
@@ -100,23 +95,14 @@ MarkdownStyleSheet _workspaceMarkdownStyle(ThemeData theme) {
     h1: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
     h2: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
     h3: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-    code: theme.textTheme.bodyMedium?.copyWith(
-      fontFamily: 'SF Mono',
-      color: _markdownCodeForegroundColor(theme),
-      backgroundColor: _markdownCodeBackgroundColor(theme),
-    ),
-    blockquote: theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      fontStyle: FontStyle.italic,
-    ),
+    code: theme.textTheme.bodyMedium?.copyWith(fontFamily: 'SF Mono', color: _markdownCodeForegroundColor(theme), backgroundColor: _markdownCodeBackgroundColor(theme)),
+    blockquote: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic),
     blockquotePadding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
     codeblockPadding: const EdgeInsets.all(14),
     codeblockDecoration: BoxDecoration(
       color: _markdownCodeBackgroundColor(theme),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(
-        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.82),
-      ),
+      border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.82)),
     ),
   );
 }
@@ -136,8 +122,7 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
   final bool viewerCanReadLibrary;
   final bool showDocumentBodies;
   final ValueChanged<String>? onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)?
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material)? onStartActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -161,41 +146,21 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  _materialKindIcon(group.kind),
-                  size: 20,
-                  color: foregroundColor,
-                ),
+                decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(14)),
+                child: Icon(_materialKindIcon(group.kind), size: 20, color: foregroundColor),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _contractTermLabel(group.kind),
-                      style: theme.textTheme.titleMedium,
-                    ),
+                    Text(_contractTermLabel(group.kind), style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
                     _ContractChipRow(
                       children: [
-                        _ContractChip(
-                          domain: 'material_kind',
-                          value: group.kind,
-                        ),
-                        _ContractChip(
-                          domain: 'audience',
-                          value: group.audience,
-                        ),
-                        _PillBadge(
-                          text: 'count:${group.materialCount}',
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          textColor: theme.colorScheme.onSurfaceVariant,
-                        ),
+                        _ContractChip(domain: 'material_kind', value: group.kind),
+                        _ContractChip(domain: 'audience', value: group.audience),
+                        _PillBadge(text: 'count:${group.materialCount}', color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ],
@@ -205,24 +170,13 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           ...group.materials.map((material) {
-            final hasDocumentBody = (material.documentBody ?? '')
-                .trim()
-                .isNotEmpty;
-            final canOpenDocument =
-                viewerCanReadLibrary &&
-                onOpenLibraryRoute != null &&
-                material.documentRoutePath != null;
-            final canStart =
-                session != null &&
-                onStartActivity != null &&
-                material.isExecutable;
+            final hasDocumentBody = (material.documentBody ?? '').trim().isNotEmpty;
+            final canOpenDocument = viewerCanReadLibrary && onOpenLibraryRoute != null && material.documentRoutePath != null;
+            final canStart = session != null && onStartActivity != null && material.isExecutable;
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: backgroundColor.withValues(alpha: 0.28),
-                borderRadius: BorderRadius.circular(16),
-              ),
+              decoration: BoxDecoration(color: backgroundColor.withValues(alpha: 0.28), borderRadius: BorderRadius.circular(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -230,21 +184,10 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
                   const SizedBox(height: 6),
                   _ContractChipRow(
                     children: [
-                      _ContractChip(
-                        domain: 'entity',
-                        value: 'session_material',
-                      ),
-                      _ContractChip(
-                        domain: 'material_kind',
-                        value: material.kind,
-                      ),
-                      _PillBadge(
-                        text: '${material.estimatedMinutes} min',
-                        color: backgroundColor,
-                        textColor: foregroundColor,
-                      ),
-                      if (material.isExecutable)
-                        _ContractChip(domain: 'status', value: 'live'),
+                      _ContractChip(domain: 'entity', value: 'session_material'),
+                      _ContractChip(domain: 'material_kind', value: material.kind),
+                      _PillBadge(text: '${material.estimatedMinutes} min', color: backgroundColor, textColor: foregroundColor),
+                      if (material.isExecutable) _ContractChip(domain: 'status', value: 'live'),
                     ],
                   ),
                   if (showDocumentBodies && hasDocumentBody) ...[
@@ -252,17 +195,9 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(16)),
                       child: SelectionArea(
-                        child: MarkdownBody(
-                          data: material.documentBody!,
-                          selectable: true,
-                          styleSheet: _workspaceMarkdownStyle(theme),
-                        ),
+                        child: MarkdownBody(data: material.documentBody!, selectable: true, styleSheet: _workspaceMarkdownStyle(theme)),
                       ),
                     ),
                   ],
@@ -274,23 +209,14 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
                       children: [
                         if (canStart)
                           FilledButton.tonalIcon(
-                            onPressed: () =>
-                                onStartActivity!(session!, material),
-                            icon: const Icon(
-                              Icons.play_circle_fill_rounded,
-                              size: 18,
-                            ),
+                            onPressed: () => onStartActivity!(session!, material),
+                            icon: const Icon(Icons.play_circle_fill_rounded, size: 18),
                             label: Text(_materialActionLabel(material.kind)),
                           ),
                         if (canOpenDocument)
                           TextButton.icon(
-                            onPressed: () => onOpenLibraryRoute!(
-                              material.documentRoutePath!,
-                            ),
-                            icon: const Icon(
-                              Icons.description_rounded,
-                              size: 18,
-                            ),
+                            onPressed: () => onOpenLibraryRoute!(material.documentRoutePath!),
+                            icon: const Icon(Icons.description_rounded, size: 18),
                             label: Text(_materialActionLabel(material.kind)),
                           ),
                       ],
@@ -307,10 +233,7 @@ class _SessionMaterialGroupPanel extends StatelessWidget {
 }
 
 class _WorkspaceMaterialGroupPanel extends StatelessWidget {
-  const _WorkspaceMaterialGroupPanel({
-    required this.group,
-    required this.onOpenLibraryRoute,
-  });
+  const _WorkspaceMaterialGroupPanel({required this.group, required this.onOpenLibraryRoute});
 
   final WorkspaceMaterialKindGroup group;
   final ValueChanged<String> onOpenLibraryRoute;
@@ -333,11 +256,7 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
           _ContractChipRow(
             children: [
               _ContractChip(domain: 'material_kind', value: group.kind),
-              _PillBadge(
-                text: 'count:${group.materialCount}',
-                color: theme.colorScheme.surfaceContainerHighest,
-                textColor: theme.colorScheme.onSurfaceVariant,
-              ),
+              _PillBadge(text: 'count:${group.materialCount}', color: theme.colorScheme.surfaceContainerHighest, textColor: theme.colorScheme.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 12),
@@ -355,31 +274,20 @@ class _WorkspaceMaterialGroupPanel extends StatelessWidget {
                         const SizedBox(height: 4),
                         _ContractChipRow(
                           children: [
-                            _ContractChip(
-                              domain: 'entity',
-                              value: 'session_material',
-                            ),
-                            _ContractChip(
-                              domain: 'material_kind',
-                              value: material.kind,
-                            ),
+                            _ContractChip(domain: 'entity', value: 'session_material'),
+                            _ContractChip(domain: 'material_kind', value: material.kind),
                             _PillBadge(
                               text: '${material.estimatedMinutes} min',
                               color: theme.colorScheme.surfaceContainerHighest,
                               textColor: theme.colorScheme.onSurfaceVariant,
                             ),
-                            if (material.executable)
-                              _ContractChip(domain: 'status', value: 'live'),
+                            if (material.executable) _ContractChip(domain: 'status', value: 'live'),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  if (material.routePath != null)
-                    TextButton(
-                      onPressed: () => onOpenLibraryRoute(material.routePath!),
-                      child: const Text('Open'),
-                    ),
+                  if (material.routePath != null) TextButton(onPressed: () => onOpenLibraryRoute(material.routePath!), child: const Text('Open')),
                 ],
               ),
             ),
@@ -413,8 +321,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
   final bool viewerCanReadLibrary;
   final bool showDocumentBodies;
   final ValueChanged<String> onOpenLibraryRoute;
-  final Future<void> Function(SessionDetail session, SessionMaterial material)
-  onStartActivity;
+  final Future<void> Function(SessionDetail session, SessionMaterial material) onStartActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -434,10 +341,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
                 child: Icon(icon, size: 20, color: theme.colorScheme.primary),
               ),
               const SizedBox(width: 12),
@@ -447,12 +351,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
                   children: [
                     Text(title, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                    Text(description, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -460,12 +359,7 @@ class _SessionWorkspaceAudiencePanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (groups.isEmpty)
-            Text(
-              emptyState,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
+            Text(emptyState, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
           else
             ...groups.map(
               (group) => _SessionMaterialGroupPanel(
@@ -495,25 +389,16 @@ class _MissingLearnerContentNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.error.withValues(alpha: 0.22),
-        ),
+        border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'This session is missing learner content.',
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
-            ),
-          ),
+          Text('This session is missing learner content.', style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onErrorContainer)),
           const SizedBox(height: 6),
           Text(
             'Ask your parent or teacher to add learner-facing material for this step before you continue.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
           ),
         ],
       ),
@@ -522,13 +407,7 @@ class _MissingLearnerContentNotice extends StatelessWidget {
 }
 
 class _DesktopSidebarButton extends StatelessWidget {
-  const _DesktopSidebarButton({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-    this.level = 0,
-  });
+  const _DesktopSidebarButton({required this.label, required this.icon, required this.selected, required this.onTap, this.level = 0});
 
   final String label;
   final IconData icon;
@@ -549,27 +428,17 @@ class _DesktopSidebarButton extends StatelessWidget {
     final baseColor = switch (level) {
       0 =>
         isDark
-            ? Color.alphaBlend(
-                theme.colorScheme.secondary.withValues(alpha: 0.08),
-                theme.colorScheme.surfaceContainerHigh,
-              )
+            ? Color.alphaBlend(theme.colorScheme.secondary.withValues(alpha: 0.08), theme.colorScheme.surfaceContainerHigh)
             : theme.colorScheme.secondaryContainer.withValues(alpha: 0.82),
       1 => Color.alphaBlend(
         theme.colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.10),
-        isDark
-            ? theme.colorScheme.surfaceContainerLow
-            : theme.colorScheme.surface,
+        isDark ? theme.colorScheme.surfaceContainerLow : theme.colorScheme.surface,
       ),
       2 => Color.alphaBlend(
         theme.colorScheme.tertiary.withValues(alpha: isDark ? 0.08 : 0.10),
-        isDark
-            ? theme.colorScheme.surfaceContainerLow
-            : theme.colorScheme.surface,
+        isDark ? theme.colorScheme.surfaceContainerLow : theme.colorScheme.surface,
       ),
-      _ =>
-        isDark
-            ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.74)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
+      _ => isDark ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.74) : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
     };
     final baseTextColor = switch (level) {
       0 => theme.colorScheme.onSurface,
@@ -582,20 +451,11 @@ class _DesktopSidebarButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(
-          horizontal: 14 - (level > 2 ? 2 : 0),
-          vertical: level >= 2 ? 11 : 13,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: 14 - (level > 2 ? 2 : 0), vertical: level >= 2 ? 11 : 13),
         decoration: BoxDecoration(
-          color: selected
-              ? baseColor.withValues(alpha: 0.88)
-              : baseColor.withValues(alpha: level == 0 ? 0.42 : 0.28),
+          color: selected ? baseColor.withValues(alpha: 0.88) : baseColor.withValues(alpha: level == 0 ? 0.42 : 0.28),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected
-                ? baseTextColor.withValues(alpha: 0.22)
-                : theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
-          ),
+          border: Border.all(color: selected ? baseTextColor.withValues(alpha: 0.22) : theme.colorScheme.outlineVariant.withValues(alpha: 0.72)),
         ),
         child: Row(
           children: [
@@ -612,98 +472,21 @@ class _DesktopSidebarButton extends StatelessWidget {
               width: level >= 2 ? 24 : 28,
               height: level >= 2 ? 24 : 28,
               decoration: BoxDecoration(
-                color: selected
-                    ? accentColor.withValues(alpha: isDark ? 0.16 : 0.10)
-                    : Colors.transparent,
+                color: selected ? accentColor.withValues(alpha: isDark ? 0.16 : 0.10) : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
               alignment: Alignment.center,
-              child: Icon(
-                icon,
-                size: level >= 2 ? 14 : 16,
-                color: selected
-                    ? baseTextColor
-                    : accentColor.withValues(alpha: 0.84),
-              ),
+              child: Icon(icon, size: level >= 2 ? 14 : 16, color: selected ? baseTextColor : accentColor.withValues(alpha: 0.84)),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 label,
-                style:
-                    (level >= 2
-                            ? theme.textTheme.bodySmall
-                            : theme.textTheme.titleSmall)
-                        ?.copyWith(
-                          color: selected ? baseTextColor : null,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                        ),
+                style: (level >= 2 ? theme.textTheme.bodySmall : theme.textTheme.titleSmall)?.copyWith(
+                  color: selected ? baseTextColor : null,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DesktopSessionNavTile extends StatelessWidget {
-  const _DesktopSessionNavTile({
-    required this.title,
-    required this.subtitle,
-    required this.statusLabel,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final String statusLabel;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.10)
-              : theme.colorScheme.surface.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? theme.colorScheme.primary.withValues(alpha: 0.22)
-                : theme.colorScheme.outlineVariant,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _PillBadge(
-              text: statusLabel,
-              color: selected
-                  ? theme.colorScheme.secondaryContainer
-                  : theme.colorScheme.surfaceContainerHighest,
-              textColor: selected
-                  ? theme.colorScheme.onSecondaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
             ),
           ],
         ),
